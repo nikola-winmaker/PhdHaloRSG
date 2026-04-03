@@ -1,69 +1,12 @@
-param(
-    [string]$Distro = "Ubuntu",
-    [string]$RepoWindowsPath = "",
-    [switch]$SkipVerify,
-    [switch]$SkipSmokeBuilds,
-    [switch]$SkipBuildrootDefconfig
-)
-
-$ErrorActionPreference = "Stop"
-
-function Write-Step {
-    param([string]$Message)
-    Write-Host "[STEP] $Message" -ForegroundColor Cyan
-}
-
-function Write-Info {
-    param([string]$Message)
-    Write-Host "[INFO] $Message" -ForegroundColor Green
-}
-
-function Require-Admin {
-    $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw "Run this PowerShell script as Administrator."
-    }
-}
-
-function Convert-ToWslPath {
-    param([Parameter(Mandatory = $true)][string]$WindowsPath)
-
-    $resolved = (Resolve-Path -LiteralPath $WindowsPath).Path
-    $drive = $resolved.Substring(0, 1).ToLowerInvariant()
-    $rest = $resolved.Substring(2).Replace("\", "/")
-    return "/mnt/$drive$rest"
-}
-
-function Invoke-WslBash {
-    param(
-        [Parameter(Mandatory = $true)][string]$Command,
-        [string]$TargetDistro = $Distro
-    )
-
-    & wsl.exe -d $TargetDistro -- bash -lc $Command
-    if ($LASTEXITCODE -ne 0) {
-        throw "WSL command failed: $Command"
-    }
-}
-
-Require-Admin
-
-if ([string]::IsNullOrWhiteSpace($RepoWindowsPath)) {
-    $RepoWindowsPath = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-}
-
-$repoWslPath = Convert-ToWslPath -WindowsPath $RepoWindowsPath
-$bootstrapPath = "$repoWslPath/tools/scripts/.bootstrap_env_embedded.sh"
-
-$embeddedBootstrap = @'
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="${1:?missing repo root}"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 APT_GET="${APT_GET:-apt-get}"
 SUDO=""
 
+INSTALL_HOST_TOOLS=1
+INIT_DEPS=1
 RUN_VERIFY=1
 RUN_SMOKE_BUILDS=1
 RUN_BUILDROOT_DEFCONFIG=1
@@ -81,20 +24,97 @@ OPENSBI_DIR="${ROOT_DIR}/deps/opensbi"
 
 FAILURES=0
 
+usage() {
+    cat <<'EOF'
+Usage: ./tools/scripts/bootstrap_env.sh [options]
+
+Self-contained environment bootstrap for this repo:
+  1. Install host packages
+  2. Initialize dependency workspaces
+  3. Verify toolchain and dependencies
+  4. Run smoke builds
+
+Options:
+  --skip-host-tools         Do not install OS packages or pipx tools
+  --skip-deps               Do not initialize dependency workspaces
+  --skip-verify             Do not run verification
+  --skip-smoke-builds       Verify tools/deps only, skip smoke builds
+  --skip-buildroot-defconfig  Skip Buildroot defconfig validation
+  -h, --help                Show this help text
+
+Environment overrides:
+  APT_GET
+  ZEPHYR_REF
+  FREERTOS_REF
+  BUILDROOT_REF
+  OPENSBI_REF
+  OPENSBI_REMOTE
+EOF
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --skip-host-tools)
+            INSTALL_HOST_TOOLS=0
+            ;;
+        --skip-deps)
+            INIT_DEPS=0
+            ;;
+        --skip-verify)
+            RUN_VERIFY=0
+            ;;
+        --skip-smoke-builds)
+            RUN_SMOKE_BUILDS=0
+            ;;
+        --skip-buildroot-defconfig)
+            RUN_BUILDROOT_DEFCONFIG=0
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "[ERR] Unknown argument: $1"
+            usage
+            exit 1
+            ;;
+    esac
+    shift
+done
+
 if command -v sudo >/dev/null 2>&1 && [ "${EUID}" -ne 0 ]; then
     SUDO="sudo"
 fi
 
-step() { echo "[STEP] $1"; }
-info() { echo "[INFO] $1"; }
-ok() { echo "[OK] $1"; }
-err() { echo "[ERR] $1"; }
-note_ok() { echo "[OK] $1"; }
-note_fail() { echo "[ERR] $1"; FAILURES=$((FAILURES + 1)); }
+step() {
+    echo "[STEP] $1"
+}
+
+info() {
+    echo "[INFO] $1"
+}
+
+ok() {
+    echo "[OK] $1"
+}
+
+err() {
+    echo "[ERR] $1"
+}
+
+note_ok() {
+    echo "[OK] $1"
+}
+
+note_fail() {
+    echo "[ERR] $1"
+    FAILURES=$((FAILURES + 1))
+}
 
 check_cmd() {
     local tool="$1"
     local version_cmd="$2"
+
     if command -v "${tool}" >/dev/null 2>&1; then
         note_ok "${tool}: $(eval "${version_cmd}" 2>/dev/null | head -n 1)"
     else
@@ -105,6 +125,7 @@ check_cmd() {
 check_file() {
     local path="$1"
     local label="$2"
+
     if [ -e "${path}" ]; then
         note_ok "${label}: ${path}"
     else
@@ -115,6 +136,7 @@ check_file() {
 run_smoke() {
     local label="$1"
     shift
+
     info "Smoke test: ${label}"
     if "$@"; then
         note_ok "${label}"
@@ -135,7 +157,7 @@ install_host_tools() {
         exit 1
     fi
 
-    step "Installing host development packages inside WSL Ubuntu"
+    step "Installing host development packages"
     ${SUDO} "${APT_GET}" update
     ${SUDO} "${APT_GET}" install -y \
         binutils-riscv64-unknown-elf \
@@ -216,8 +238,10 @@ setup_zephyr() {
         info "Updating Zephyr modules"
         west update
         west zephyr-export
-        info "Installing Zephyr Python requirements"
-        python3 -m pip install -r zephyr/scripts/requirements.txt
+        if command -v python3 >/dev/null 2>&1; then
+            info "Installing Zephyr Python requirements"
+            python3 -m pip install -r zephyr/scripts/requirements.txt
+        fi
     )
 }
 
@@ -271,7 +295,8 @@ verify_env() {
     step "Verifying Python helpers"
     if python3 -c "import elftools" >/dev/null 2>&1; then
         note_ok "Python module: elftools"
-    elif find "${HOME}/.local/share/pipx/venvs/west" -maxdepth 4 -type d -name elftools >/dev/null 2>&1; then
+    elif [ -d "${HOME}/.local/share/pipx/venvs/west/lib/python3.12/site-packages/elftools" ] || \
+         find "${HOME}/.local/share/pipx/venvs/west" -maxdepth 4 -type d -name elftools >/dev/null 2>&1; then
         note_ok "Python module: elftools (via pipx west venv)"
     else
         note_fail "Python module missing: elftools"
@@ -324,14 +349,18 @@ verify_env() {
 }
 
 main() {
-    install_host_tools
+    if [ "${INSTALL_HOST_TOOLS}" -eq 1 ]; then
+        install_host_tools
+    fi
 
-    step "Initializing dependencies"
-    setup_opensbi
-    setup_zephyr
-    setup_freertos
-    setup_buildroot
-    ok "Dependencies initialized"
+    if [ "${INIT_DEPS}" -eq 1 ]; then
+        step "Initializing dependencies"
+        setup_opensbi
+        setup_zephyr
+        setup_freertos
+        setup_buildroot
+        ok "Dependencies initialized"
+    fi
 
     if [ "${RUN_VERIFY}" -eq 1 ]; then
         verify_env
@@ -340,79 +369,4 @@ main() {
     ok "Environment bootstrap complete"
 }
 
-for arg in "$@"; do
-    case "${arg}" in
-        --skip-verify)
-            RUN_VERIFY=0
-            ;;
-        --skip-smoke-builds)
-            RUN_SMOKE_BUILDS=0
-            ;;
-        --skip-buildroot-defconfig)
-            RUN_BUILDROOT_DEFCONFIG=0
-            ;;
-    esac
-done
-
-main
-'@
-
-Write-Step "Enabling WSL and Virtual Machine Platform features"
-dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart | Out-Host
-dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart | Out-Host
-
-Write-Step "Installing WSL with distro '$Distro'"
-wsl.exe --install -d $Distro
-if ($LASTEXITCODE -ne 0) {
-    throw "wsl --install failed."
-}
-
-Write-Step "Ensuring WSL 2 is the default"
-wsl.exe --set-default-version 2
-if ($LASTEXITCODE -ne 0) {
-    throw "wsl --set-default-version 2 failed."
-}
-
-Write-Step "Checking distro status"
-wsl.exe -l -v | Out-Host
-
-Write-Step "Writing embedded Ubuntu bootstrap into the repo"
-$escapedBootstrap = $embeddedBootstrap.Replace("'", "'\"'\"'")
-Invoke-WslBash -Command "cat > '$bootstrapPath' <<'EOF'
-$escapedBootstrap
-EOF
-chmod +x '$bootstrapPath'"
-
-$bootstrapArgs = @()
-if ($SkipVerify) {
-    $bootstrapArgs += "--skip-verify"
-}
-if ($SkipSmokeBuilds) {
-    $bootstrapArgs += "--skip-smoke-builds"
-}
-if ($SkipBuildrootDefconfig) {
-    $bootstrapArgs += "--skip-buildroot-defconfig"
-}
-
-$argString = ""
-if ($bootstrapArgs.Count -gt 0) {
-    $argString = " " + ($bootstrapArgs -join " ")
-}
-
-Write-Step "Running embedded bootstrap inside WSL Ubuntu"
-Invoke-WslBash -Command "cd '$repoWslPath' && '$bootstrapPath' '$repoWslPath'$argString"
-
-Write-Step "Setting up HALO Python environment"
-$prepareScriptPath = Join-Path $PSScriptRoot "prepare_python.ps1"
-if (Test-Path $prepareScriptPath) {
-    & $prepareScriptPath
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Warning: HALO Python setup failed, but WSL environment is ready." -ForegroundColor Yellow
-    }
-} else {
-    Write-Host "Warning: prepare_python.ps1 not found at $prepareScriptPath" -ForegroundColor Yellow
-}
-
-Write-Info "WSL Ubuntu + repo environment are ready."
-Write-Info "Open Ubuntu with: wsl -d $Distro"
-Write-Info "Then enter the repo: cd '$repoWslPath'"
+main "$@"

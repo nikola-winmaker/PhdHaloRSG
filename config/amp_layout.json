@@ -1,0 +1,48 @@
+{
+  "bootargs": "console=ttyS0 earlycon rdinit=/sbin/init root=/dev/ram rw maxcpus=1",
+  "memory": {
+    "hart0_coord_addr": "0x80000000",
+    "hart0_coord_size": "0x00040000",
+    "hart0_slot_addr": "0x80200000",
+    "hart0_slot_size": "0x00010000",
+    "hart1_addr": "0x80240000",
+    "hart2_addr": "0x80280000",
+    "hart3_addr": "0x802C0000",
+    "small_app_max_size": "0x00040000",
+    "linux_addr": "0x80400000",
+    "linux_max_size": "0x07C00000",
+    "opensbi_bridge_addr": "0x88300000",
+    "opensbi_bridge_max_size": "0x00060000",
+    "linux_initrd_addr": "0x89000000",
+    "linux_dtb_addr": "0x8FE00000",
+    "amp_shared_addr": "0x80340000",
+    "amp_shared_size": "0x000C0000"
+  },
+  "reserved_memory": [
+    {
+      "name": "hart0_mmode",
+      "addr": "0x80000000",
+      "size": "0x00040000"
+    },
+    {
+      "name": "hart1_zephyr",
+      "addr": "0x80240000",
+      "size": "0x00040000"
+    },
+    {
+      "name": "hart2_freertos",
+      "addr": "0x80280000",
+      "size": "0x00040000"
+    },
+    {
+      "name": "hart3_baremetal",
+      "addr": "0x802C0000",
+      "size": "0x00040000"
+    },
+    {
+      "name": "amp_shared",
+      "addr": "0x80340000",
+      "size": "0x000C0000"
+    }
+  ]
+}

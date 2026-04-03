@@ -1,0 +1,10 @@
+/ {
+	chosen {
+		zephyr,sram = &hart1_app_ram;
+	};
+
+	hart1_app_ram: memory@80240000 {
+		device_type = "memory";
+		reg = <0x80240000 0x00040000>;
+	};
+};

@@ -1,0 +1,108 @@
+// Device tree for HiFive Unmatched platform
+// Based on official SiFive HiFive Unmatched device tree
+
+/dts-v1/;
+
+/ {
+    model = "SiFive HiFive Unmatched";
+    compatible = "sifive,hifive-unmatched";
+    
+    #address-cells = <2>;
+    #size-cells = <2>;
+    
+    cpus {
+        #address-cells = <1>;
+        #size-cells = <0>;
+        
+        // Hart 0 - S7 core
+        hart0: cpu@0 {
+            device_type = "cpu";
+            reg = <0>;
+            status = "okay";
+            riscv,isa = "rv64imac";
+            riscv,pmu-event-ctr-mask = <0xfffffff8>;
+            
+            interrupt-controller {
+                #interrupt-cells = <1>;
+                interrupt-controller;
+                compatible = "riscv,cpu-intc";
+            };
+        };
+        
+        // Harts 1-4 - U74 cores
+        hart1: cpu@1 {
+            device_type = "cpu";
+            reg = <1>;
+            status = "okay";
+            riscv,isa = "rv64gc";
+            riscv,pmu-event-ctr-mask = <0xfffffff8>;
+        };
+        
+        hart2: cpu@2 {
+            device_type = "cpu";
+            reg = <2>;
+            status = "okay";
+            riscv,isa = "rv64gc";
+            riscv,pmu-event-ctr-mask = <0xfffffff8>;
+        };
+        
+        hart3: cpu@3 {
+            device_type = "cpu";
+            reg = <3>;
+            status = "okay";
+            riscv,isa = "rv64gc";
+            riscv,pmu-event-ctr-mask = <0xfffffff8>;
+        };
+        
+        hart4: cpu@4 {
+            device_type = "cpu";
+            reg = <4>;
+            status = "okay";
+            riscv,isa = "rv64gc";
+            riscv,pmu-event-ctr-mask = <0xfffffff8>;
+        };
+    };
+    
+    // UART0 - Primary console
+    uart0: serial@10010000 {
+        compatible = "sifive,uart0";
+        reg = <0x0 0x10010000 0x0 0x1000>;
+        interrupts = <0x4>;
+        clock-frequency = <16500000>;
+    };
+    
+    // CLINT (Core Local Interruptor) for inter-hart interrupts
+    clint@2000000 {
+        compatible = "riscv,clint0";
+        reg = <0x0 0x2000000 0x0 0x10000>;
+        interrupts-extended = <
+            &hart0 3 &hart0 7
+            &hart1 3 &hart1 7
+            &hart2 3 &hart2 7
+            &hart3 3 &hart3 7
+            &hart4 3 &hart4 7
+        >;
+    };
+    
+    // PLIC (Platform Level Interrupt Controller)
+    plic: interrupt-controller@c000000 {
+        compatible = "riscv,plic0";
+        reg = <0x0 0xc000000 0x0 0x4000000>;
+        riscv,ndev = <0x35>;
+        interrupts-extended = <
+            &hart0 11 &hart0 9
+            &hart1 11 &hart1 9
+            &hart2 11 &hart2 9
+            &hart3 11 &hart3 9
+            &hart4 11 &hart4 9
+        >;
+        interrupt-controller;
+        #address-cells = <0>;
+        #interrupt-cells = <1>;
+    };
+    
+    memory: memory@80000000 {
+        device_type = "memory";
+        reg = <0x0 0x80000000 0x0 0x10000000>;  // 256MB total
+    };
+};

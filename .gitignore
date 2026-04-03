@@ -1,55 +1,42 @@
-# Prerequisites
-*.d
-
-# Object files
+# Build artifacts
+/build/
+/build-*/
 *.o
-*.ko
-*.obj
-*.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
 *.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
+*.elf
+*.bin
 *.hex
+*.map
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+*.cmake
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+# IDEs
+.vscode/
+!.vscode/
+!.vscode/tasks.json
+.idea/
+*.swp
+*.swo
+*~
 
-# debug information files
-*.dwo
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+/apps/zephyr-hart1/zephyr/build-*/
+/deps/buildroot/output/*
+/deps/buildroot/output/**
+
+!/docs/
+
+# Dependencies (will be cloned separately)
+# /external/  # Uncomment if using external/ for deps

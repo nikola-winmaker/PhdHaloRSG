@@ -1,0 +1,64 @@
+CROSS_COMPILE ?= riscv64-unknown-elf-
+CC := $(CROSS_COMPILE)gcc
+OBJCOPY := $(CROSS_COMPILE)objcopy
+OBJDUMP := $(CROSS_COMPILE)objdump
+
+FREERTOS_KERNEL_DIR ?= ../../deps/freertos/FreeRTOS-Kernel
+PORT_DIR := $(FREERTOS_KERNEL_DIR)/portable/GCC/RISC-V
+PORT_EXT_DIR := $(PORT_DIR)/chip_specific_extensions/RISCV_MTIME_CLINT_no_extensions
+HEAP_DIR := $(FREERTOS_KERNEL_DIR)/portable/MemMang
+
+BUILD_DIR := build
+OBJ_DIR := $(BUILD_DIR)/obj
+BIN_DIR := $(BUILD_DIR)/bin
+
+APP_SOURCES := \
+	src/main.c \
+	src/libc.c \
+	src/uart.c \
+	src/start.S
+
+KERNEL_SOURCES := \
+	$(FREERTOS_KERNEL_DIR)/tasks.c \
+	$(FREERTOS_KERNEL_DIR)/list.c \
+	$(FREERTOS_KERNEL_DIR)/queue.c \
+	$(PORT_DIR)/port.c \
+	$(PORT_DIR)/portASM.S \
+	$(HEAP_DIR)/heap_4.c
+
+SOURCES := $(APP_SOURCES) $(KERNEL_SOURCES)
+OBJECTS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(filter %.c,$(SOURCES))) \
+	$(patsubst %.S,$(OBJ_DIR)/%.o,$(filter %.S,$(SOURCES)))
+
+CFLAGS := -march=rv64imafdc -mabi=lp64d -mcmodel=medany -msmall-data-limit=0 \
+	-nostdlib -ffreestanding -fno-builtin -Wall -Wextra -g \
+	-I. -Isrc -I$(FREERTOS_KERNEL_DIR)/include -I$(PORT_DIR)
+
+ASFLAGS := $(CFLAGS) -I$(PORT_EXT_DIR)
+LDFLAGS := -nostdlib -Wl,-T,linker.ld -Wl,-Map,$(BIN_DIR)/app2.map
+LDLIBS := -lgcc
+
+.PHONY: all app2 clean
+
+all: app2
+
+app2: $(BIN_DIR)/app2.elf $(BIN_DIR)/app2.bin
+
+$(OBJ_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/%.o: %.S
+	@mkdir -p $(dir $@)
+	$(CC) $(ASFLAGS) -c $< -o $@
+
+$(BIN_DIR)/app2.elf: $(OBJECTS)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(OBJECTS) $(LDFLAGS) $(LDLIBS) -o $@
+	@$(OBJDUMP) -h $@
+
+$(BIN_DIR)/app2.bin: $(BIN_DIR)/app2.elf
+	$(OBJCOPY) -O binary $< $@
+
+clean:
+	rm -rf $(BUILD_DIR)
