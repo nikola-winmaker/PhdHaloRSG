@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "AMP: 1 clean build all + run",
+      "label": "Clean build all & Run",
       "type": "shell",
       "command": "make qemu-hart0-mmode",
       "options": {
@@ -20,9 +20,9 @@
       "problemMatcher": []
     },
     {
-      "label": "Hart1 Zephyr build & run",
+      "label": "Hart1 Zephyr build",
       "type": "shell",
-      "command": "make zephyr-hart1-fast && make qemu-hart0-mmode-run",
+      "command": "make zephyr-hart1-fast",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -34,9 +34,9 @@
       "problemMatcher": []
     },
     {
-      "label": "Hart2 FreeRTOS build & run",
+      "label": "Hart2 FreeRTOS build",
       "type": "shell",
-      "command": "make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=${workspaceFolder}/deps/freertos/FreeRTOS-Kernel && make qemu-hart0-mmode-run",
+      "command": "make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=${workspaceFolder}/deps/freertos/FreeRTOS-Kernel",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -48,9 +48,9 @@
       "problemMatcher": []
     },
     {
-      "label": "Hart3 BM build & run",
+      "label": "Hart3 BM build",
       "type": "shell",
-      "command": "make -C apps/bare-hart3 app3 && make qemu-hart0-mmode-run",
+      "command": "make -C apps/bare-hart3 app3",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -62,9 +62,9 @@
       "problemMatcher": []
     },
     {
-      "label": "Hart4 Linux build & run",
+      "label": "Hart4 Linux build",
       "type": "shell",
-      "command": "make buildroot-linux-fast && make qemu-hart0-mmode-run",
+      "command": "make buildroot-linux-fast",
       "options": {
         "cwd": "${workspaceFolder}"
       },
