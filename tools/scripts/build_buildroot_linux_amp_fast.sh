@@ -6,7 +6,7 @@ WS_DIR="${ROOT_DIR}/deps/buildroot"
 BUILDROOT_DIR="${WS_DIR}/buildroot"
 OUTPUT_DIR="${BUILDROOT_OUTPUT_DIR:-${HOME}/risc5_buildroot_output}"
 EXTERNAL_DIR="${WS_DIR}/external"
-POST_BUILD_SCRIPT="${ROOT_DIR}/apps/linux-hart0/buildroot/post-build.sh"
+POST_BUILD_SCRIPT="${EXTERNAL_DIR}/board/risc5_eval/post-build.sh"
 TARGET_DIR="${OUTPUT_DIR}/target"
 HOST_DIR="${OUTPUT_DIR}/host"
 
@@ -36,6 +36,7 @@ fi
 
 if [ ! -x "${POST_BUILD_SCRIPT}" ]; then
     echo "[ERR] Missing Linux app post-build script: ${POST_BUILD_SCRIPT}"
+    echo "      Run: make buildroot-setup"
     exit 1
 fi
 
