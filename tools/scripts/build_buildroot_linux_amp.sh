@@ -32,8 +32,16 @@ for tool in cpio unzip; do
     fi
 done
 
-if [ ! -f "${DEFCONFIG_SRC}" ]; then
-    echo "[ERR] Missing Buildroot defconfig scaffold: ${DEFCONFIG_SRC}"
+if [ ! -d "${EXTERNAL_DIR}" ] || [ ! -f "${DEFCONFIG_SRC}" ]; then
+    echo "[INFO] Buildroot scaffold is incomplete; seeding repo-local Buildroot assets"
+    bash "${ROOT_DIR}/tools/scripts/setup_buildroot_deps.sh"
+fi
+
+if [ ! -d "${EXTERNAL_DIR}" ] || [ ! -f "${DEFCONFIG_SRC}" ]; then
+    echo "[ERR] Missing Buildroot scaffold under ${WS_DIR}"
+    echo "      Expected:"
+    echo "        - ${EXTERNAL_DIR}"
+    echo "        - ${DEFCONFIG_SRC}"
     exit 1
 fi
 

@@ -299,6 +299,12 @@ setup_freertos() {
 
 setup_buildroot() {
     local buildroot_dir="${BUILDROOT_WS_DIR}/buildroot"
+    local external_dir="${BUILDROOT_WS_DIR}/external"
+    local defconfig_path="${BUILDROOT_WS_DIR}/risc5_eval_linux_amp_defconfig"
+    local app_buildroot_dir="${ROOT_DIR}/apps/linux-hart0/buildroot"
+    local app_rootfs_overlay_dir="${ROOT_DIR}/apps/linux-hart0/rootfs-overlay"
+    local board_dir="${external_dir}/board/risc5_eval"
+    local overlay_dir="${board_dir}/rootfs-overlay/etc/init.d"
     mkdir -p "${BUILDROOT_WS_DIR}"
 
     if [ ! -d "${buildroot_dir}/.git" ]; then
@@ -310,6 +316,46 @@ setup_buildroot() {
         git -C "${buildroot_dir}" checkout "${BUILDROOT_REF}"
         git -C "${buildroot_dir}" pull --ff-only origin "${BUILDROOT_REF}"
     fi
+
+    info "Seeding Buildroot project scaffold"
+    mkdir -p "${overlay_dir}"
+
+    cat > "${external_dir}/external.desc" <<'EOF'
+name: RISC5_EVAL
+desc: RISC5 Eval Linux AMP external tree
+EOF
+
+    cat > "${external_dir}/Config.in" <<'EOF'
+comment "RISC5 Eval external options"
+EOF
+
+    cat > "${external_dir}/external.mk" <<'EOF'
+# RISC5 Eval Buildroot external tree
+EOF
+
+    install -m 0644 "${app_buildroot_dir}/device_table.txt" "${board_dir}/device_table.txt"
+    install -m 0755 "${app_buildroot_dir}/post-build.sh" "${board_dir}/post-build.sh"
+    install -m 0755 \
+        "${app_rootfs_overlay_dir}/etc/init.d/S90amp-hart0-app" \
+        "${overlay_dir}/S90amp-hart0-app"
+
+    cat > "${defconfig_path}" <<'EOF'
+BR2_riscv=y
+BR2_RISCV_64=y
+BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
+BR2_TARGET_GENERIC_HOSTNAME="risc5-amp"
+BR2_TARGET_GENERIC_ISSUE="RISC5 Eval Linux AMP"
+BR2_TARGET_GENERIC_GETTY_PORT="ttyS0"
+BR2_TARGET_ROOTFS_CPIO=y
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_RISC5_EVAL_PATH)/board/risc5_eval/rootfs-overlay"
+BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_RISC5_EVAL_PATH)/board/risc5_eval/post-build.sh"
+BR2_ROOTFS_DEVICE_TABLE="$(BR2_EXTERNAL_RISC5_EVAL_PATH)/board/risc5_eval/device_table.txt"
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="6.6.32"
+BR2_LINUX_KERNEL_USE_ARCH_DEFAULT_CONFIG=y
+BR2_LINUX_KERNEL_IMAGE=y
+EOF
 }
 
 verify_env() {
