@@ -206,7 +206,9 @@ buildroot-linux:
 
 buildroot-linux-fast:
 	bash ./tools/scripts/build_buildroot_linux_amp_fast.sh
-rt2 apps/bare-hart3 apps/bare-hart4; do \
+
+apps-zephyr: zephyr-hart1
+	for d in apps/freertos-hart2 apps/bare-hart3 apps/bare-hart4; do \
 		(cd $$d && make clean && make); \
 	done
 
