@@ -35,6 +35,9 @@ __pycache__/
 /apps/zephyr-hart1/zephyr/build-*/
 /deps/buildroot/output/*
 /deps/buildroot/output/**
+deps/buildroot/*
+deps/zephyr/*
+boot/hart0/build/*
 
 !/docs/
 

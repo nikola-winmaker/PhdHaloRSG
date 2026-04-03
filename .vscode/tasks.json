@@ -1,0 +1,107 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "AMP: 1 clean build all + run",
+      "type": "shell",
+      "command": "make qemu-hart0-mmode",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Hart1 Zephyr build & run",
+      "type": "shell",
+      "command": "make zephyr-hart1-fast && make qemu-hart0-mmode-run",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Hart2 FreeRTOS build & run",
+      "type": "shell",
+      "command": "make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=${workspaceFolder}/deps/freertos/FreeRTOS-Kernel && make qemu-hart0-mmode-run",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Hart3 BM build & run",
+      "type": "shell",
+      "command": "make -C apps/bare-hart3 app3 && make qemu-hart0-mmode-run",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Hart4 Linux build & run",
+      "type": "shell",
+      "command": "make buildroot-linux-fast && make qemu-hart0-mmode-run",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "OpenSBI Build",
+      "type": "shell",
+      "command": "make qemu-hart0-mmode",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "QEMU Sys Run",
+      "type": "shell",
+      "command": "make qemu-hart0-mmode-run",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
