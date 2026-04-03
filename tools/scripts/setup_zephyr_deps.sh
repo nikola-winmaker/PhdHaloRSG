@@ -18,6 +18,21 @@ if ! command -v west >/dev/null 2>&1; then
     exit 1
 fi
 
+install_zephyr_python_requirements() {
+    local requirements_file="$1"
+
+    if command -v pipx >/dev/null 2>&1; then
+        echo "[INFO] Installing Zephyr Python requirements via pipx..."
+        pipx runpip west install -r "${requirements_file}"
+    elif command -v python3 >/dev/null 2>&1; then
+        echo "[INFO] Installing Zephyr Python requirements via python3 -m pip..."
+        python3 -m pip install -r "${requirements_file}"
+    else
+        echo "[ERR] Neither pipx nor python3 is available to install Zephyr Python requirements"
+        exit 1
+    fi
+}
+
 mkdir -p "${WS_DIR}"
 
 if [ ! -d "${WS_DIR}/.west" ]; then
@@ -30,9 +45,6 @@ echo "[INFO] Updating Zephyr modules..."
 west update
 west zephyr-export
 
-if command -v python3 >/dev/null 2>&1; then
-    echo "[INFO] Installing Zephyr Python requirements..."
-    python3 -m pip install -r zephyr/scripts/requirements.txt
-fi
+install_zephyr_python_requirements zephyr/scripts/requirements.txt
 
 echo "[OK] Zephyr workspace ready: ${WS_DIR}"

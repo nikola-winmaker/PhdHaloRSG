@@ -146,6 +146,21 @@ run_smoke() {
     fi
 }
 
+install_zephyr_python_requirements() {
+    local requirements_file="$1"
+
+    if command -v pipx >/dev/null 2>&1 && command -v west >/dev/null 2>&1; then
+        info "Installing Zephyr Python requirements via pipx"
+        pipx runpip west install -r "${requirements_file}"
+    elif command -v python3 >/dev/null 2>&1; then
+        info "Installing Zephyr Python requirements via python3 -m pip"
+        python3 -m pip install -r "${requirements_file}"
+    else
+        err "Neither pipx nor python3 is available to install Zephyr Python requirements"
+        exit 1
+    fi
+}
+
 gitlink_commit() {
     if git -C "${ROOT_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         git -C "${ROOT_DIR}" ls-tree HEAD deps/opensbi 2>/dev/null | awk '{print $3}'
@@ -255,10 +270,7 @@ setup_zephyr() {
         info "Updating Zephyr modules"
         west update
         west zephyr-export
-        if command -v python3 >/dev/null 2>&1; then
-            info "Installing Zephyr Python requirements"
-            python3 -m pip install -r zephyr/scripts/requirements.txt
-        fi
+        install_zephyr_python_requirements zephyr/scripts/requirements.txt
     )
 }
 
