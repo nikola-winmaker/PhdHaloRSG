@@ -9,14 +9,6 @@ LAYOUT_TOOL="${ROOT_DIR}/tools/scripts/amp_layout.py"
 PRISTINE_MODE="${ZEPHYR_PRISTINE:-always}"
 TARGET_MODE="${ZEPHYR_HART1_TARGET:-qemu}"
 GENERATOR="${ZEPHYR_CMAKE_GENERATOR:-Ninja}"
-PIPX_BIN_DIR="${HOME}/.local/bin"
-
-if [ -x "${PIPX_BIN_DIR}/west" ]; then
-    case ":${PATH}:" in
-        *":${PIPX_BIN_DIR}:"*) ;;
-        *) export PATH="${PIPX_BIN_DIR}:${PATH}" ;;
-    esac
-fi
 
 case "${TARGET_MODE}" in
     qemu)
@@ -36,6 +28,7 @@ BUILD_DIR="${APP_DIR}/build-${TARGET_MODE}"
 OVERLAY_DIR="${ROOT_DIR}/apps/zephyr-hart1/build/generated"
 OVERLAY_FILE="${OVERLAY_DIR}/${BOARD}.overlay"
 SYSROOT_CMAKE_ARG=()
+CMAKE_EXTRA_ARGS=()
 
 if [ -z "${ZEPHYR_TOOLCHAIN_VARIANT:-}" ]; then
     if command -v riscv64-unknown-elf-gcc >/dev/null 2>&1; then
@@ -54,6 +47,17 @@ fi
 
 if [ -n "${SYSROOT_DIR:-}" ]; then
     SYSROOT_CMAKE_ARG=(-DSYSROOT_DIR="${SYSROOT_DIR}")
+fi
+
+if command -v ccache >/dev/null 2>&1; then
+    export CCACHE_BASEDIR="${ROOT_DIR}"
+    export CCACHE_DIR="${CCACHE_DIR:-${HOME}/.cache/ccache}"
+    export CCACHE_SLOPPINESS="${CCACHE_SLOPPINESS:-file_macro,time_macros}"
+    CMAKE_EXTRA_ARGS+=(
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+    )
+    echo "[INFO] Using ccache from: $(command -v ccache)"
 fi
 
 OBJCOPY="${CROSS_COMPILE:-}objcopy"
@@ -99,13 +103,20 @@ echo "[INFO] Using CMake generator: ${GENERATOR}"
 echo "[INFO] Using build directory: ${BUILD_DIR}"
 mkdir -p "${OVERLAY_DIR}"
 
+TMP_OVERLAY_FILE="${OVERLAY_FILE}.tmp"
 if [ "${TARGET_MODE}" = "qemu" ]; then
-    python3 "${LAYOUT_TOOL}" zephyr-overlay --target qemu > "${OVERLAY_FILE}"
+    python3 "${LAYOUT_TOOL}" zephyr-overlay --target qemu > "${TMP_OVERLAY_FILE}"
 else
-    python3 "${LAYOUT_TOOL}" zephyr-overlay --target hw > "${OVERLAY_FILE}"
+    python3 "${LAYOUT_TOOL}" zephyr-overlay --target hw > "${TMP_OVERLAY_FILE}"
 fi
 
-west build -p "${PRISTINE_MODE}" -b "${BOARD}" "${APP_DIR}" -d "${BUILD_DIR}" -- -DDTC_OVERLAY_FILE="${OVERLAY_FILE}" "${SYSROOT_CMAKE_ARG[@]}"
+if [ -f "${OVERLAY_FILE}" ] && cmp -s "${TMP_OVERLAY_FILE}" "${OVERLAY_FILE}"; then
+    rm -f "${TMP_OVERLAY_FILE}"
+else
+    mv -f "${TMP_OVERLAY_FILE}" "${OVERLAY_FILE}"
+fi
+
+west build -p "${PRISTINE_MODE}" -b "${BOARD}" "${APP_DIR}" -d "${BUILD_DIR}" -- -DDTC_OVERLAY_FILE="${OVERLAY_FILE}" "${SYSROOT_CMAKE_ARG[@]}" "${CMAKE_EXTRA_ARGS[@]}"
 
 mkdir -p "${OUT_DIR}"
 cp -f "${BUILD_DIR}/zephyr/zephyr.elf" "${OUT_DIR}/app1.elf"
