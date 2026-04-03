@@ -1,4 +1,4 @@
-.PHONY: all clean help qemu-hart0-mmode-help qemu-hart0-mmode-prompt cmake build hart0 hart0-qemu-preload hart0-direct-mmode opensbi-setup opensbi-fw-dynamic opensbi-fw-jump hart1 hart2 hart3 hart4 apps apps-clean build-all qemu qemu-fast qemu-linux-amp qemu-hart0-loader qemu-hart0-preload qemu-hart0-preload-run qemu-hart0-mmode qemu-hart0-mmode-run amp-clean-build dev-env bootstrap-env setup-all verify-toolchain verify-toolchain-full wsl-setup-help zephyr-setup zephyr-hart1 zephyr-hart1-fast zephyr-hart1-hw freertos-setup freertos-hart2 freertos-hart2-smode buildroot-setup buildroot-linux apps-zephyr apps-zephyr-fast apps-zephyr-hw build-all-zephyr build-all-zephyr-fast build-all-zephyr-hw qemu-zephyr
+.PHONY: all clean help qemu-hart0-mmode-help qemu-hart0-mmode-prompt cmake build hart0 hart0-qemu-preload hart0-direct-mmode opensbi-setup opensbi-fw-dynamic opensbi-fw-jump hart1 hart2 hart3 hart4 apps apps-clean build-all qemu qemu-fast qemu-linux-amp qemu-hart0-loader qemu-hart0-preload qemu-hart0-preload-run qemu-hart0-mmode qemu-hart0-mmode-run amp-clean-build dev-env bootstrap-env setup-all verify-toolchain verify-toolchain-full wsl-setup-help zephyr-setup zephyr-hart1 zephyr-hart1-fast zephyr-hart1-hw freertos-setup freertos-hart2 freertos-hart2-smode buildroot-setup buildroot-linux buildroot-linux-fast apps-zephyr apps-zephyr-fast apps-zephyr-hw build-all-zephyr build-all-zephyr-fast build-all-zephyr-hw qemu-zephyr
 
 # Default target
 all: cmake build
@@ -51,6 +51,7 @@ help:
 	@echo "  make freertos-hart2-smode - Build Hart 2 OpenSBI S-mode bring-up variant"
 	@echo "  make buildroot-setup - Initialize Buildroot workspace in deps/buildroot"
 	@echo "  make buildroot-linux - Build Linux AMP artifacts through Buildroot with a sanitized PATH"
+	@echo "  make buildroot-linux-fast - Rebuild only the Linux app/rootfs image using the existing Buildroot output"
 	@echo "  make build-all-zephyr - Build Hart0 + Zephyr app1 + app2..app4"
 	@echo "  make qemu-zephyr - build-all-zephyr then run QEMU"
 	@echo "  make clean      - Clean build artifacts"
@@ -77,7 +78,7 @@ qemu-hart0-mmode-help:
 	@echo "     make qemu-hart0-mmode-run"
 	@echo ""
 	@echo "  5. Linux / Buildroot app changed"
-	@echo "     make buildroot-linux"
+	@echo "     make buildroot-linux-fast"
 	@echo "     make qemu-hart0-mmode-run"
 	@echo ""
 	@echo "  6. Hart0 / OpenSBI / memory layout / boot flow changed"
@@ -99,23 +100,16 @@ qemu-hart0-mmode-prompt:
 	@echo "  6. Hart0 / OpenSBI / memory layout / boot flow changed"
 	@echo "  7. Nothing changed, just rerun QEMU"
 	@echo ""
-	@run_or_full() { \
-		if $(MAKE) qemu-hart0-mmode-run; then \
-			return 0; \
-		fi; \
-		echo "[INFO] Fast rerun prerequisites are missing or stale; falling back to full build."; \
-		$(MAKE) qemu-hart0-mmode; \
-	}; \
-	read -p "Enter choice [1-7]: " choice; \
+	@read -p "Enter choice [1-7]: " choice; \
 	case "$$choice" in \
 		1) echo "Running: make qemu-hart0-mmode"; $(MAKE) qemu-hart0-mmode ;; \
-		2) echo "Running: make zephyr-hart1-fast && make qemu-hart0-mmode-run"; $(MAKE) zephyr-hart1-fast && run_or_full ;; \
+		2) echo "Running: make zephyr-hart1-fast && make qemu-hart0-mmode-run"; $(MAKE) zephyr-hart1-fast && $(MAKE) qemu-hart0-mmode-run ;; \
 		3) echo "Running: make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=$(CURDIR)/deps/freertos/FreeRTOS-Kernel && make qemu-hart0-mmode-run"; \
-			$(MAKE) -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=$(CURDIR)/deps/freertos/FreeRTOS-Kernel && run_or_full ;; \
-		4) echo "Running: make -C apps/bare-hart3 app3 && make qemu-hart0-mmode-run"; $(MAKE) -C apps/bare-hart3 app3 && run_or_full ;; \
-		5) echo "Running: make buildroot-linux && make qemu-hart0-mmode-run"; $(MAKE) buildroot-linux && run_or_full ;; \
+			$(MAKE) -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=$(CURDIR)/deps/freertos/FreeRTOS-Kernel && $(MAKE) qemu-hart0-mmode-run ;; \
+		4) echo "Running: make -C apps/bare-hart3 app3 && make qemu-hart0-mmode-run"; $(MAKE) -C apps/bare-hart3 app3 && $(MAKE) qemu-hart0-mmode-run ;; \
+		5) echo "Running: make buildroot-linux-fast && make qemu-hart0-mmode-run"; $(MAKE) buildroot-linux-fast && $(MAKE) qemu-hart0-mmode-run ;; \
 		6) echo "Running: make qemu-hart0-mmode"; $(MAKE) qemu-hart0-mmode ;; \
-		7) echo "Running: make qemu-hart0-mmode-run"; run_or_full ;; \
+		7) echo "Running: make qemu-hart0-mmode-run"; $(MAKE) qemu-hart0-mmode-run ;; \
 		*) echo "Invalid choice: $$choice"; echo "Use a number from 1 to 7."; exit 1 ;; \
 	esac
 
@@ -210,14 +204,9 @@ buildroot-setup:
 buildroot-linux:
 	bash ./tools/scripts/build_buildroot_linux_amp.sh
 
-freertos-hart2:
-	bash ./tools/scripts/build_freertos_hart2.sh
-
-freertos-hart2-smode:
-	FREERTOS_HART2_MODE=smode bash ./tools/scripts/build_freertos_hart2.sh
-
-apps-zephyr: zephyr-hart1
-	for d in apps/freertos-hart2 apps/bare-hart3 apps/bare-hart4; do \
+buildroot-linux-fast:
+	bash ./tools/scripts/build_buildroot_linux_amp_fast.sh
+rt2 apps/bare-hart3 apps/bare-hart4; do \
 		(cd $$d && make clean && make); \
 	done
 
