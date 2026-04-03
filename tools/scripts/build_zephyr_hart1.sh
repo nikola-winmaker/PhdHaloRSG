@@ -9,6 +9,14 @@ LAYOUT_TOOL="${ROOT_DIR}/tools/scripts/amp_layout.py"
 PRISTINE_MODE="${ZEPHYR_PRISTINE:-always}"
 TARGET_MODE="${ZEPHYR_HART1_TARGET:-qemu}"
 GENERATOR="${ZEPHYR_CMAKE_GENERATOR:-Ninja}"
+PIPX_BIN_DIR="${HOME}/.local/bin"
+
+if [ -x "${PIPX_BIN_DIR}/west" ]; then
+    case ":${PATH}:" in
+        *":${PIPX_BIN_DIR}:"*) ;;
+        *) export PATH="${PIPX_BIN_DIR}:${PATH}" ;;
+    esac
+fi
 
 case "${TARGET_MODE}" in
     qemu)

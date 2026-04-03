@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 APT_GET="${APT_GET:-apt-get}"
 SUDO=""
+PIPX_BIN_DIR="${HOME}/.local/bin"
 
 INSTALL_HOST_TOOLS=1
 INIT_DEPS=1
@@ -183,9 +184,18 @@ install_host_tools() {
         exit 1
     fi
 
+    case ":${PATH}:" in
+        *":${PIPX_BIN_DIR}:"*) ;;
+        *) export PATH="${PIPX_BIN_DIR}:${PATH}" ;;
+    esac
+
     info "Ensuring west is installed"
     if ! command -v west >/dev/null 2>&1; then
         pipx install west
+        case ":${PATH}:" in
+            *":${PIPX_BIN_DIR}:"*) ;;
+            *) export PATH="${PIPX_BIN_DIR}:${PATH}" ;;
+        esac
     fi
 
     info "Ensuring pyelftools is available in the west environment"
@@ -221,6 +231,13 @@ setup_opensbi() {
 }
 
 setup_zephyr() {
+    if [ -x "${PIPX_BIN_DIR}/west" ]; then
+        case ":${PATH}:" in
+            *":${PIPX_BIN_DIR}:"*) ;;
+            *) export PATH="${PIPX_BIN_DIR}:${PATH}" ;;
+        esac
+    fi
+
     if ! command -v west >/dev/null 2>&1; then
         err "west not found. Install host tools first."
         exit 1

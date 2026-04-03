@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 INSTALL_DEPS=0
 APT_GET="${APT_GET:-apt-get}"
 SUDO=""
+PIPX_BIN_DIR="${HOME}/.local/bin"
 
 usage() {
     cat <<'EOF'
@@ -85,9 +86,18 @@ if ! command -v pipx >/dev/null 2>&1; then
     exit 1
 fi
 
+case ":${PATH}:" in
+    *":${PIPX_BIN_DIR}:"*) ;;
+    *) export PATH="${PIPX_BIN_DIR}:${PATH}" ;;
+esac
+
 echo "[INFO] Ensuring west is installed..."
 if ! command -v west >/dev/null 2>&1; then
     pipx install west
+    case ":${PATH}:" in
+        *":${PIPX_BIN_DIR}:"*) ;;
+        *) export PATH="${PIPX_BIN_DIR}:${PATH}" ;;
+    esac
 fi
 
 echo "[INFO] Ensuring pyelftools is available for west..."

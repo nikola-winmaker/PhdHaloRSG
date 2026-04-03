@@ -4,6 +4,14 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 WS_DIR="${ROOT_DIR}/deps/zephyr"
 ZEPHYR_REF="${ZEPHYR_REF:-v3.7.0}"
+PIPX_BIN_DIR="${HOME}/.local/bin"
+
+if [ -x "${PIPX_BIN_DIR}/west" ]; then
+    case ":${PATH}:" in
+        *":${PIPX_BIN_DIR}:"*) ;;
+        *) export PATH="${PIPX_BIN_DIR}:${PATH}" ;;
+    esac
+fi
 
 if ! command -v west >/dev/null 2>&1; then
     echo "[ERR] west not found. Install with: pip3 install --user west"
