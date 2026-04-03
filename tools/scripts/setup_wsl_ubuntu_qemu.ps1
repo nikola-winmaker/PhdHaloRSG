@@ -92,6 +92,7 @@ ok() { echo "[OK] $1"; }
 err() { echo "[ERR] $1"; }
 note_ok() { echo "[OK] $1"; }
 note_fail() { echo "[ERR] $1"; FAILURES=$((FAILURES + 1)); }
+note_skip() { echo "[INFO] $1"; }
 
 check_cmd() {
     local tool="$1"
@@ -122,6 +123,10 @@ run_smoke() {
     else
         note_fail "${label}"
     fi
+}
+
+has_buildroot_scaffold() {
+    [ -d "${BUILDROOT_WS_DIR}/external" ] && [ -f "${BUILDROOT_WS_DIR}/risc5_eval_linux_amp_defconfig" ]
 }
 
 install_zephyr_python_requirements() {
@@ -307,7 +312,12 @@ verify_env() {
     check_file "${ZEPHYR_WS_DIR}/zephyr/west.yml" "Zephyr source tree"
     check_file "${FREERTOS_WS_DIR}/FreeRTOS-Kernel/README.md" "FreeRTOS kernel"
     check_file "${BUILDROOT_WS_DIR}/buildroot/Makefile" "Buildroot tree"
-    check_file "${BUILDROOT_WS_DIR}/risc5_eval_linux_amp_defconfig" "Buildroot defconfig"
+    if has_buildroot_scaffold; then
+        note_ok "Buildroot external scaffold: ${BUILDROOT_WS_DIR}/external"
+        note_ok "Buildroot defconfig: ${BUILDROOT_WS_DIR}/risc5_eval_linux_amp_defconfig"
+    else
+        note_skip "Buildroot external scaffold is not present in this repo; skipping defconfig verification"
+    fi
     check_file "${ROOT_DIR}/config/amp_layout.json" "AMP layout config"
 
     if [ "${RUN_SMOKE_BUILDS}" -eq 1 ]; then
@@ -326,7 +336,7 @@ verify_env() {
         local verify_out="/tmp/risc5_buildroot_verify"
 
         step "Validating Buildroot defconfig"
-        if [ -d "${buildroot_dir}" ] && [ -d "${external_dir}" ]; then
+        if [ -d "${buildroot_dir}" ] && has_buildroot_scaffold; then
             cp -f "${BUILDROOT_WS_DIR}/${defconfig_name}" "${defconfig_dst}"
             rm -rf "${verify_out}"
             if make -C "${buildroot_dir}" BR2_EXTERNAL="${external_dir}" O="${verify_out}" "${defconfig_name}"; then
@@ -335,7 +345,7 @@ verify_env() {
                 note_fail "Buildroot defconfig"
             fi
         else
-            note_fail "Buildroot directories are not ready for defconfig validation"
+            note_skip "Buildroot external scaffold is not present in this repo; skipping defconfig validation"
         fi
     fi
 
