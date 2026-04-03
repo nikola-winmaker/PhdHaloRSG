@@ -9,6 +9,7 @@ LAYOUT_TOOL="${ROOT_DIR}/tools/scripts/amp_layout.py"
 PRISTINE_MODE="${ZEPHYR_PRISTINE:-always}"
 TARGET_MODE="${ZEPHYR_HART1_TARGET:-qemu}"
 GENERATOR="${ZEPHYR_CMAKE_GENERATOR:-Ninja}"
+FAST_PATH_MODE="${ZEPHYR_FAST_PATH:-auto}"
 
 case "${TARGET_MODE}" in
     qemu)
@@ -116,7 +117,23 @@ else
     mv -f "${TMP_OVERLAY_FILE}" "${OVERLAY_FILE}"
 fi
 
-west build -p "${PRISTINE_MODE}" -b "${BOARD}" "${APP_DIR}" -d "${BUILD_DIR}" -- -DDTC_OVERLAY_FILE="${OVERLAY_FILE}" "${SYSROOT_CMAKE_ARG[@]}" "${CMAKE_EXTRA_ARGS[@]}"
+USE_NINJA_FAST_PATH=0
+if [ "${FAST_PATH_MODE}" != "off" ]; then
+    if [ "${PRISTINE_MODE}" = "never" ]; then
+        if [ "${GENERATOR}" = "Ninja" ]; then
+            if [ -f "${BUILD_DIR}/build.ninja" ]; then
+                USE_NINJA_FAST_PATH=1
+            fi
+        fi
+    fi
+fi
+
+if [ "${USE_NINJA_FAST_PATH}" = "1" ]; then
+    echo "[INFO] Using direct Ninja fast path"
+    ninja -C "${BUILD_DIR}"
+else
+    west build -p "${PRISTINE_MODE}" -b "${BOARD}" "${APP_DIR}" -d "${BUILD_DIR}" -- -DDTC_OVERLAY_FILE="${OVERLAY_FILE}" "${SYSROOT_CMAKE_ARG[@]}" "${CMAKE_EXTRA_ARGS[@]}"
+fi
 
 mkdir -p "${OUT_DIR}"
 cp -f "${BUILD_DIR}/zephyr/zephyr.elf" "${OUT_DIR}/app1.elf"
