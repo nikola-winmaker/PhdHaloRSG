@@ -225,12 +225,10 @@ install_host_tools() {
         esac
     fi
 
-    info "Ensuring pyelftools is available in the west environment"
-    if pipx inject west pyelftools 2>/dev/null; then
-        ok "pyelftools injected into west environment"
-    else
-        err "Failed to inject pyelftools into west environment"
-        exit 1
+    info "Ensuring pyelftools is available globally"
+    if ! command -v readelf.py >/dev/null 2>&1; then
+        info "Installing pyelftools globally via pipx"
+        ${SUDO} pipx install pyelftools
     fi
 
     ok "Host tools installed"
@@ -390,10 +388,8 @@ verify_env() {
     check_cmd riscv64-linux-gnu-gcc "riscv64-linux-gnu-gcc --version"
 
     step "Verifying Python helpers"
-    # Check if pyelftools is available in pipx west environment
-    PIPX_WEST_SITE="${HOME}/.local/share/pipx/venvs/west/lib/python3.12/site-packages"
-    if [ -d "${PIPX_WEST_SITE}/elftools" ]; then
-        note_ok "Python module: pyelftools (via pipx west)"
+    if command -v readelf.py >/dev/null 2>&1; then
+        note_ok "Python module: pyelftools (global)"
     else
         note_fail "Python module missing: pyelftools"
     fi
