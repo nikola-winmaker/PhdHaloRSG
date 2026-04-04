@@ -83,44 +83,20 @@ HiFive Unmatched provides 256MB of RAM (0x80000000–0x8FFFFFFF). Default alloca
 | 3    | U74  | 0x800C_0000   | 256K    | Bare-metal app 1              |
 | 4    | U74  | 0x8010_0000   | 256K    | Bare-metal app 2              |
 
-## Quick Start
 
-### One-Command Setup
+### Dockerized Dev Environment
+
+Docker workflow:
+
+```bash
+docker compose build dev
+```
+
+Inside the Docker container shell run:
 
 ```bash
 make bootstrap-env
 ```
-
-or, with the older wrapper entry point:
-
-```bash
-make setup-all
-```
-
-`make bootstrap-env` is the single-file bootstrap entry point. It installs the host packages used by the repo, initializes OpenSBI/Zephyr/FreeRTOS/Buildroot under `deps/`, and runs verification with smoke builds.
-
-### Dockerized Dev Environment
-
-If you want everyone who clones the repo to build with the same toolchain, use the pinned Docker workflow:
-
-```bash
-make docker-build
-make docker-bootstrap
-make docker-shell
-```
-
-From inside the container shell, run the normal repo targets such as:
-
-```bash
-make build-all
-make qemu
-make verify-toolchain
-```
-
-Notes:
-- `compose.yml` mounts the repo into `/workspace`, so artifacts stay in your checkout.
-- The container keeps a named home volume for `west`, `ccache`, pipx state, and Buildroot output cache.
-- `make docker-bootstrap` reuses the existing bootstrap flow, but skips host package installation because the image already contains the toolchain.
 
 ### Windows + WSL Ubuntu For QEMU
 
@@ -136,20 +112,6 @@ That script:
 - runs an embedded Ubuntu bootstrap inside WSL
 - verifies the toolchain and QEMU-oriented dependencies
 
-### Prerequisites
-
-1. **RISC-V Toolchain** (installed in PATH):
-   ```bash
-   riscv64-unknown-elf-gcc
-   riscv64-unknown-elf-ld
-   riscv64-unknown-elf-objcopy
-   ```
-
-2. **CMake** 3.16+
-
-3. **Zephyr SDK** (for Hart 1 Zephyr build)
-
-4. **FreeRTOS** sources (for Hart 2)
 
 ### VS Code Tasks
 
@@ -166,8 +128,6 @@ That script:
 | `OpenSBI Build` | `make qemu-hart0-mmode` |
 | `QEMU Sys Run` | `make qemu-hart0-mmode-run` |
 
-The default build task in VS Code is `Clean build all & Run`, which performs a full direct M-mode rebuild and launches QEMU.
-
 ### CLI Equivalents
 
 If you are working from the terminal instead of the VS Code task runner, these are the matching commands:
@@ -180,12 +140,6 @@ make -C apps/bare-hart3 app3
 make buildroot-linux-fast
 make qemu-hart0-mmode-run
 ```
-
-Use `make qemu-hart0-mmode` after changes to Hart 0, OpenSBI, memory layout, or the boot flow. For app-only changes, rebuild the affected hart and then rerun with `make qemu-hart0-mmode-run`.
-
-### Detailed Build Instructions
-
-See [SETUP.md](SETUP.md) for step-by-step build and flashing instructions.
 
 ### Verification Only
 
@@ -202,16 +156,6 @@ make docker-verify
 - **Linux AMP side**: Buildroot artifacts and OpenSBI support are used by the QEMU/Linux hand-off flow documented in the task runner
 - **Inter-hart Communication**: CLINT (timer interrupts), PLIC (external interrupts), shared memory
 - **Memory Isolation**: Each hart has private 256KB region; shared peripherals at fixed addresses
-
-## Next Steps
-
-1. **Clone dependencies** (Zephyr, FreeRTOS SDK) — see [SETUP.md](SETUP.md#clone-dependencies)
-2. **Test Hart 0 build** — confirm toolchain and linker scripts work
-3. **Configure device tree** — adjust HART*_MEM_BASE if using custom memory layout
-4. **Implement Hart 0 boot logic** — wake up other harts via CLINT
-5. **Integrate Zephyr** — set up Hart 1 build with Zephyr manifest and board definition
-6. **Integrate FreeRTOS** — configure Hart 2 with FreeRTOS kernel and device drivers
-7. **Flash & debug** — use tools/scripts for flashing and serial console
 
 ## References
 
