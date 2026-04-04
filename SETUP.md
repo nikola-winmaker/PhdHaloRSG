@@ -311,10 +311,10 @@ make -f ../../configs/freertos.makefile
 
 ---
 
-### Harts 3 & 4: Bare-Metal Applications
+### Harts 3 : Bare-Metal Application
 
 **Status**: ✅ Ready to build
-**Locations**: `apps/bare-hart3/`, `apps/bare-hart4/`
+**Locations**: `apps/bare-hart3/`
 
 These are minimal bare-metal skeletons. Customize `main.c` with your application logic.
 
@@ -323,13 +323,6 @@ These are minimal bare-metal skeletons. Customize `main.c` with your application
 cd risc5_eval
 make hart3
 # Output: build/hart3.elf, build/hart3.bin
-```
-
-**Build Hart 4**:
-```bash
-cd risc5_eval
-make hart4
-# Output: build/hart4.elf, build/hart4.bin
 ```
 
 ---
@@ -425,7 +418,7 @@ After building, check:
 - [ ] **Implement hart wake-up**: Add CLINT-based hart wake logic in `boot/hart0/main.c`
 - [ ] **Set up Zephyr** (Hart 1): Clone Zephyr, create board definition for Hart 1
 - [ ] **Set up FreeRTOS** (Hart 2): Clone FreeRTOS, configure kernel, link in CMakeLists
-- [ ] **Customize Harts 3 & 4**: Add application logic to `apps/bare-hart3/main.c` and `apps/bare-hart4/main.c`
+- [ ] **Customize Harts 3 **: Add application logic to `apps/bare-hart3/main.c`
 - [ ] **Integrate inter-hart communication**: Shared memory regions, IPC mechanisms
 - [ ] **Test on hardware**: Flash all harts, verify boot sequence and console output
 

@@ -32,12 +32,6 @@ risc5_eval/
 │   │   └── CMakeLists.txt   # FreeRTOS build integration
 │   │
 │   ├── bare-hart3/          # Hart 3 bare-metal app 1
-│   │   ├── bootstrap.S
-│   │   ├── main.c
-│   │   ├── linker.ld
-│   │   └── CMakeLists.txt
-│   │
-│   └── bare-hart4/          # Hart 4 bare-metal app 2
 │       ├── bootstrap.S
 │       ├── main.c
 │       ├── linker.ld

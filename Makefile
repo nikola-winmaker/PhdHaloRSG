@@ -161,12 +161,12 @@ hart4: cmake
 
 # Build all app binaries used by Hart0 serial loader
 apps:
-	for d in apps/zephyr-hart1 apps/freertos-hart2 apps/bare-hart3 apps/bare-hart4; do \
+	for d in apps/zephyr-hart1 apps/freertos-hart2 apps/bare-hart3; do \
 		(cd $$d && make clean && make); \
 	done
 
 apps-clean:
-	for d in apps/zephyr-hart1 apps/freertos-hart2 apps/bare-hart3 apps/bare-hart4; do \
+	for d in apps/zephyr-hart1 apps/freertos-hart2 apps/bare-hart3; do \
 		(cd $$d && make clean); \
 	done
 
@@ -235,17 +235,17 @@ buildroot-save-artifacts:
 	bash ./tools/scripts/save_buildroot_artifacts.sh
 
 apps-zephyr: zephyr-hart1
-	for d in apps/freertos-hart2 apps/bare-hart3 apps/bare-hart4; do \
+	for d in apps/freertos-hart2 apps/bare-hart3; do \
 		(cd $$d && make clean && make); \
 	done
 
 apps-zephyr-fast: zephyr-hart1-fast
-	for d in apps/freertos-hart2 apps/bare-hart3 apps/bare-hart4; do \
+	for d in apps/freertos-hart2 apps/bare-hart3; do \
 		(cd $$d && make clean && make); \
 	done
 
 apps-zephyr-hw: zephyr-hart1-hw
-	for d in apps/freertos-hart2 apps/bare-hart3 apps/bare-hart4; do \
+	for d in apps/freertos-hart2 apps/bare-hart3; do \
 		(cd $$d && make clean && make); \
 	done
 
