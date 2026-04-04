@@ -157,14 +157,17 @@ has_buildroot_scaffold() {
 install_zephyr_python_requirements() {
     local requirements_file="$1"
 
+    if [ ! -f "${requirements_file}" ]; then
+        err "Requirements file not found: ${requirements_file}"
+        return 1
+    fi
+
     if command -v pipx >/dev/null 2>&1 && command -v west >/dev/null 2>&1; then
-        info "Installing Zephyr Python requirements via pipx"
-        pipx runpip west install -r "${requirements_file}"
-    elif command -v python3 >/dev/null 2>&1; then
-        info "Installing Zephyr Python requirements via python3 -m pip"
-        python3 -m pip install -r "${requirements_file}"
+        info "Installing Zephyr Python requirements into west via pipx inject"
+        # Use pipx inject to add requirements to the west environment
+        pipx inject west -r "${requirements_file}" 2>/dev/null || true
     else
-        err "Neither pipx nor python3 is available to install Zephyr Python requirements"
+        err "pipx and west are required to install Zephyr Python requirements"
         exit 1
     fi
 }
@@ -275,6 +278,13 @@ setup_zephyr() {
 
     (
         cd "${ZEPHYR_WS_DIR}"
+        
+        # Use lean RISC-V-only west.yml from app
+        if [ -f "${ROOT_DIR}/apps/zephyr-hart1/zephyr/west.yml" ]; then
+            info "Using minimal RISC-V-focused west.yml from app"
+            cp "${ROOT_DIR}/apps/zephyr-hart1/zephyr/west.yml" zephyr/west.yml
+        fi
+
         info "Updating Zephyr modules"
         west update
         west zephyr-export

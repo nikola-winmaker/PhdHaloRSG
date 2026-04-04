@@ -21,14 +21,17 @@ fi
 install_zephyr_python_requirements() {
     local requirements_file="$1"
 
-    if command -v pipx >/dev/null 2>&1; then
-        echo "[INFO] Installing Zephyr Python requirements via pipx..."
-        pipx runpip west install -r "${requirements_file}"
-    elif command -v python3 >/dev/null 2>&1; then
-        echo "[INFO] Installing Zephyr Python requirements via python3 -m pip..."
-        python3 -m pip install -r "${requirements_file}"
+    if [ ! -f "${requirements_file}" ]; then
+        echo "[ERR] Requirements file not found: ${requirements_file}"
+        return 1
+    fi
+
+    if command -v pipx >/dev/null 2>&1 && command -v west >/dev/null 2>&1; then
+        echo "[INFO] Installing Zephyr Python requirements into west via pipx inject..."
+        # Use pipx inject to add requirements to the west environment
+        pipx inject west -r "${requirements_file}" 2>/dev/null || true
     else
-        echo "[ERR] Neither pipx nor python3 is available to install Zephyr Python requirements"
+        echo "[ERR] pipx and west are required to install Zephyr Python requirements"
         exit 1
     fi
 }
@@ -41,6 +44,15 @@ if [ ! -d "${WS_DIR}/.west" ]; then
 fi
 
 cd "${WS_DIR}"
+
+cd "${WS_DIR}"
+
+# Use lean RISC-V-only west.yml from app (BEFORE west update)
+if [ -f "${ROOT_DIR}/apps/zephyr-hart1/zephyr/west.yml" ]; then
+    echo "[INFO] Using minimal RISC-V-focused west.yml from app"
+    cp "${ROOT_DIR}/apps/zephyr-hart1/zephyr/west.yml" zephyr/west.yml
+fi
+
 echo "[INFO] Updating Zephyr modules..."
 west update
 west zephyr-export

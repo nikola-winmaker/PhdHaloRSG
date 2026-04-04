@@ -32,7 +32,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-/apps/zephyr-hart1/zephyr/build-*/
 /deps/buildroot/output/*
 /deps/buildroot/output/**
 deps/buildroot/*
@@ -44,3 +43,4 @@ boot/hart0/build/*
 
 # Dependencies (will be cloned separately)
 # /external/  # Uncomment if using external/ for deps
+apps/zephyr-hart1/zephyr/build-qemu/*
