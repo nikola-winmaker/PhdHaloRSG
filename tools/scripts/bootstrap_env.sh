@@ -197,6 +197,7 @@ install_host_tools() {
         gcc-riscv64-linux-gnu \
         gcc-riscv64-unknown-elf \
         git \
+        gnupg \
         ninja-build \
         pipx \
         python3 \
@@ -225,8 +226,11 @@ install_host_tools() {
     fi
 
     info "Ensuring pyelftools is available in the west environment"
-    if ! pipx inject west pyelftools >/dev/null 2>&1; then
-        info "pyelftools may already be present in the west environment"
+    if pipx inject west pyelftools 2>/dev/null; then
+        ok "pyelftools injected into west environment"
+    else
+        err "Failed to inject pyelftools into west environment"
+        exit 1
     fi
 
     ok "Host tools installed"
@@ -386,13 +390,12 @@ verify_env() {
     check_cmd riscv64-linux-gnu-gcc "riscv64-linux-gnu-gcc --version"
 
     step "Verifying Python helpers"
-    if python3 -c "import elftools" >/dev/null 2>&1; then
-        note_ok "Python module: elftools"
-    elif [ -d "${HOME}/.local/share/pipx/venvs/west/lib/python3.12/site-packages/elftools" ] || \
-         find "${HOME}/.local/share/pipx/venvs/west" -maxdepth 4 -type d -name elftools >/dev/null 2>&1; then
-        note_ok "Python module: elftools (via pipx west venv)"
+    # Check if pyelftools is available in pipx west environment
+    PIPX_WEST_SITE="${HOME}/.local/share/pipx/venvs/west/lib/python3.12/site-packages"
+    if [ -d "${PIPX_WEST_SITE}/elftools" ]; then
+        note_ok "Python module: pyelftools (via pipx west)"
     else
-        note_fail "Python module missing: elftools"
+        note_fail "Python module missing: pyelftools"
     fi
 
     step "Verifying dependency workspaces"
