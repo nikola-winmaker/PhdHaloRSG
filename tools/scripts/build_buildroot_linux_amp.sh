@@ -5,6 +5,16 @@ ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 WS_DIR="${ROOT_DIR}/deps/buildroot"
 BUILDROOT_DIR="${WS_DIR}/buildroot"
 OUTPUT_DIR="${BUILDROOT_OUTPUT_DIR:-${HOME}/risc5_buildroot_output}"
+
+# Ensure output directory exists with proper permissions (use sudo if needed)
+if [ ! -d "${OUTPUT_DIR}" ]; then
+    mkdir -p "${OUTPUT_DIR}"
+    chmod 777 "${OUTPUT_DIR}"
+elif [ ! -w "${OUTPUT_DIR}" ]; then
+    # Directory exists but we can't write to it - use sudo to fix permissions
+    sudo chmod 777 "${OUTPUT_DIR}"
+fi
+
 EXTERNAL_DIR="${WS_DIR}/external"
 DEFCONFIG_NAME="risc5_eval_linux_amp_defconfig"
 DEFCONFIG_SRC="${WS_DIR}/${DEFCONFIG_NAME}"

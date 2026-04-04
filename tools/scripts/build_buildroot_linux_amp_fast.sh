@@ -5,6 +5,16 @@ ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 WS_DIR="${ROOT_DIR}/deps/buildroot"
 BUILDROOT_DIR="${WS_DIR}/buildroot"
 OUTPUT_DIR="${BUILDROOT_OUTPUT_DIR:-${HOME}/risc5_buildroot_output}"
+
+# Ensure output directory exists with proper permissions (use sudo if needed)
+if [ ! -d "${OUTPUT_DIR}" ]; then
+    mkdir -p "${OUTPUT_DIR}"
+    chmod 777 "${OUTPUT_DIR}"
+elif [ ! -w "${OUTPUT_DIR}" ]; then
+    # Directory exists but we can't write to it - use sudo to fix permissions
+    sudo chmod 777 "${OUTPUT_DIR}"
+fi
+
 EXTERNAL_DIR="${WS_DIR}/external"
 POST_BUILD_SCRIPT="${EXTERNAL_DIR}/board/risc5_eval/post-build.sh"
 APP_SRC="${ROOT_DIR}/apps/linux-hart0/src/amp_hart0_app.c"
