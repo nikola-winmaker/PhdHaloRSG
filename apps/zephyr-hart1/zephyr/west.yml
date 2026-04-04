@@ -27,9 +27,6 @@ manifest:
   #
   # Please add items below based on alphabetical order
   projects:
-    - name: mcuboot
-      revision: fb2cf0ec3da3687b93f28e556ab682bdd4b85223
-      path: bootloader/mcuboot
     - name: open-amp
       revision: 76d2168bcdfcd23a9a7dce8c21f2083b90a1e60a
       path: modules/lib/open-amp

@@ -2,6 +2,23 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Setup environment",
+      "type": "shell",
+      "command": "bash tools/scripts/bootstrap_env.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Clean build all & Run",
       "type": "shell",
       "command": "make qemu-hart0-mmode",
