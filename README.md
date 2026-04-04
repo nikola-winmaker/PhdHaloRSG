@@ -4,11 +4,11 @@
 
 This project scaffolds a heterogeneous multi-hart firmware stack for the **SiFive HiFive Unmatched** development board, featuring:
 
-- **Hart 0 (S7)**: Bare-metal boot coordinator
+- **Hart 0 (S7)**: Bare-metal boot coordinator and direct M-mode QEMU entry point
 - **Hart 1 (U74)**: Zephyr RTOS
 - **Hart 2 (U74)**: FreeRTOS
 - **Hart 3 (U74)**: Bare-metal application 1
-- **Hart 4 (U74)**: Bare-metal application 2
+- **Hart 4 / Linux side**: Buildroot Linux artifacts plus OpenSBI hand-off support for the AMP flow
 
 ## Directory Structure
 
@@ -151,17 +151,37 @@ That script:
 
 4. **FreeRTOS** sources (for Hart 2)
 
-### Build Hart 0 (Boot Coordinator)
+### VS Code Tasks
+
+`.vscode/tasks.json` is set up around the direct M-mode QEMU workflow. The available tasks currently map to these commands:
+
+| VS Code task label | Command |
+|--------------------|---------|
+| `Setup environment` | `bash tools/scripts/bootstrap_env.sh` |
+| `Clean build all & Run` | `make qemu-hart0-mmode` |
+| `Hart1 Zephyr build` | `make zephyr-hart1-fast` |
+| `Hart2 FreeRTOS build` | `make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=${workspaceFolder}/deps/freertos/FreeRTOS-Kernel` |
+| `Hart3 BM build` | `make -C apps/bare-hart3 app3` |
+| `Hart4 Linux build` | `make buildroot-linux-fast` |
+| `OpenSBI Build` | `make qemu-hart0-mmode` |
+| `QEMU Sys Run` | `make qemu-hart0-mmode-run` |
+
+The default build task in VS Code is `Clean build all & Run`, which performs a full direct M-mode rebuild and launches QEMU.
+
+### CLI Equivalents
+
+If you are working from the terminal instead of the VS Code task runner, these are the matching commands:
 
 ```bash
-make hart0
+make qemu-hart0-mmode
+make zephyr-hart1-fast
+make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=$(pwd)/deps/freertos/FreeRTOS-Kernel
+make -C apps/bare-hart3 app3
+make buildroot-linux-fast
+make qemu-hart0-mmode-run
 ```
 
-### Build All Harts
-
-```bash
-make all
-```
+Use `make qemu-hart0-mmode` after changes to Hart 0, OpenSBI, memory layout, or the boot flow. For app-only changes, rebuild the affected hart and then rerun with `make qemu-hart0-mmode-run`.
 
 ### Detailed Build Instructions
 
@@ -177,8 +197,9 @@ make docker-verify
 
 ## Architecture Highlights
 
-- **Hart 0 (S7)**: Runs in Machine Mode (M-mode), orchestrates hart wake-up via CLINT
-- **Harts 1–4 (U74)**: Run heterogeneous RTOS/bare-metal workloads
+- **Hart 0 (S7)**: Runs in Machine Mode (M-mode), orchestrates hart wake-up via CLINT, and drives the QEMU direct M-mode flow
+- **Hart 1-3 (U74)**: Run heterogeneous Zephyr, FreeRTOS, and bare-metal workloads
+- **Linux AMP side**: Buildroot artifacts and OpenSBI support are used by the QEMU/Linux hand-off flow documented in the task runner
 - **Inter-hart Communication**: CLINT (timer interrupts), PLIC (external interrupts), shared memory
 - **Memory Isolation**: Each hart has private 256KB region; shared peripherals at fixed addresses
 
