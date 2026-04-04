@@ -33,6 +33,48 @@ make verify-toolchain
 make verify-toolchain-full
 ```
 
+## Docker Workflow
+
+For a reproducible build environment shared across every clone, the repo now ships with a Docker/Compose setup.
+
+Build the image:
+
+```bash
+make docker-build
+```
+
+Initialize repo dependencies inside the container:
+
+```bash
+make docker-bootstrap
+```
+
+Open a shell in the container:
+
+```bash
+make docker-shell
+```
+
+Then run the normal repo commands from inside that shell:
+
+```bash
+make build-all
+make qemu
+make verify-toolchain
+```
+
+How it works:
+1. `docker/Dockerfile` installs the pinned Ubuntu-based toolchain used by this repo.
+2. `compose.yml` bind-mounts the checkout at `/workspace`.
+3. Named volumes keep the container home directory and Buildroot output cache across runs.
+4. The existing repo scripts remain the source of truth, so Docker and non-Docker flows stay aligned.
+
+If you need to verify the repo from outside the shell, use:
+
+```bash
+make docker-verify
+```
+
 ## Windows Host With WSL Ubuntu
 
 If your main machine is Windows and you want to run QEMU from Ubuntu under WSL2, use the bundled PowerShell helper from an Administrator PowerShell window:

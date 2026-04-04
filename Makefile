@@ -1,4 +1,7 @@
-.PHONY: all clean help qemu-hart0-mmode-help qemu-hart0-mmode-prompt cmake build hart0 hart0-qemu-preload hart0-direct-mmode opensbi-setup opensbi-fw-dynamic opensbi-fw-jump hart1 hart2 hart3 hart4 apps apps-clean build-all qemu qemu-fast qemu-linux-amp qemu-hart0-loader qemu-hart0-preload qemu-hart0-preload-run qemu-hart0-mmode qemu-hart0-mmode-run amp-clean-build dev-env bootstrap-env setup-all verify-toolchain verify-toolchain-full wsl-setup-help zephyr-setup zephyr-hart1 zephyr-hart1-fast zephyr-hart1-hw freertos-setup freertos-hart2 freertos-hart2-smode buildroot-setup buildroot-linux buildroot-linux-fast apps-zephyr apps-zephyr-fast apps-zephyr-hw build-all-zephyr build-all-zephyr-fast build-all-zephyr-hw qemu-zephyr
+.PHONY: all clean help qemu-hart0-mmode-help qemu-hart0-mmode-prompt cmake build hart0 hart0-qemu-preload hart0-direct-mmode opensbi-setup opensbi-fw-dynamic opensbi-fw-jump hart1 hart2 hart3 hart4 apps apps-clean build-all qemu qemu-fast qemu-linux-amp qemu-hart0-loader qemu-hart0-preload qemu-hart0-preload-run qemu-hart0-mmode qemu-hart0-mmode-run amp-clean-build dev-env bootstrap-env setup-all verify-toolchain verify-toolchain-full wsl-setup-help zephyr-setup zephyr-hart1 zephyr-hart1-fast zephyr-hart1-hw freertos-setup freertos-hart2 freertos-hart2-smode buildroot-setup buildroot-linux buildroot-linux-fast apps-zephyr apps-zephyr-fast apps-zephyr-hw build-all-zephyr build-all-zephyr-fast build-all-zephyr-hw qemu-zephyr docker-build docker-shell docker-bootstrap docker-verify docker-all
+
+DOCKER_COMPOSE ?= docker compose
+DOCKER_SERVICE ?= dev
 
 # Default target
 all: cmake build
@@ -40,6 +43,11 @@ help:
 	@echo "  make setup-all  - Install host tools, initialize all dependencies, and verify the setup"
 	@echo "  make verify-toolchain - Verify required tools and dependency workspaces"
 	@echo "  make verify-toolchain-full - Verify tools/deps and run smoke builds"
+	@echo "  make docker-build - Build the pinned Docker dev image"
+	@echo "  make docker-shell - Open an interactive shell inside the Docker dev image"
+	@echo "  make docker-bootstrap - Initialize repo dependencies inside Docker"
+	@echo "  make docker-verify - Verify the toolchain/workspaces inside Docker"
+	@echo "  make docker-all - Build Hart 0 + app1..app4 inside Docker"
 	@echo "  make wsl-setup-help - Show the Windows PowerShell helper for WSL Ubuntu + QEMU setup"
 	@echo "  make opensbi-setup - Initialize the OpenSBI dependency in deps/opensbi"
 	@echo "  make zephyr-setup - Initialize Zephyr workspace in deps/zephyr"
@@ -175,6 +183,21 @@ verify-toolchain:
 
 verify-toolchain-full:
 	bash ./tools/scripts/verify_toolchain.sh --smoke-builds --buildroot-defconfig
+
+docker-build:
+	$(DOCKER_COMPOSE) build $(DOCKER_SERVICE)
+
+docker-shell:
+	$(DOCKER_COMPOSE) run --rm $(DOCKER_SERVICE)
+
+docker-bootstrap:
+	$(DOCKER_COMPOSE) run --rm $(DOCKER_SERVICE) bash -lc "bash ./tools/scripts/bootstrap_env.sh --skip-host-tools"
+
+docker-verify:
+	$(DOCKER_COMPOSE) run --rm $(DOCKER_SERVICE) bash -lc "make verify-toolchain"
+
+docker-all:
+	$(DOCKER_COMPOSE) run --rm $(DOCKER_SERVICE) bash -lc "make build-all"
 
 wsl-setup-help:
 	@echo "Run this from Windows PowerShell as Administrator:"

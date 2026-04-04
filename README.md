@@ -99,6 +99,29 @@ make setup-all
 
 `make bootstrap-env` is the single-file bootstrap entry point. It installs the host packages used by the repo, initializes OpenSBI/Zephyr/FreeRTOS/Buildroot under `deps/`, and runs verification with smoke builds.
 
+### Dockerized Dev Environment
+
+If you want everyone who clones the repo to build with the same toolchain, use the pinned Docker workflow:
+
+```bash
+make docker-build
+make docker-bootstrap
+make docker-shell
+```
+
+From inside the container shell, run the normal repo targets such as:
+
+```bash
+make build-all
+make qemu
+make verify-toolchain
+```
+
+Notes:
+- `compose.yml` mounts the repo into `/workspace`, so artifacts stay in your checkout.
+- The container keeps a named home volume for `west`, `ccache`, pipx state, and Buildroot output cache.
+- `make docker-bootstrap` reuses the existing bootstrap flow, but skips host package installation because the image already contains the toolchain.
+
 ### Windows + WSL Ubuntu For QEMU
 
 If you are starting from Windows and want the QEMU workflow inside WSL Ubuntu, run this from an elevated PowerShell window:
@@ -149,6 +172,7 @@ See [SETUP.md](SETUP.md) for step-by-step build and flashing instructions.
 ```bash
 make verify-toolchain
 make verify-toolchain-full
+make docker-verify
 ```
 
 ## Architecture Highlights

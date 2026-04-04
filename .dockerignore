@@ -1,0 +1,11 @@
+.git
+.codex
+.vscode
+build
+build-*
+deps
+apps/zephyr-hart1/zephyr/build-*
+apps/zephyr-hart1/build
+apps/freertos-hart2/build
+boot/hart0/build
+

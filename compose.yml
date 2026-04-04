@@ -1,0 +1,25 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        USER_UID: ${UID:-1000}
+        USER_GID: ${GID:-1000}
+        USERNAME: ${DOCKER_USER:-dev}
+    image: riscv-hifive-unmatched-dev:local
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/workspace
+      - riscv-home:/home/${DOCKER_USER:-dev}
+      - riscv-buildroot-output:/home/${DOCKER_USER:-dev}/risc5_buildroot_output
+    environment:
+      HOME: /home/${DOCKER_USER:-dev}
+      CCACHE_DIR: /home/${DOCKER_USER:-dev}/.cache/ccache
+
+volumes:
+  riscv-home:
+  riscv-buildroot-output:
+

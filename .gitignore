@@ -38,6 +38,7 @@ __pycache__/
 deps/buildroot/*
 deps/zephyr/*
 boot/hart0/build/*
+/docker/.cache/*
 
 !/docs/
 
