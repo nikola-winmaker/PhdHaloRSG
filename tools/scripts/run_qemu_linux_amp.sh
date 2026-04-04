@@ -7,8 +7,20 @@ LAYOUT_TOOL="${ROOT_DIR}/tools/scripts/amp_layout.py"
 eval "$(python3 "${LAYOUT_TOOL}" shell-vars)"
 
 BUILDROOT_OUTPUT_DIR="${BUILDROOT_OUTPUT_DIR:-${HOME}/risc5_buildroot_output}"
-LINUX_IMAGE="${BUILDROOT_OUTPUT_DIR}/images/Image"
-LINUX_INITRD="${BUILDROOT_OUTPUT_DIR}/images/rootfs.cpio"
+
+# Use pre-built artifacts if available, otherwise use build output
+if [ -f "${ROOT_DIR}/artifacts/buildroot/images/Image" ]; then
+    LINUX_IMAGE="${ROOT_DIR}/artifacts/buildroot/images/Image"
+else
+    LINUX_IMAGE="${BUILDROOT_OUTPUT_DIR}/images/Image"
+fi
+
+if [ -f "${ROOT_DIR}/artifacts/buildroot/images/rootfs.cpio" ]; then
+    LINUX_INITRD="${ROOT_DIR}/artifacts/buildroot/images/rootfs.cpio"
+else
+    LINUX_INITRD="${BUILDROOT_OUTPUT_DIR}/images/rootfs.cpio"
+fi
+
 APP1="${ROOT_DIR}/apps/zephyr-hart1/build/bin/app1.elf"
 APP2="${ROOT_DIR}/apps/freertos-hart2/build/bin/app2.elf"
 APP3="${ROOT_DIR}/apps/bare-hart3/build/bin/app3.elf"

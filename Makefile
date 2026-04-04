@@ -1,4 +1,4 @@
-.PHONY: all clean help qemu-hart0-mmode-help qemu-hart0-mmode-prompt cmake build hart0 hart0-qemu-preload hart0-direct-mmode opensbi-setup opensbi-fw-dynamic opensbi-fw-jump hart1 hart2 hart3 hart4 apps apps-clean build-all qemu qemu-fast qemu-linux-amp qemu-hart0-loader qemu-hart0-preload qemu-hart0-preload-run qemu-hart0-mmode qemu-hart0-mmode-run amp-clean-build dev-env bootstrap-env setup-all verify-toolchain verify-toolchain-full wsl-setup-help zephyr-setup zephyr-hart1 zephyr-hart1-fast zephyr-hart1-hw freertos-setup freertos-hart2 freertos-hart2-smode buildroot-setup buildroot-linux buildroot-linux-fast apps-zephyr apps-zephyr-fast apps-zephyr-hw build-all-zephyr build-all-zephyr-fast build-all-zephyr-hw qemu-zephyr docker-build docker-shell docker-bootstrap docker-verify docker-all
+.PHONY: all clean help qemu-hart0-mmode-help qemu-hart0-mmode-prompt cmake build hart0 hart0-qemu-preload hart0-direct-mmode opensbi-setup opensbi-fw-dynamic opensbi-fw-jump hart1 hart2 hart3 hart4 apps apps-clean build-all qemu qemu-fast qemu-linux-amp qemu-hart0-loader qemu-hart0-preload qemu-hart0-preload-run qemu-hart0-mmode qemu-hart0-mmode-run amp-clean-build dev-env bootstrap-env setup-all verify-toolchain verify-toolchain-full wsl-setup-help zephyr-setup zephyr-hart1 zephyr-hart1-fast zephyr-hart1-hw freertos-setup freertos-hart2 freertos-hart2-smode buildroot-setup buildroot-linux buildroot-linux-fast buildroot-linux-check buildroot-save-artifacts apps-zephyr apps-zephyr-fast apps-zephyr-hw build-all-zephyr build-all-zephyr-fast build-all-zephyr-hw qemu-zephyr docker-build docker-shell docker-bootstrap docker-verify docker-all
 
 DOCKER_COMPOSE ?= docker compose
 DOCKER_SERVICE ?= dev
@@ -60,6 +60,7 @@ help:
 	@echo "  make buildroot-setup - Initialize Buildroot workspace in deps/buildroot"
 	@echo "  make buildroot-linux - Build Linux AMP artifacts through Buildroot with a sanitized PATH"
 	@echo "  make buildroot-linux-fast - Rebuild only the Linux app/rootfs image using the existing Buildroot output"
+	@echo "  make buildroot-save-artifacts - Save built kernel/rootfs to artifacts/ for version control"
 	@echo "  make build-all-zephyr - Build Hart0 + Zephyr app1 + app2..app4"
 	@echo "  make qemu-zephyr - build-all-zephyr then run QEMU"
 	@echo "  make clean      - Clean build artifacts"
@@ -230,6 +231,9 @@ buildroot-linux:
 buildroot-linux-fast:
 	bash ./tools/scripts/build_buildroot_linux_amp_fast.sh
 
+buildroot-save-artifacts:
+	bash ./tools/scripts/save_buildroot_artifacts.sh
+
 apps-zephyr: zephyr-hart1
 	for d in apps/freertos-hart2 apps/bare-hart3 apps/bare-hart4; do \
 		(cd $$d && make clean && make); \
@@ -284,13 +288,21 @@ qemu-hart0-preload: hart0-qemu-preload zephyr-hart1 freertos-hart2 buildroot-lin
 qemu-hart0-preload-run:
 	bash ./tools/scripts/run_qemu_hart0_preload.sh
 
-qemu-hart0-mmode: hart0-direct-mmode apps-zephyr buildroot-linux opensbi-fw-jump
+qemu-hart0-mmode: hart0-direct-mmode apps-zephyr buildroot-linux-check opensbi-fw-jump
 	bash ./tools/scripts/run_qemu_hart0_mmode.sh
+
+buildroot-linux-check:
+	@if [ ! -f artifacts/buildroot/images/Image ] || [ ! -f artifacts/buildroot/images/rootfs.cpio ]; then \
+		echo "[INFO] Pre-built Buildroot artifacts not found. Building..."; \
+		$(MAKE) buildroot-linux; \
+	else \
+		echo "[INFO] Using pre-built Buildroot artifacts"; \
+	fi
 
 qemu-hart0-mmode-run:
 	bash ./tools/scripts/run_qemu_hart0_mmode.sh
 
-amp-clean-build: hart0-direct-mmode zephyr-hart1 buildroot-linux opensbi-fw-jump
+amp-clean-build: hart0-direct-mmode zephyr-hart1 buildroot-linux-check opensbi-fw-jump
 	make -C apps/freertos-hart2 clean app2 FREERTOS_KERNEL_DIR=$(CURDIR)/deps/freertos/FreeRTOS-Kernel
 	make -C apps/bare-hart3 clean app3
 

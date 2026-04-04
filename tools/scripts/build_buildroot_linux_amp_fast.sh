@@ -53,13 +53,19 @@ fi
 
 echo "[INFO] Fast Linux app/rootfs rebuild using existing Buildroot output"
 echo "[INFO] Buildroot output directory: ${OUTPUT_DIR}"
-echo "[INFO] Rebuilding userspace app into target rootfs"
 
+echo "[INFO] Rebuilding userspace app into target rootfs"
 HOST_DIR="${HOST_DIR}" AMP_HART0_APP_SRC="${APP_SRC}" "${POST_BUILD_SCRIPT}" "${TARGET_DIR}"
 
-echo "[INFO] Repacking rootfs.cpio without rebuilding the kernel"
+echo "[INFO] Repacking rootfs.cpio with Buildroot (preserves device files)"
 AMP_HART0_APP_SRC="${APP_SRC}" \
 make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" rootfs-cpio
+
+# Copy newly built artifacts to git-tracked location
+ARTIFACT_DIR="${ROOT_DIR}/artifacts/buildroot/images"
+mkdir -p "${ARTIFACT_DIR}"
+cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_DIR}/rootfs.cpio"
+echo "[INFO] Updated artifact: ${ARTIFACT_DIR}/rootfs.cpio"
 
 echo "[OK] Expected artifacts:"
 echo "     ${OUTPUT_DIR}/images/rootfs.cpio"

@@ -12,8 +12,19 @@ APP2="${ROOT_DIR}/apps/freertos-hart2/build/bin/app2.bin"
 APP3="${ROOT_DIR}/apps/bare-hart3/build/bin/app3.bin"
 BUILDROOT_OUTPUT_DIR="${BUILDROOT_OUTPUT_DIR:-${HOME}/risc5_buildroot_output}"
 FW_JUMP="${ROOT_DIR}/deps/opensbi/build/platform/generic/firmware/fw_jump.bin"
-LINUX_IMAGE="${BUILDROOT_OUTPUT_DIR}/images/Image"
-LINUX_INITRD="${BUILDROOT_OUTPUT_DIR}/images/rootfs.cpio"
+
+# Use pre-built artifacts if available, otherwise use build output
+if [ -f "${ROOT_DIR}/artifacts/buildroot/images/Image" ]; then
+    LINUX_IMAGE="${ROOT_DIR}/artifacts/buildroot/images/Image"
+else
+    LINUX_IMAGE="${BUILDROOT_OUTPUT_DIR}/images/Image"
+fi
+
+if [ -f "${ROOT_DIR}/artifacts/buildroot/images/rootfs.cpio" ]; then
+    LINUX_INITRD="${ROOT_DIR}/artifacts/buildroot/images/rootfs.cpio"
+else
+    LINUX_INITRD="${BUILDROOT_OUTPUT_DIR}/images/rootfs.cpio"
+fi
 WORK_DIR="${ROOT_DIR}/boot/hart0/build/qemu-linux"
 DTB_RAW="${WORK_DIR}/qemu-virt.dtb"
 DTB_DTS="${WORK_DIR}/qemu-virt.dts"
