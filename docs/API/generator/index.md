@@ -46,8 +46,8 @@ You can run Generator through the user CLI (`halo generate`)
 
 ```bash
 halo generate \
-	--composer-output-dir ./composer_output \
-	--output-dir ./output/gen
+    --composer-output-dir ./composer_output \
+    --output-dir ./output/gen
 ```
 
 Useful flags:
@@ -80,15 +80,15 @@ halo generate -i ./composer_output -o ./output/gen --pkl ./composer_output/halo_
 from generator.halo_generator import generate_from_model
 
 exit_code = generate_from_model(
-		composer_output_dir="./output",
-		output_dir="./output/gen",
-		platforms=["linux"],           # optional platform filter
-		pkl_path=None,                 # optional explicit path
-		log_level="INFO",            # optional
+        composer_output_dir="./output",
+        output_dir="./output/gen",
+        platforms=["linux"],           # optional platform filter
+        pkl_path=None,                 # optional explicit path
+        log_level="INFO",            # optional
 )
 
 if exit_code != 0:
-		raise RuntimeError("Generation failed")
+    raise RuntimeError("Generation failed")
 ```
 
 Parameters:
@@ -105,18 +105,18 @@ Typical output structure:
 
 ```text
 output/
-	analysis/
-		analysis_report.json
-	codegen/
-		portable/
-			include/
-			src/
-		<ComponentName>_<platform>/
-			include/
-			src/
-	deployment/
-		<platform>/
-			deployment_manifest.json
+    analysis/
+        analysis_report.json
+    codegen/
+        portable/
+            include/
+            src/
+        <ComponentName>_<platform>/
+            include/
+            src/
+    deployment/
+        <platform>/
+            deployment_manifest.json
 ```
 
 Notes:
@@ -138,32 +138,32 @@ halo create-generator
 
 ```bash
 halo create-generator \
-	--no-interactive \
-	--generator-type platform \
-	--name esp32 \
-	--description "HALO generator for ESP32" \
-	--author "Your Name" \
-	--email "you@example.com" \
-	--platform esp32 \
-	--os True \
-	--template-engine jinja2 \
-	--output-dir ./generated_plugins
+    --no-interactive \
+    --generator-type platform \
+    --name esp32 \
+    --description "HALO generator for ESP32" \
+    --author "Your Name" \
+    --email "you@example.com" \
+    --platform esp32 \
+    --os True \
+    --template-engine jinja2 \
+    --output-dir ./generated_plugins
 ```
 
 ### Non-interactive protocol scaffold
 
 ```bash
 halo create-generator \
-	--no-interactive \
-	--generator-type protocol \
-	--name eventchannel \
-	--description "EventChannel protocol generator" \
-	--author "Your Name" \
-	--email "you@example.com" \
-	--protocol eventchannel \
-	--supported-platforms linux,freertos,zephyr \
-	--template-engine jinja2 \
-	--output-dir ./generated_plugins
+    --no-interactive \
+    --generator-type protocol \
+    --name eventchannel \
+    --description "EventChannel protocol generator" \
+    --author "Your Name" \
+    --email "you@example.com" \
+    --protocol eventchannel \
+    --supported-platforms linux,freertos,zephyr \
+    --template-engine jinja2 \
+    --output-dir ./generated_plugins
 ```
 
 ### Update scaffolded generator metadata
@@ -257,17 +257,17 @@ Examples:
 
 ```python
 _render_template(
-		jenv,
-		"diagnostics.c.j2",
-		context,
-		platform_src_dir / "diagnostics.c",
+        jenv,
+        "diagnostics.c.j2",
+        context,
+        platform_src_dir / "diagnostics.c",
 )
 
 _render_template(
-		jenv,
-		"diagnostics.h.j2",
-		context,
-		platform_include_dir / "diagnostics.h",
+        jenv,
+        "diagnostics.h.j2",
+        context,
+        platform_include_dir / "diagnostics.h",
 )
 ```
 
@@ -319,11 +319,11 @@ If a platform generator is missing, HALO logs a warning and skips that platform.
 ## Troubleshooting
 
 - Error: unified model pickle not found
-	- Ensure Composer already ran and output directory is correct.
+    - Ensure Composer already ran and output directory is correct.
 - Requested platform not found in unified model
-	- Check platform names in model (`components[].platform`) and CLI spelling.
+    - Check platform names in model (`components[].platform`) and CLI spelling.
 - No generators discovered
-	- Ensure generator packages are installed in active Python environment.
+    - Ensure generator packages are installed in active Python environment.
 - Platform generator missing for discovered platform
-	- Install package providing that platform entry point.
+    - Install package providing that platform entry point.
 
