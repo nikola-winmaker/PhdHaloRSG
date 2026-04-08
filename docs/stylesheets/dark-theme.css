@@ -1,0 +1,229 @@
+/* HALO docs dark theme overrides for the default MkDocs theme */
+
+:root {
+  --halo-bg: #10151d;
+  --halo-bg-elev-1: #17202b;
+  --halo-bg-elev-2: #212d3a;
+  --halo-border: #2f3f50;
+  --halo-text: #e3edf7;
+  --halo-text-muted: #b8c6d3;
+  --halo-link: #6ec1ff;
+  --halo-link-hover: #9cd8ff;
+  --halo-code-bg: #0f1a24;
+  --halo-code-text: #cce6ff;
+
+  /* Bootstrap 5 variables used by MkDocs' current theme templates */
+  --bs-body-bg: #10151d;
+  --bs-body-color: #e3edf7;
+  --bs-emphasis-color: #eaf3fb;
+  --bs-secondary-color: #b8c6d3;
+  --bs-border-color: #2f3f50;
+  --bs-tertiary-bg: #17202b;
+  --bs-card-bg: #17202b;
+}
+
+html,
+body {
+  background-color: var(--halo-bg);
+  color: var(--halo-text);
+}
+
+html[data-bs-theme="light"] {
+  --bs-body-bg: #10151d;
+  --bs-body-color: #e3edf7;
+  --bs-emphasis-color: #eaf3fb;
+  --bs-secondary-color: #b8c6d3;
+  --bs-border-color: #2f3f50;
+  --bs-tertiary-bg: #17202b;
+  --bs-card-bg: #17202b;
+}
+
+.container,
+.container-fluid,
+.main,
+.content,
+.bs-sidebar,
+.wy-nav-content,
+.wy-body-for-nav {
+  background-color: transparent;
+}
+
+.navbar,
+.navbar-default,
+.navbar-inverse,
+.navbar-fixed-top,
+.navbar-static-top {
+  background-color: var(--halo-bg-elev-1);
+  border-color: var(--halo-border);
+}
+
+.navbar a,
+.navbar-brand,
+.navbar-nav > li > a,
+.navbar-default .navbar-brand,
+.navbar-default .navbar-nav > li > a {
+  color: var(--halo-text);
+}
+
+.navbar a:hover,
+.navbar-brand:hover,
+.navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-brand:hover {
+  color: var(--halo-link-hover);
+}
+
+.bs-sidebar,
+.bs-sidenav,
+.wy-nav-side {
+  background-color: var(--halo-bg-elev-1);
+  border-color: var(--halo-border);
+}
+
+/* Bootstrap's default .well styles keep the sidebar bright unless overridden with higher specificity */
+.bs-sidebar.well,
+.bs-sidebar.affix,
+.bs-sidebar.affix.well,
+.well.bs-sidebar {
+  background-color: var(--halo-bg-elev-1) !important;
+  border-color: var(--halo-border) !important;
+  box-shadow: none !important;
+}
+
+.bs-sidebar .nav > li > a,
+.bs-sidenav .nav > li > a,
+.wy-menu-vertical a {
+  color: var(--halo-text-muted);
+}
+
+.bs-sidebar .nav,
+.bs-sidenav .nav {
+  background-color: transparent !important;
+}
+
+.bs-sidebar .card,
+.bs-sidebar .bg-body-tertiary,
+#toc-collapse.card,
+#toc-collapse.bg-body-tertiary {
+  background-color: var(--halo-bg-elev-1) !important;
+  border-color: var(--halo-border) !important;
+}
+
+.bs-sidebar .nav-link,
+#toc-collapse .nav-link {
+  color: var(--halo-text-muted) !important;
+}
+
+.bs-sidebar .nav-link:hover,
+#toc-collapse .nav-link:hover,
+.bs-sidebar .nav-link.active,
+#toc-collapse .nav-link.active {
+  color: var(--halo-text) !important;
+  background-color: var(--halo-bg-elev-2) !important;
+}
+
+.bs-sidebar .nav > li > a:hover,
+.bs-sidebar .nav > li.active > a,
+.bs-sidenav .nav > li > a:hover,
+.bs-sidenav .nav > li.active > a,
+.wy-menu-vertical a:hover,
+.wy-menu-vertical li.current > a {
+  background-color: var(--halo-bg-elev-2);
+  color: var(--halo-text);
+}
+
+.bs-sidebar .nav > li.active > a,
+.bs-sidebar .nav > li.active > a:hover,
+.bs-sidebar .nav > li.active > a:focus {
+  border-right: 3px solid var(--halo-link);
+}
+
+a,
+a:visited {
+  color: var(--halo-link);
+}
+
+a:hover,
+a:focus {
+  color: var(--halo-link-hover);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+legend,
+label,
+p,
+li,
+div,
+span,
+td,
+th {
+  color: var(--halo-text);
+}
+
+hr {
+  border-color: var(--halo-border);
+}
+
+table,
+.table,
+.table-bordered,
+.table > thead > tr > th,
+.table > tbody > tr > td {
+  border-color: var(--halo-border);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: var(--halo-bg-elev-1);
+}
+
+.table-striped > tbody > tr:nth-of-type(even) {
+  background-color: var(--halo-bg);
+}
+
+code,
+kbd,
+pre,
+pre code {
+  background-color: var(--halo-code-bg);
+  color: var(--halo-code-text);
+  border-color: var(--halo-border);
+}
+
+blockquote {
+  border-left: 4px solid var(--halo-border);
+  color: var(--halo-text-muted);
+}
+
+.dropdown-menu,
+.panel,
+.panel-default,
+.well,
+.alert,
+.pagination > li > a,
+.pagination > li > span {
+  background-color: var(--halo-bg-elev-1);
+  color: var(--halo-text);
+  border-color: var(--halo-border);
+}
+
+.form-control,
+input,
+textarea,
+select {
+  background-color: var(--halo-bg-elev-2);
+  color: var(--halo-text);
+  border-color: var(--halo-border);
+}
+
+.form-control:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--halo-link);
+  box-shadow: 0 0 0 2px rgba(110, 193, 255, 0.2);
+}

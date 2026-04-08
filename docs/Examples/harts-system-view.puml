@@ -1,0 +1,66 @@
+@startuml
+title System View
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Monospace
+skinparam rectangle {
+  RoundCorner 12
+  BorderColor #333333
+}
+skinparam note {
+  BorderColor #666666
+  BackgroundColor #FFF9D6
+}
+
+top to bottom direction
+
+note as TOPNOTE
+S7 Hart0 starts first and releases the other harts.
+U74 Hart1 and Hart2 form the RTOS lane.
+U74 Hart3 is the bare-metal lane.
+Hart4 is the Linux lane: OpenSBI in M-mode -> Linux in S-mode -> userspace.
+end note
+
+rectangle "RISC-V AMP System" as SYS #F7F7F7 {
+
+  rectangle "Hart0\nS7 Core\nM-mode" as H0 #97C97C {
+    rectangle "Boot Coordinator" as H0A #CFE8C8
+  }
+
+  rectangle "Hart1\nU74 Core\nM-mode" as H1 #B7D9EA {
+    rectangle "Zephyr RTOS" as H1A #DDECF6
+  }
+
+  rectangle "Hart2\nU74 Core\nM-mode" as H2 #B7D9EA {
+    rectangle "FreeRTOS" as H2A #DDECF6
+  }
+
+  rectangle "Hart3\nU74 Core\nM-mode" as H3 #B7D9EA {
+    rectangle "Bare-metal App" as H3A #DDECF6
+  }
+
+  rectangle "Hart4\nU74 Core" as H4 #FFD76A {
+    rectangle "OpenSBI Bootloader\nM-mode" as H4A #FFE8A6
+    rectangle "Linux Kernel\nS-mode" as H4B #8DB5F0
+    rectangle "Linux Userspace\nApplication" as H4C #C9DCF8
+  }
+
+  rectangle "Shared Services" as SH #EDEDED {
+    rectangle "Shared Memory" as SHM #F5F5F5
+    rectangle "Peripherals" as CLINT #F5F5F5
+    rectangle "UART Console" as UART #F5F5F5
+  }
+}
+
+TOPNOTE -[hidden]down- H1
+TOPNOTE -[hidden]down- H2
+TOPNOTE -[hidden]down- H3
+
+H0 -down- SH
+H1 -down- SH
+H2 -down- SH
+H3 -down- SH
+H4 -down- SH
+
+@enduml
