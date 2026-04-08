@@ -378,6 +378,7 @@ def render(unified_model, output_dir, platform_name):
 
 Template: `templates/platform_init.c.j2`
 
+{% raw %}
 ```c
 #include "platform_init.h"
 #include "halo_api.h"
@@ -408,6 +409,7 @@ void platform_{{ platform }}_init(void) {
     halo_core_init_{{ platform }}();
 }
 ```
+{% endraw %}
 
 ### Step 6: Install and Use Your Generator
 
@@ -464,6 +466,7 @@ def render(unified_model, output_dir, protocol_name):
 
 Template: `templates/protocol.h.j2`
 
+{% raw %}
 ```c
 #ifndef {{ protocol|upper }}_H
 #define {{ protocol|upper }}_H
@@ -494,6 +497,7 @@ int {{ protocol }}_recv_{{ conn.name }}(void *data, halo_size_t *len);
 
 #endif /* {{ protocol|upper }}_H */
 ```
+{% endraw %}
 
 ```c
 #include "halo_api.h"

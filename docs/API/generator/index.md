@@ -232,6 +232,7 @@ Globals:
 
 ### Example template snippet using model context
 
+{% raw %}
 ```jinja2
 /* {{ environment }} connections */
 {% for conn in model.get("connections", []) %}
@@ -242,6 +243,7 @@ Globals:
 /* interface {{ iname }} */
 {% endfor %}
 ```
+{% endraw %}
 
 ## Adding More Code Templates
 
@@ -271,12 +273,14 @@ _render_template(
 
 Add a custom platform template that reads profiles
 
+{% raw %}
 ```jinja2
 /* profile overview */
 {% for name, prof in model.get("profiles", {}).items() %}
 /* {{ name }} => type={{ prof.get("type", "unknown") }} */
 {% endfor %}
 ```
+{% endraw %}
 
 ## User Code BEGIN/END Blocks (Code Preservation)
 
