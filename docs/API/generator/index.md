@@ -46,14 +46,13 @@ You can run Generator through the user CLI (`halo generate`)
 
 ```bash
 halo generate \
-    --composer-output-dir ./composer_output \
+    --input-dir ./composer_output \
     --output-dir ./output/gen
 ```
 
 Useful flags:
 
-- `--composer-output-dir`, `-i`: path containing unified model output from Composer
-- `--input-dir`: alias for `--composer-output-dir`
+- `--input-dir`, `-i`: path containing unified model output from Composer
 - `--output-dir`, `-o`: destination for generated artifacts
 - `--platform`, `-p`: generate only one platform; default all platforms are generated
 - `--pkl`: explicit PKL path
