@@ -1,0 +1,51 @@
+Total participants	        15
+Group size	                3
+Number of groups	        5
+Study design	            crossover
+Order split             	2 groups classical-first, 3 groups HALO-first
+Roles per group	            interfaces, IPC/config, integration/test
+Unit of comparison	        group-level
+Main outputs	            time, changed files, success, survey
+
+
+Participant assignment inside each group:
+Person	            Best fit
+Person A	        more architecture/modeling oriented
+Person B	        more embedded / low-level / config oriented
+Person C	        more build, debug, integration oriented
+
+Not assigning one participant permanently to Linux, one to Zephyr, one to FreeRTOS.
+That makes the study measure platform difficulty instead of method quality.
+
+Every group works on the whole design. The platform details are already scaffolded
+and the comparison stays focused on classical vs HALO
+
+
+Role definition table
+    Role	                    |    What they do in Classical	            |   What they do in HALO
+    Interfaces & messages	    |     edits structs, headers,               |     edits IDL/interface definitions
+                                |     message layouts, version sync	        |      
+    IPC/configuration	        |     edits shared memory regions,          |     edits ADL/HML/profile/connectivity
+                                |     channels, bindings, routing	        |         
+    Platform integration & test	|     updates sender/receiver code, builds, |     regenerates, integrates stubs, builds, 
+                                |     runs QEMU, validates outputs	        |     runs QEMU, validates outputs
+
+
+| Group | Round 1 Method | Round 2 Method | Person A Role         | Person B Role     | Person C Role               | Main Focus  |
+| ----- | -------------- | -------------- | --------------------- | ----------------- | --------------------------- | ----------- |
+| G1    | Classical      | HALO           | Interfaces & messages | IPC/configuration | Platform integration & test | Full system |
+| G2    | Classical      | HALO           | Interfaces & messages | IPC/configuration | Platform integration & test | Full system |
+| G3    | HALO           | Classical      | Interfaces & messages | IPC/configuration | Platform integration & test | Full system |
+| G4    | HALO           | Classical      | Interfaces & messages | IPC/configuration | Platform integration & test | Full system |
+| G5    | HALO           | Classical      | Interfaces & messages | IPC/configuration | Platform integration & test | Full system |
+
+
+
+What each group should submit:
+
+Artifact	                    Why
+working repo or branch	        proves task completion
+changed files list	            objective effort metric
+run log / console output	    proof of working IPC
+short impact note	            captures perceived complexity
+survey	                        subjective evaluation
