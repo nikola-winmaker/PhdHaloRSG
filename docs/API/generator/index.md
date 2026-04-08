@@ -52,7 +52,8 @@ halo generate \
 
 Useful flags:
 
-- `--input-dir`, `-i`: path containing unified model output from Composer
+- `--composer-output-dir`, `-i`: path containing unified model output from Composer
+- `--input-dir`: alias for `--composer-output-dir`
 - `--output-dir`, `-o`: destination for generated artifacts
 - `--platform`, `-p`: generate only one platform; default all platforms are generated
 - `--pkl`: explicit PKL path
@@ -79,11 +80,11 @@ halo generate -i ./composer_output -o ./output/gen --pkl ./composer_output/halo_
 from generator.halo_generator import generate_from_model
 
 exit_code = generate_from_model(
-        composer_output_dir="./output",
-        output_dir="./output/gen",
-        platforms=["linux"],           # optional platform filter
-        pkl_path=None,                 # optional explicit path
-        log_level="INFO",            # optional
+    composer_output_dir="./output",
+    output_dir="./output/gen",
+    platforms=["linux"],           # optional platform filter
+    pkl_path=None,                 # optional explicit path
+    log_level="INFO",            # optional
 )
 
 if exit_code != 0:
