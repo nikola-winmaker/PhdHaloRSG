@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HALO Workshop – Implementation Task Sheet</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #222;
+      background: #fff;
+    }
+    h1, h2, h3 {
+      color: #1f3b5b;
+    }
+    h1 {
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f3f6fa;
+    }
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    ul {
+      margin-top: 6px;
+    }
+    .section {
+      margin-bottom: 28px;
+    }
+    .note {
+      background: #fff8d8;
+      border: 1px solid #e0d28a;
+      padding: 12px;
+      border-radius: 8px;
+    }
+    .checklist li {
+      margin-bottom: 6px;
+    }
+    .diagram-block {
+      margin: 14px 0 20px;
+      padding: 12px;
+      border: 1px solid #d8dee6;
+      border-radius: 8px;
+      background: #fafcff;
+    }
+    .diagram-block h3 {
+      margin-top: 0;
+    }
+    .render-note {
+      color: #4b5f78;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>HALO Workshop – Implementation Task Sheet</h1>
+  <p><strong>Scenario:</strong> AMP Battery Charging Supervision System</p>
+
+  <div class="section">
+    <h2>Objective</h2>
+    <p>
+      Implement a battery charging supervision application on the provided AMP QEMU platform
+      using both a classical approach and a HALO-based approach.
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>What is already provided</h2>
+    <ul>
+      <li>QEMU platform setup</li>
+      <li>boot and cores/harts startup</li>
+      <li>Zephyr, FreeRTOS, Bare-Metal, and Linux application skeletons</li>
+      <li>IPC runtime / shared memory infrastructure</li>
+      <li>UART console for Linux</li>
+      <li>Virtual sensors / peripherals with query APIs</li>
+        <li>All charging logic and state management</li>
+      <li>build and run scripts</li>
+    </ul>
+    <div class="note">
+        Hart is alias for Core in RISC-V terminology. The platform has 4 harts/cores, each running a different OS or bare-metal code.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>What you must implement</h2>
+    <h3>Hart1 / Zephyr — SensorFusion</h3>
+    <ul>
+      <li>read the sensor values</li>
+      <li>aggregate them into <code>SensorFrameIf</code></li>
+      <li>periodically publish SensorFrameIf at 100ms intervals</li>
+    </ul>
+
+    <h3>Hart2 / FreeRTOS — ChargeController</h3>
+    <ul>
+      <li>consume <code>SensorFrameIf</code></li>
+      <li>use provided functions for charging decisions</code></li>
+      <li>publish <code>ChargeCommandIf </code> at 100ms intervals and <code>ChargeStatusIf</code> at 200ms intervals</li>
+      <li>consume <code>OperatorCommandIf</code> if an operator command is received</li>
+    </ul>
+
+    <h3>Hart3 / Bare-metal — SafetyMonitor</h3>
+    <ul>
+      <li>consume <code>ChargeCommandIf</code></li>
+      <li>use provided functions to check final safety behavior</li>
+      <li>publish <code>SafetyStateIf</code> at 200ms intervals</li>
+    </ul>
+
+    <h3>Hart4 / Linux — LinuxSupervisor</h3>
+    <ul>
+      <li>receive UART console commands</li>
+      <li>use provided functions to parse user commands</li>
+      <li>convert them into <code>OperatorCommandIf</code> and publish it to ChargeController</li>
+      <li>consume <code>ChargeStatusIf</code> and <code>SafetyStateIf</code></li>
+      <li>use provided functions to print state and logs to console</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Interfaces you must use</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Interface</th>
+          <th>From → To</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>SensorFrameIf</code></td><td>SensorFusion → ChargeController</td><td>periodic measurements</td></tr>
+        <tr><td><code>ChargeCommandIf</code></td><td>ChargeController → SafetyMonitor</td><td>charging command</td></tr>
+        <tr><td><code>ChargeStatusIf</code></td><td>ChargeController → LinuxSupervisor</td><td>controller status</td></tr>
+        <tr><td><code>SafetyStateIf</code></td><td>SafetyMonitor → LinuxSupervisor</td><td>safety state</td></tr>
+        <tr><td><code>OperatorCommandIf</code></td><td>LinuxSupervisor → ChargeController</td><td>structured internal command</td></tr>
+        <tr><td><code>UartConsoleCommandIf</code></td><td>UART → LinuxSupervisor</td><td>raw console input</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Minimum interface contents</h2>
+
+    <h3>SensorFrameIf</h3>
+    <ul>
+      <li>battery voltage</li>
+      <li>charge current</li>
+      <li>battery temperature</li>
+      <li>breaker state</li>
+      <li>fault/status flags</li>
+    </ul>
+
+    <h3>ChargeCommandIf</h3>
+    <ul>
+      <li>enable charging</li>
+      <li>current limit</li>
+      <li>voltage limit</li>
+      <li>charging mode</li>
+    </ul>
+
+    <h3>ChargeStatusIf</h3>
+    <ul>
+      <li>charger state</li>
+      <li>requested current</li>
+      <li>requested voltage</li>
+      <li>fault state</li>
+    </ul>
+
+    <h3>SafetyStateIf</h3>
+    <ul>
+      <li>safe mode</li>
+      <li>breaker open</li>
+      <li>charging allowed</li>
+      <li>heartbeat</li>
+    </ul>
+
+    <h3>OperatorCommandIf</h3>
+    <ul>
+      <li>command id</li>
+      <li>parameter</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Example UART commands</h2>
+    <ul>
+      <li><code>start</code></li>
+      <li><code>stop</code></li>
+      <li><code>reset</code></li>
+      <li><code>mode normal</code></li>
+      <li><code>mode fast</code></li>
+      <li><code>set_current 10</code></li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Required scenarios</h2>
+
+    <h3>Nominal scenario</h3>
+    <ol>
+      <li>Zephyr reads virtual sensor values</li>
+      <li>Zephyr publishes <code>SensorFrameIf</code></li>
+      <li>FreeRTOS computes charging decision</li>
+      <li>FreeRTOS publishes <code>ChargeCommandIf</code> and <code>ChargeStatusIf</code></li>
+      <li>Bare-metal updates <code>SafetyStateIf</code></li>
+      <li>Linux displays current controller and safety state</li>
+      <li>User sends a UART command</li>
+      <li>Linux parses it and forwards <code>OperatorCommandIf</code></li>
+      <li>FreeRTOS applies the command and updates status</li>
+    </ol>
+
+    <h3>Fault scenario</h3>
+    <p>Implement at least one abnormal condition:</p>
+    <ul>
+      <li>high temperature</li>
+      <li>high current</li>
+      <li>breaker trip/open</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Acceptance checklist</h2>
+    <ul class="checklist">
+      <li><label><input type="checkbox" /> Provided virtual sensors are read successfully</label></li>
+      <li><label><input type="checkbox" /> <code>SensorFrameIf</code> is published periodically</label></li>
+      <li><label><input type="checkbox" /> <code>ChargeController</code> computes a charging decision</label></li>
+      <li><label><input type="checkbox" /> <code>SafetyMonitor</code> publishes final safety state</label></li>
+      <li><label><input type="checkbox" /> Linux parses UART commands correctly</label></li>
+      <li><label><input type="checkbox" /> Linux forwards <code>OperatorCommandIf</code></label></li>
+      <li><label><input type="checkbox" /> At least one command works end-to-end</label></li>
+      <li><label><input type="checkbox" /> At least one fault scenario is demonstrated</label></li>
+      <li><label><input type="checkbox" /> Status is visible on the console</label></li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Appendix: Diagrams</h2>
+
+    <div class="diagram-block">
+      <h3>System overview</h3>
+      <img src="system_design.svg" alt="System design diagram" style="max-width: 100%; height: auto;" />
+    </div>
+
+    <div class="diagram-block">
+      <h3>Normal communication flow</h3>
+      <img src="normal_comm_flow.svg" alt="Normal communication flow diagram" style="max-width: 100%; height: auto;" />
+    </div>
+
+    <div class="diagram-block">
+      <h3>Safety flow</h3>
+      <img src="safety_flow.svg" alt="Safety flow diagram" style="max-width: 100%; height: auto;" />
+    </div>
+  </div>
+
+</body>
+</html>

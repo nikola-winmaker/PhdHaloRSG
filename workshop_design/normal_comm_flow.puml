@@ -1,0 +1,63 @@
+@startuml
+title Nominal Communication Flow - AMP Vehicle Supervision
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Monospace
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #333333
+  LifeLineBackgroundColor #F8F8F8
+  ParticipantBorderColor #333333
+  ParticipantBackgroundColor #FFFFFF
+  BoxBorderColor #666666
+  BoxBackgroundColor #F7F7F7
+}
+
+actor "Operator" as OP
+
+box "Hart1 - Zephyr" #DDECF6
+participant "Sensor Fusion" as ZSF
+end box
+
+box "Shared Memory IPC" #F5F5F5
+participant "SHM" as SHM
+end box
+
+box "Hart2 - FreeRTOS" #DDECF6
+participant "Control Logic" as CTRL
+end box
+
+box "Hart3 - Bare-metal" #DDECF6
+participant "Safety Monitor" as SAFE
+end box
+
+box "Hart4 - Linux" #FFF0B3
+participant "Userspace App" as APP
+participant "Logger / CLI" as LOG
+end box
+
+loop every 100 ms
+  ZSF -> SHM : write SensorFrame
+  SHM -> CTRL : read SensorFrame
+  CTRL -> CTRL : evaluate thresholds\ncompute charger policy
+  CTRL -> SHM : write ControlStatus
+  SHM -> APP : read ControlStatus
+  APP -> LOG : log control status
+end
+
+loop every 200 ms
+  CTRL -> SHM : write ControlCommand
+  SHM -> SAFE : read ControlCommand
+  SAFE -> SAFE : update safe outputs\nrefresh heartbeat
+end
+
+OP -> APP : set operating mode
+APP -> SHM : write OperatorCommand
+SHM -> CTRL : read OperatorCommand
+CTRL -> CTRL : apply mode change
+CTRL -> SHM : write ControlStatus
+SHM -> APP : read ControlStatus
+APP -> LOG : log mode transition
+
+@enduml

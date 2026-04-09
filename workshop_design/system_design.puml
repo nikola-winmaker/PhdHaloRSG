@@ -1,5 +1,5 @@
 @startuml
-title AMP Vehicle Supervision System (HALO Workshop Scenario)
+title AMP Battery Charging System (HALO Workshop Scenario)
 
 skinparam backgroundColor white
 skinparam shadowing false
@@ -23,12 +23,12 @@ rectangle "RISC-V AMP System" as SYS #F7F7F7 {
 
   rectangle "Hart1\nU74 Core\nM-mode" as H1 #B7D9EA {
     rectangle "Zephyr RTOS" as H1A #DDECF6
-    rectangle "Sensor Fusion\n---\nbattery_temp\ninverter_temp\nvoltage\ncurrent\ncbreaker" as H1B #EAF4FB
+    rectangle "Sensor Fusion\n---\nbattery_temp\nbattery_voltage\ncharge_current\ncbreaker" as H1B #EAF4FB
   }
 
   rectangle "Hart2\nU74 Core\nM-mode" as H2 #B7D9EA {
     rectangle "FreeRTOS" as H2A #DDECF6
-    rectangle "Control Logic" as H2B #EAF4FB
+    rectangle "Charge Controller" as H2B #EAF4FB
   }
 
   rectangle "Hart3\nU74 Core\nM-mode" as H3 #B7D9EA {
@@ -41,58 +41,65 @@ rectangle "RISC-V AMP System" as SYS #F7F7F7 {
   rectangle "Hart4\nU74 Core" as H4 #FFD76A {
     rectangle "OpenSBI Bootloader\nM-mode" as H4A #FFE8A6
     rectangle "Linux Kernel\nS-mode" as H4B #8DB5F0
-    rectangle "Linux Userspace\nApplication" as H4C #C9DCF8
-    rectangle "Logger / CLI" as H4D #EAF1FF
+    rectangle "Linux Supervisor\nCLI Parser / Logger" as H4C #C9DCF8
   }
 
   rectangle "Shared Services" as SH #EDEDED {
-    rectangle "Peripherals" as CLINT #F5F5F5
+    rectangle "Peripherals" as PER #F5F5F5
     rectangle "UART Console" as UART #F5F5F5
   }
+
+  rectangle "External Operator" as OP #FFF9D6
 }
 
 note top of SYS
-S7 Hart0 boots system and releases the other harts.
-Zephyr = sensing, FreeRTOS = control, Bare-metal = safety, Linux = monitoring.
+S7 Hart0 boots the platform and releases the application harts.
+Hart1 / Zephyr = sensing and telemetry aggregation.
+Hart2 / FreeRTOS = charging control logic.
+Hart3 / Bare-metal = safety enforcement.
+Hart4 / Linux = UART command parsing, supervision, logging.
 end note
 
 ' =========================
-' SYSTEM ACCESS
+' PLATFORM / SERVICE ACCESS
 ' =========================
 
 H0 --> SH : init services
 H1 --> SH : use peripherals
-H2 --> SH : use peripherals
-H3 --> SH : use peripherals
-H4 --> SH : user I/O
+H2 --> SH : use IPC
+H3 --> SH : use IPC
+H4 --> SH : use UART and IPC
 
 ' =========================
-' IPC FLOWS
+' EXTERNAL COMMAND PATH
 ' =========================
 
-H1B --> SHM : SensorFrame
-SHM --> H2B : SensorFrame
-
-H1B --> SHM : FaultEvent
-SHM --> H2B : FaultEvent
-
-H2B --> SHM : ControlCommand
-SHM --> H3B : ControlCommand
-
-H2B --> SHM : ControlStatus
-SHM --> H4C : ControlStatus
-
-H3B --> SHM : SafetyState
-SHM --> H4C : SafetyState
-
-H4C --> SHM : OperatorCommand
-SHM --> H2B : OperatorCommand
+OP --> UART : user command text
+UART --> H4C : UartConsoleCommandIf
 
 ' =========================
-' LOCAL FLOW
+' APPLICATION IPC FLOWS
 ' =========================
 
-H4C --> H4D : log output
-H4D --> UART : print
+H1B --> SHM : SensorFrameIf
+SHM --> H2B : SensorFrameIf
+
+H2B --> SHM : ChargeCommandIf
+SHM --> H3B : ChargeCommandIf
+
+H2B --> SHM : ChargeStatusIf
+SHM --> H4C : ChargeStatusIf
+
+H3B --> SHM : SafetyStateIf
+SHM --> H4C : SafetyStateIf
+
+H4C --> SHM : OperatorCommandIf
+SHM --> H2B : OperatorCommandIf
+
+' =========================
+' LOCAL LINUX PROCESSING
+' =========================
+
+H4C --> H4C : parse UART text\nvalidate command\ntranslate to OperatorCommandIf
 
 @enduml

@@ -1,0 +1,56 @@
+@startuml
+title Boot and Bring-up Flow - AMP Vehicle Supervision
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Monospace
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #333333
+  LifeLineBackgroundColor #F8F8F8
+  ParticipantBorderColor #333333
+  ParticipantBackgroundColor #FFFFFF
+  BoxBorderColor #666666
+  BoxBackgroundColor #F7F7F7
+}
+
+box "Hart0 - S7" #CFE8C8
+participant "Boot Coordinator" as BOOT
+end box
+
+box "Hart1 - Zephyr" #DDECF6
+participant "Sensor Fusion" as ZSF
+end box
+
+box "Hart2 - FreeRTOS" #DDECF6
+participant "Control Logic" as CTRL
+end box
+
+box "Hart3 - Bare-metal" #DDECF6
+participant "Safety Monitor" as SAFE
+end box
+
+box "Hart4 - Linux" #FFF0B3
+participant "Linux Userspace" as APP
+end box
+
+box "Shared Memory IPC" #F5F5F5
+participant "SHM" as SHM
+end box
+
+BOOT -> SHM : initialize IPC regions
+BOOT -> ZSF : release hart / start partition
+BOOT -> CTRL : release hart / start partition
+BOOT -> SAFE : release hart / start partition
+BOOT -> APP : release hart / start Linux lane
+
+ZSF -> SHM : Send alive heartbeat
+CTRL -> SHM : Send alive heartbeat
+SAFE -> SHM : Send alive heartbeat
+
+APP -> APP : check for other harts' heartbeats
+APP -> SHM : read heartbeats
+APP -> APP : determine system health and operational mode
+APP -> APP : start logger and CLI
+
+@enduml

@@ -1,0 +1,71 @@
+@startuml
+title Fault and Safety Flow - AMP Vehicle Supervision
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Monospace
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #333333
+  LifeLineBackgroundColor #F8F8F8
+  ParticipantBorderColor #333333
+  ParticipantBackgroundColor #FFFFFF
+  BoxBorderColor #666666
+  BoxBackgroundColor #F7F7F7
+}
+
+actor "Operator" as OP
+
+box "Hart1 - Zephyr" #DDECF6
+participant "Sensor Fusion" as ZSF
+end box
+
+box "Shared Memory IPC" #F5F5F5
+participant "SHM" as SHM
+end box
+
+box "Hart2 - FreeRTOS" #DDECF6
+participant "Control Logic" as CTRL
+end box
+
+box "Hart3 - Bare-metal" #DDECF6
+participant "Safety Monitor" as SAFE
+end box
+
+box "Hart4 - Linux" #FFF0B3
+participant "Userspace App" as APP
+participant "Logger / CLI" as LOG
+end box
+
+ZSF -> SHM : write SensorFrame
+SHM -> CTRL : read SensorFrame
+
+alt threshold exceeded or breaker trip
+  ZSF -> SHM : write FaultEvent
+  SHM -> CTRL : read FaultEvent
+
+  CTRL -> CTRL : classify fault\nselect degraded strategy
+  CTRL -> SHM : write ControlCommand
+  SHM -> SAFE : read ControlCommand
+
+  CTRL -> SHM : write ControlStatus
+  SHM -> APP : read ControlStatus
+
+  SAFE -> SAFE : enter safe/degraded mode
+  SAFE -> SHM : write SafetyState
+  SHM -> APP : read SafetyState
+
+  APP -> LOG : log alarm and safety state
+else values nominal
+  CTRL -> CTRL : keep normal policy
+end
+
+OP -> APP : acknowledge/reset fault
+APP -> SHM : write OperatorCommand
+SHM -> CTRL : read OperatorCommand
+CTRL -> CTRL : validate reset request
+CTRL -> SHM : write ControlStatus
+SHM -> APP : read ControlStatus
+APP -> LOG : log reset outcome
+
+@enduml
