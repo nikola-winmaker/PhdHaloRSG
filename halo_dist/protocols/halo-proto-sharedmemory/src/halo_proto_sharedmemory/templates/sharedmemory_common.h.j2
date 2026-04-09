@@ -1,0 +1,83 @@
+
+typedef enum {
+	SHAREDMEMORY_SYNC_NONE = 0,
+	SHAREDMEMORY_SYNC_ACQ_REL = 1,
+	SHAREDMEMORY_SYNC_FULL = 2,
+} sharedmemory_sync_t;
+
+typedef enum {
+	SHAREDMEMORY_CRC_NONE = 0,
+	SHAREDMEMORY_CRC_SW_CRC16 = 1,
+	SHAREDMEMORY_CRC_SW_CRC32 = 2,
+	SHAREDMEMORY_CRC_HW_CRC16 = 3,
+	SHAREDMEMORY_CRC_HW_CRC32 = 4,
+} sharedmemory_crc_t;
+
+/* User Configuration: CRC Type Selection */
+/* Change SHAREDMEMORY_CRC_TYPE to one of: */
+/*   - SHAREDMEMORY_CRC_NONE (no CRC) */
+/*   - SHAREDMEMORY_CRC_SW_CRC16 (software CRC16 CCITT) */
+/*   - SHAREDMEMORY_CRC_SW_CRC32 (software CRC32 Ethernet) - default */
+/*   - SHAREDMEMORY_CRC_HW_CRC16 (hardware CRC16 accelerator) */
+/*   - SHAREDMEMORY_CRC_HW_CRC32 (hardware CRC32 accelerator) */
+#ifndef SHAREDMEMORY_CRC_TYPE
+#define SHAREDMEMORY_CRC_TYPE SHAREDMEMORY_CRC_SW_CRC32
+#endif
+
+/* CRC function declarations from shared module */
+{% include "sharedmemory_crc.h.j2" %}
+
+// Ring buffer control block (at start of shared memory region)
+typedef struct {
+	volatile halo_u32_t read_idx;   // Consumer read index
+	volatile halo_u32_t write_idx;  // Producer write index
+	volatile halo_u32_t slot_count; // Total number of slots
+	volatile halo_u32_t slot_size;  // Size of each slot (header + max payload)
+} sharedmemory_ringbuf_ctrl_t;
+
+// Message header (at start of each slot)
+typedef struct {
+	volatile halo_u32_t valid;      // 1 = data valid, 0 = consumed
+	volatile halo_u32_t size;       // actual payload size in bytes
+	volatile halo_u32_t sequence;   // message sequence number
+	volatile halo_u16_t crc_value;  // CRC value (if integrity != NONE)
+	volatile halo_u8_t integrity;   // integrity type
+	volatile halo_u8_t reserved;    // alignment/future use
+} sharedmemory_header_t;
+
+// Shared-memory channel descriptor with sync/cache hints
+typedef struct {
+	volatile halo_u8_t *base;    // channel base address
+	halo_size_t size;            // total memory region size in bytes
+	halo_size_t max_payload;     // max payload size for this channel
+	sharedmemory_sync_t sync;
+	halo_u8_t cacheable;         // 1 if region is cacheable
+	halo_u8_t writeback;         // 1 if policy is write-back
+	halo_u8_t blocking;          // 1 for blocking lock, 0 for try
+	const char *primitive;       // lock primitive name (e.g., "mutex")
+	const char *name;            // channel name for diagnostics
+} sharedmemory_channel_t;
+
+// Platform-specific synchronization and cache maintenance hooks
+// (Implemented in platform-specific sharedmemory_<platform>.c)
+void sharedmemory_init(const sharedmemory_channel_t *chan);
+void sharedmemory_init_with_buffer(sharedmemory_channel_t *chan, void *buffer);
+void sharedmemory_lock(const sharedmemory_channel_t *chan);
+void sharedmemory_unlock(const sharedmemory_channel_t *chan);
+void sharedmemory_fence_acquire(void);
+void sharedmemory_fence_release(void);
+void sharedmemory_fence_full(void);
+void sharedmemory_cache_flush(const sharedmemory_channel_t *chan, halo_size_t offset, halo_size_t len);
+void sharedmemory_cache_invalidate(const sharedmemory_channel_t *chan, halo_size_t offset, halo_size_t len);
+
+// Protocol API (platform-independent)
+int sharedmemory_send(const sharedmemory_channel_t *chan, const void *src, halo_size_t len);
+int sharedmemory_recv(const sharedmemory_channel_t *chan, void *dst, halo_size_t len);
+int sharedmemory_try_recv(const sharedmemory_channel_t *chan, void *dst, halo_size_t max_len, halo_size_t *actual_len);
+
+/* Channel instances - defined in implementation file, declared here for external access */
+{% if protocol_channels %}
+{% for channel in protocol_channels %}
+extern sharedmemory_channel_t {{ channel.name }}_channel;
+{% endfor %}
+{% endif %}

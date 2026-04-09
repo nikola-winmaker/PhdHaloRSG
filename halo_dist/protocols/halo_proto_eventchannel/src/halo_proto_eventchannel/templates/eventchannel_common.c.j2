@@ -1,0 +1,201 @@
+/* HALO {{ protocol }} common implementation - Platform Independent */
+#include "{{ protocol }}_common.h"
+#include "halo_lib.h"
+
+/* Lightweight event queue - ring buffer for small data payloads */
+/* Configuration from protocol profile */
+{% set max_channels = 10 %}
+{% set queue_size = 256 %}
+{% if protocol_channels %}
+  {% set first_channel = protocol_channels[0] %}
+  {% if first_channel.c_values %}
+    {% if 'maxChannels' in first_channel.c_values %}
+      {% set max_channels = first_channel.c_values['maxChannels'] | int %}
+    {% endif %}
+    {% if 'eventQueueSize' in first_channel.c_values %}
+      {% set queue_size = first_channel.c_values['eventQueueSize'] | int %}
+    {% endif %}
+  {% endif %}
+{% endif %}
+
+#define HALO_{{ protocol|upper }}_MAX_CHANNELS {{ max_channels }}
+#define HALO_{{ protocol|upper }}_QUEUE_SIZE {{ queue_size }}
+#define HALO_{{ protocol|upper }}_MAX_EVENT_SIZE HALO_{{ protocol|upper }}_QUEUE_SIZE  /* Event payload size = queue entry size */
+
+typedef struct {
+    halo_u8_t data[HALO_{{ protocol|upper }}_MAX_EVENT_SIZE];
+    halo_u32_t length;
+} {{ protocol }}_event_entry_t;
+
+typedef struct {
+    {{ protocol }}_event_entry_t events[HALO_{{ protocol|upper }}_QUEUE_SIZE];
+    halo_u32_t head;
+    halo_u32_t tail;
+    halo_u32_t count;
+} {{ protocol }}_queue_t;
+
+/* Event queues for all channels */
+//__attribute__((section(".shared_data")));
+static {{ protocol }}_queue_t {{ protocol }}_queues[HALO_{{ protocol|upper }}_MAX_CHANNELS];
+
+/* Initialize protocol - sets up queue for channel */
+void {{ protocol }}_init({{ protocol }}_channel_t *channel) {
+    if (!channel) {
+        return;
+    }
+    /* Queues allocated on first send/recv */
+}
+
+/* Get or allocate queue for channel (fast, no string lookup) */
+static {{ protocol }}_queue_t* {{ protocol }}_get_queue({{ protocol }}_channel_t *channel) {
+    if (!channel) {
+        return NULL;
+    }
+    
+    /* Check if external buffer is available (e.g., shared memory) */
+    void *external_buf = {{ protocol }}_get_external_buffer(channel);
+    if (external_buf) {
+        return ({{ protocol }}_queue_t *)external_buf;
+    }
+    
+    /* Return allocated queue for this channel (pre-assigned by template) */
+    if (channel->queue_index < HALO_{{ protocol|upper }}_MAX_CHANNELS) {
+        return &{{ protocol }}_queues[channel->queue_index];
+    }
+    
+    return NULL;
+}
+
+/* Send event to channel - lightweight, non-blocking */
+int {{ protocol }}_send({{ protocol }}_channel_t *channel, const void *src, halo_u32_t length) {
+    if (!channel || !src || length == 0) {
+        return -1;  /* Invalid parameter */
+    }
+    
+    if (length > HALO_{{ protocol|upper }}_MAX_EVENT_SIZE) {
+        return -3;  /* Data too large */
+    }
+    
+    {{ protocol }}_queue_t *queue = {{ protocol }}_get_queue(channel);
+    if (!queue) {
+        return -1;  /* No queue available */
+    }
+    
+    /* Check if queue is full */
+    if (queue->count >= HALO_{{ protocol|upper }}_QUEUE_SIZE) {
+        return -2;  /* Queue full */
+    }
+    
+    /* Copy event data to queue */
+    {{ protocol }}_event_entry_t *entry = &queue->events[queue->tail];
+    halo_memcpy_volatile(entry->data, src, length);
+    entry->length = length;
+    
+    queue->tail = (queue->tail + 1) % HALO_{{ protocol|upper }}_QUEUE_SIZE;
+    queue->count++;
+    
+    /* Platform-specific notification hook */
+    {{ protocol }}_notify_send(channel);
+    
+    return 1;  /* Success */
+}
+
+/* Receive event from channel - non-blocking */
+int {{ protocol }}_recv({{ protocol }}_channel_t *channel, void *dst, halo_u32_t dst_length) {
+    if (!channel || !dst || dst_length == 0) {
+        return -1;  /* Invalid parameter */
+    }
+    
+    {{ protocol }}_queue_t *queue = {{ protocol }}_get_queue(channel);
+    if (!queue || queue->count == 0) {
+        return 0;  /* No event available */
+    }
+    
+    {{ protocol }}_event_entry_t *entry = &queue->events[queue->head];
+    
+    /* Check if dst buffer is large enough */
+    if (entry->length > dst_length) {
+        return -4;  /* Buffer too small */
+    }
+    
+    /* Copy event data from queue */
+    halo_memcpy_volatile(dst, entry->data, entry->length);
+    halo_u32_t received_length = entry->length;
+    
+    queue->head = (queue->head + 1) % HALO_{{ protocol|upper }}_QUEUE_SIZE;
+    queue->count--;
+    
+    return received_length;  /* Return bytes received */
+}
+
+/* Receive event from channel - blocking with timeout support */
+int {{ protocol }}_recv_blocking({{ protocol }}_channel_t *channel, void *dst, halo_u32_t dst_length) {
+    if (!channel || !dst || dst_length == 0) {
+        return -1;  /* Invalid parameter */
+    }
+    
+    /* Use blocking parameter from channel config, with timeout */
+    halo_u32_t timeout_ms = 0;
+    if (channel->blocking) {
+        timeout_ms = channel->timeout;  /* Get timeout from config */
+    }
+    
+    /* Try non-blocking receive first */
+    int result = {{ protocol }}_recv(channel, dst, dst_length);
+    if (result > 0 || result < -1) {
+        return result;  /* Success or error (not "no data") */
+    }
+    
+    /* If no data and blocking is requested, wait for data */
+    if (timeout_ms > 0) {
+        result = {{ protocol }}_wait_data(channel, timeout_ms);
+        if (result > 0) {
+            /* Data may be available now, try receiving again */
+            return {{ protocol }}_recv(channel, dst, dst_length);
+        }
+        /* timeout_ms elapsed, return timeout error */
+        return -5;  /* Timeout */
+    }
+    
+    return 0;  /* No data available, non-blocking mode */
+}
+
+/* Weak hook for platform-specific notification (IRQ, semaphore, etc.) */
+__attribute__((weak))
+void {{ protocol }}_notify_send({{ protocol }}_channel_t *channel) {
+    (void)channel;
+    /* Default: no-op - platforms can override */
+}
+
+/* Weak hook for platform-specific blocking wait (semaphore, condition variable, etc.) */
+__attribute__((weak))
+int {{ protocol }}_wait_data({{ protocol }}_channel_t *channel, halo_u32_t timeout_ms) {
+    (void)channel;
+    (void)timeout_ms;
+    /* Default: non-blocking, return immediately with no data */
+    return 0;  /* 0 = timeout/no data */
+}
+
+/* Weak hook for providing external buffers (e.g., shared memory) to HALO */
+__attribute__((weak))
+void* {{ protocol }}_get_external_buffer({{ protocol }}_channel_t *channel) {
+    (void)channel;
+    return NULL;  /* Default: no external buffer */
+}
+
+{% if protocol_channels %}
+/* Channel instances populated from profiles with queue assignments */
+{% for channel in protocol_channels %}
+{{ protocol }}_channel_t {{ channel.name }}_channel = {
+    .name = "{{ channel.name }}",
+{% for key, value in channel.c_values.items() %}
+{% if key != 'name' %}
+    .{{ key }} = {{ value }},
+{% endif %}
+{% endfor %}
+    .queue_index = {{ loop.index0 }},  /* Queue index: {{ channel.name }} */
+};
+{% endfor %}
+{% endif %}
+
+

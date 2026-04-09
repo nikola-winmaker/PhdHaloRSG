@@ -1,0 +1,201 @@
+/* HALO {{ protocol }} common implementation - Platform Independent */
+#include "{{ protocol }}_common.h"
+#include "halo_lib.h"
+
+/* Optional external buffer support - applications can set these before init */
+{% if protocol_channels %}
+{% for channel in protocol_channels %}
+void *{{ protocol }}_{{ channel.name }}_external_buffer = NULL;
+halo_u32_t {{ protocol }}_{{ channel.name }}_external_size = 0;
+{% endfor %}
+{% endif %}
+
+/* Static buffer allocation for each channel instance */
+// __attribute__((section(".blackboard_buffers"))) can be used to place these in a specific memory section if needed
+{% if protocol_channels %}
+{% for channel in protocol_channels %}
+static halo_u8_t {{ channel.name }}_buffer[{{ channel.c_values.maxPayload }}];
+{% endfor %}
+{% endif %}
+
+/* Channel handles for runtime operation */
+{% if protocol_channels %}
+{% for channel in protocol_channels %}
+static {{ protocol }}_channel_handle_t {{ channel.name }}_handle;
+{% endfor %}
+{% endif %}
+
+/* Channel descriptor mapping for unified initialization */
+{% if protocol_channels %}
+typedef struct {
+    const {{ protocol }}_channel_t *channel;
+    {{ protocol }}_channel_handle_t *handle;
+    void *static_buffer;
+    halo_u32_t static_buffer_size;
+    void **external_buffer_ptr;
+    halo_u32_t *external_size_ptr;
+} {{ protocol }}_channel_descriptor_t;
+
+static const {{ protocol }}_channel_descriptor_t {{ protocol }}_channels[] = {
+{% for channel in protocol_channels %}
+    {
+        .channel = &{{ channel.name }}_channel,
+        .handle = &{{ channel.name }}_handle,
+        .static_buffer = {{ channel.name }}_buffer,
+        .static_buffer_size = sizeof({{ channel.name }}_buffer),
+        .external_buffer_ptr = &{{ protocol }}_{{ channel.name }}_external_buffer,
+        .external_size_ptr = &{{ protocol }}_{{ channel.name }}_external_size,
+    },
+{% endfor %}
+};
+#define {{ protocol|upper }}_CHANNEL_COUNT (sizeof({{ protocol }}_channels) / sizeof({{ protocol }}_channels[0]))
+{% endif %}
+
+/* Initialize blackboard channel with descriptor lookup */
+void {{ protocol }}_init(const {{ protocol }}_channel_t *chan) {
+    if (!chan) {
+        return;
+    }
+    
+    halo_u32_t i;
+    /* Lookup channel in descriptor table */
+{% if protocol_channels %}
+    for (i = 0; i < {{ protocol|upper }}_CHANNEL_COUNT; i++) {
+        if ({{ protocol }}_channels[i].channel == chan) {
+            void *buffer_mem = *{{ protocol }}_channels[i].external_buffer_ptr;
+            halo_u32_t buffer_size = *{{ protocol }}_channels[i].external_size_ptr;
+            
+            /* Use external buffer if provided, otherwise use static buffer */
+            if (!buffer_mem) {
+                buffer_mem = {{ protocol }}_channels[i].static_buffer;
+                buffer_size = {{ protocol }}_channels[i].static_buffer_size;
+            }
+            
+            {{ protocol }}_channel_init({{ protocol }}_channels[i].handle, chan, buffer_mem, buffer_size);
+            /* Platform-specific synchronization hooks - weak function users can override */
+            /* Note: Only called on non-x86 embedded platforms */
+#ifndef _WIN32
+            {{ protocol }}_init_sync(chan);
+#endif
+            return;
+        }
+    }
+{% endif %}
+}
+
+/* Blackboard protocol implementation - platform independent */
+
+/* Initialize a blackboard channel with memory buffer */
+halo_s32_t {{ protocol }}_channel_init(
+    {{ protocol }}_channel_handle_t *chan,
+    const {{ protocol }}_channel_t *profile,
+    void *buffer_mem,
+    halo_u32_t buffer_mem_size
+) {
+    if (!chan || !profile || !buffer_mem) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    if (buffer_mem_size < profile->maxPayload) {
+        return {{ protocol|upper }}_ERR_OVERFLOW;
+    }
+    
+    chan->profile = profile;
+    chan->data_buffer = (volatile halo_u8_t *)buffer_mem;
+    chan->write_index = 0;
+    chan->read_index = 0;
+    
+    return {{ protocol|upper }}_OK;
+}
+
+/* Helper: Find channel handle by profile pointer */
+static {{ protocol }}_channel_handle_t* {{ protocol }}_find_handle(const {{ protocol }}_channel_t *channel_profile) {
+    halo_u32_t i;
+    if (!channel_profile) return NULL;
+{% if protocol_channels %}
+    for (i = 0; i < {{ protocol|upper }}_CHANNEL_COUNT; i++) {
+        if ({{ protocol }}_channels[i].channel == channel_profile) {
+            return {{ protocol }}_channels[i].handle;
+        }
+    }
+{% endif %}
+    return NULL;
+}
+
+/* Public API: Send with channel profile (called by generated halo_channels.c) */
+halo_s32_t {{ protocol }}_send(
+    const {{ protocol }}_channel_t *channel_profile,
+    const void *data,
+    halo_u32_t data_size
+) {
+    {{ protocol }}_channel_handle_t *handle = {{ protocol }}_find_handle(channel_profile);
+    if (!handle) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    if (!data) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    if (data_size > handle->profile->maxPayload) {
+        return {{ protocol|upper }}_ERR_OVERFLOW;
+    }
+    
+    /* Copy data to buffer using HALO library memcpy */
+    halo_memcpy_volatile((void *)handle->data_buffer, data, data_size);
+    
+    /* Increment write index to signal new version available */
+    handle->write_index++;
+    
+    return (halo_s32_t)data_size;
+}
+
+/* Public API: Receive with channel profile (called by generated halo_channels.c) */
+halo_s32_t {{ protocol }}_recv(
+    const {{ protocol }}_channel_t *channel_profile,
+    void *data,
+    halo_u32_t max_size
+) {
+    {{ protocol }}_channel_handle_t *handle = {{ protocol }}_find_handle(channel_profile);
+    if (!handle) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    if (!data) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    halo_u32_t available_size = handle->profile->maxPayload;
+    if (available_size > max_size) {
+        available_size = max_size;
+    }
+    
+    /* Update read index to current write_index (no backlog) */
+    handle->read_index = handle->write_index;
+    
+    /* Copy latest snapshot to caller's buffer using HALO library memcpy */
+    halo_memcpy_volatile(data, (void *)handle->data_buffer, available_size);
+    
+    return (halo_s32_t)available_size;
+}
+
+/* Get the latest write version */
+halo_u32_t {{ protocol }}_get_latest_index({{ protocol }}_channel_handle_t *chan) {
+    if (!chan) {
+        return 0;
+    }
+    return chan->write_index;
+}
+
+{% if protocol_channels %}
+/* Channel instances populated from profiles */
+{% for channel in protocol_channels %}
+{{ protocol }}_channel_t {{ channel.name }}_channel = {
+{% for key, value in channel.c_values.items() %}
+    .{{ key }} = {{ value }},
+{% endfor %}
+};
+
+{% endfor %}
+{% endif %}
+

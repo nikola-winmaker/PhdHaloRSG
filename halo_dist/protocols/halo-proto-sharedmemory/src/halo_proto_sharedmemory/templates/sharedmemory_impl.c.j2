@@ -1,0 +1,246 @@
+/* Generated Shared Memory Protocol Implementation - Base Template */
+#include "halo_types.h"
+#include "sharedmemory_{{ environment|lower }}.h"
+#include "sharedmemory_crc.h"
+#include <string.h>
+
+{% block platform_includes %}
+/* Platform includes go here */
+{% endblock %}
+
+{% block platform_globals %}
+/* Platform-specific global state */
+{% endblock %}
+
+{% block platform_primitives %}
+/* Platform synchronization primitives */
+{% endblock %}
+
+/* Include shared CRC implementations */
+{% include "sharedmemory_crc.c.j2" %}
+
+void sharedmemory_init(const sharedmemory_channel_t *chan) {
+    /* Initialize channel */
+    if (!chan || !chan->base) {
+        return;
+    }
+    
+    /* Set up ring buffer control block */
+    sharedmemory_ringbuf_ctrl_t *ctrl = (sharedmemory_ringbuf_ctrl_t *)chan->base;
+    ctrl->read_idx = 0;
+    ctrl->write_idx = 0;
+    ctrl->slot_count = (chan->size - sizeof(sharedmemory_ringbuf_ctrl_t)) / 
+                       (sizeof(sharedmemory_header_t) + chan->max_payload);
+    ctrl->slot_size = sizeof(sharedmemory_header_t) + chan->max_payload;
+    
+    {% block platform_init_extra %}
+    /* Platform-specific init code */
+    {% endblock %}
+}
+
+void sharedmemory_init_with_buffer(sharedmemory_channel_t *chan, void *buffer) {
+    /* Initialize channel with external buffer address */
+    if (!chan || !buffer) {
+        return;
+    }
+    
+    /* Override the base pointer with external buffer */
+    chan->base = (volatile halo_u8_t *)buffer;
+    
+    /* Call standard initialization */
+    sharedmemory_init(chan);
+}
+
+{% block platform_sync_ops %}
+/* Platform-specific lock/unlock implementation */
+
+void sharedmemory_lock(const sharedmemory_channel_t *chan) {
+    /* Platform-specific implementation */
+    (void)chan;
+}
+
+void sharedmemory_unlock(const sharedmemory_channel_t *chan) {
+    /* Platform-specific implementation */
+    (void)chan;
+}
+{% endblock %}
+
+{% block platform_fence %}
+/* Platform-specific memory fence implementation */
+
+void sharedmemory_fence_acquire(void) {
+    /* Generic barrier */
+    __asm__ volatile("" ::: "memory");
+}
+
+void sharedmemory_fence_release(void) {
+    /* Generic barrier */
+    __asm__ volatile("" ::: "memory");
+}
+
+void sharedmemory_fence_full(void) {
+    /* Generic barrier */
+    __asm__ volatile("" ::: "memory");
+}
+{% endblock %}
+
+{% block platform_cache %}
+/* Platform-specific cache operations */
+
+void sharedmemory_cache_flush(const sharedmemory_channel_t *chan,
+                            halo_size_t offset, halo_size_t len) {
+    /* Platform-specific implementation */
+    (void)chan;
+    (void)offset;
+    (void)len;
+}
+
+void sharedmemory_cache_invalidate(const sharedmemory_channel_t *chan,
+                                 halo_size_t offset, halo_size_t len) {
+    /* Platform-specific implementation */
+    (void)chan;
+    (void)offset;
+    (void)len;
+}
+{% endblock %}
+
+{% block platform_channels %}
+{% if protocol_channels %}
+/* Channel definitions */
+{% for channel in protocol_channels %}
+sharedmemory_channel_t {{ channel.name }}_channel = {
+    .base = (volatile halo_u8_t*){{ channel.base_address }},
+    .size = {{ channel.size }},
+    .max_payload = {{ channel.max_payload }},
+    .sync = {{ channel.sync }},
+    .cacheable = {{ 1 if channel.cacheable else 0 }},
+    .writeback = 1,
+    .blocking = 1,
+    .primitive = "{{ protocol_name }}",
+    .name = "{{ channel.name }}",
+};
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+/* ============================================================================
+ * Protocol API Implementation - Ring Buffer Transfer
+ * ============================================================================ */
+
+int sharedmemory_send(const sharedmemory_channel_t *chan, const void *src, halo_size_t len) {
+    if (!chan || !chan->base || !src || len == 0 || len > chan->max_payload) {
+        return -1;
+    }
+    
+    sharedmemory_ringbuf_ctrl_t *ctrl = (sharedmemory_ringbuf_ctrl_t *)chan->base;
+    
+    /* Lock for exclusive write access */
+    sharedmemory_lock(chan);
+    
+    /* Check if ring buffer is full (write_idx + 1 == read_idx) */
+    halo_u32_t next_write = (ctrl->write_idx + 1) % ctrl->slot_count;
+    if (next_write == ctrl->read_idx) {
+        sharedmemory_unlock(chan);
+        return -1; /* Ring buffer full */
+    }
+    
+    /* Write message to the current write slot */
+    halo_u32_t write_offset = sizeof(sharedmemory_ringbuf_ctrl_t) + (ctrl->write_idx * ctrl->slot_size);
+    sharedmemory_header_t *header = (sharedmemory_header_t *)(chan->base + write_offset);
+    
+    header->size = len;
+    header->valid = 0;
+    header->sequence = ctrl->write_idx;
+    header->crc_value = 0;
+    header->integrity = SHAREDMEMORY_CRC_TYPE;
+    header->reserved = 0;
+    
+    /* Copy payload after header */
+    halo_u8_t *payload = (halo_u8_t *)(header + 1);
+    memcpy((void *)payload, src, len);
+    
+    /* Calculate CRC if enabled */
+    if (SHAREDMEMORY_CRC_TYPE != SHAREDMEMORY_CRC_NONE) {
+        header->crc_value = sharedmemory_calculate_crc((const halo_u8_t *)payload, len);
+    }
+    
+    /* Flush cache before marking message valid */
+    sharedmemory_cache_flush(chan, write_offset, sizeof(sharedmemory_header_t) + len);
+    
+    /* Mark as valid */
+    header->valid = 1;
+    sharedmemory_fence_release();
+    
+    /* Advance write index */
+    ctrl->write_idx = next_write;
+    
+    sharedmemory_unlock(chan);
+    return 0;
+}
+
+int sharedmemory_recv(const sharedmemory_channel_t *chan, void *dst, halo_size_t len) {
+    if (!chan || !chan->base || !dst || len == 0) {
+        return -1;
+    }
+    
+    sharedmemory_ringbuf_ctrl_t *ctrl = (sharedmemory_ringbuf_ctrl_t *)chan->base;
+    
+    /* Lock for exclusive read access */
+    sharedmemory_lock(chan);
+    
+    /* Check if ring buffer is empty */
+    if (ctrl->read_idx == ctrl->write_idx) {
+        sharedmemory_unlock(chan);
+        return 0; /* No data available */
+    }
+    
+    /* Read message from current read slot */
+    halo_u32_t read_offset = sizeof(sharedmemory_ringbuf_ctrl_t) + (ctrl->read_idx * ctrl->slot_size);
+    sharedmemory_header_t *header = (sharedmemory_header_t *)(chan->base + read_offset);
+    
+    /* Invalidate cache to ensure fresh read */
+    sharedmemory_cache_invalidate(chan, read_offset, sizeof(sharedmemory_header_t) + header->size);
+    sharedmemory_fence_acquire();
+    
+    /* Check if message is valid */
+    if (!header->valid) {
+        sharedmemory_unlock(chan);
+        return 0; /* Data not yet available */
+    }
+    
+    /* Verify CRC if enabled */
+    if (SHAREDMEMORY_CRC_TYPE != SHAREDMEMORY_CRC_NONE) {
+        halo_u8_t *payload = (halo_u8_t *)(header + 1);
+        halo_u32_t computed_crc = sharedmemory_calculate_crc(payload, header->size);
+        if (computed_crc != header->crc_value) {
+            sharedmemory_unlock(chan);
+            return -1; /* CRC mismatch */
+        }
+    }
+    
+    /* Copy payload to destination */
+    halo_size_t copy_len = (header->size < len) ? header->size : len;
+    halo_u8_t *payload = (halo_u8_t *)(header + 1);
+    memcpy(dst, (const void *)payload, copy_len);
+    
+    /* Mark as consumed */
+    header->valid = 0;
+    
+    /* Advance read index */
+    ctrl->read_idx = (ctrl->read_idx + 1) % ctrl->slot_count;
+    
+    sharedmemory_unlock(chan);
+    return copy_len;
+}
+
+int sharedmemory_try_recv(const sharedmemory_channel_t *chan, void *dst, halo_size_t max_len, halo_size_t *actual_len) {
+    /* Same as sharedmemory_recv but returns actual length through pointer */
+    if (!actual_len) {
+        return -1;
+    }
+    int result = sharedmemory_recv(chan, dst, max_len);
+    if (result >= 0) {
+        *actual_len = result;
+    }
+    return result;
+}

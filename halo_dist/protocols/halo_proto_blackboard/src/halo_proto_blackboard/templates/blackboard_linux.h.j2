@@ -1,0 +1,31 @@
+/* HALO {{ protocol }} platform-specific header */
+#ifndef HALO_{{ protocol|upper }}_{{ environment|upper }}_H
+#define HALO_{{ protocol|upper }}_{{ environment|upper }}_H
+
+#include "{{ protocol }}_common.h"
+#include <pthread.h>
+
+/* Platform-specific definitions for Linux */
+/* POSIX mutex protected synchronization */
+
+struct {{ protocol }}_channel_linux {
+    {{ protocol }}_channel_handle_t base;
+    pthread_mutex_t write_lock;
+    pthread_mutex_t read_lock;
+};
+
+/* POSIX mutex protected write */
+halo_s32_t {{ protocol }}_write_mutex(
+    {{ protocol }}_channel_handle_t *chan,
+    const void *data,
+    halo_u32_t data_size
+);
+
+/* POSIX mutex protected read */
+halo_s32_t {{ protocol }}_read_mutex(
+    {{ protocol }}_channel_handle_t *chan,
+    void *data,
+    halo_u32_t max_size
+);
+
+#endif /* HALO_{{ protocol|upper }}_{{ environment|upper }}_H */

@@ -1,0 +1,24 @@
+/* HALO {{ protocol }} platform-specific header */
+#ifndef HALO_{{ protocol|upper }}_{{ environment|upper }}_H
+#define HALO_{{ protocol|upper }}_{{ environment|upper }}_H
+
+#include "{{ protocol }}_common.h"
+
+/* Platform-specific definitions for {{ environment }} */
+/* Baremetal synchronization using volatile memory and atomic writes */
+
+/* Atomic-style write for baremetal - disables interrupts briefly */
+halo_s32_t {{ protocol }}_write_atomic(
+    {{ protocol }}_channel_handle_t *chan,
+    const void *data,
+    halo_u32_t data_size
+);
+
+/* Atomic-style read for baremetal - consistent snapshot */
+halo_s32_t {{ protocol }}_read_atomic(
+    {{ protocol }}_channel_handle_t *chan,
+    void *data,
+    halo_u32_t max_size
+);
+
+#endif /* HALO_{{ protocol|upper }}_{{ environment|upper }}_H */

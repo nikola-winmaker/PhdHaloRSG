@@ -1,0 +1,58 @@
+{% extends "sharedmemory_impl.c.j2" %}
+
+{% block platform_includes %}
+#include <pthread.h>
+#include <sys/mman.h>
+{% endblock %}
+
+{% block platform_globals %}
+/* Linux-specific synchronization using pthread mutexes */
+static pthread_mutex_t shmem_mutex = PTHREAD_MUTEX_INITIALIZER;
+{% endblock %}
+
+{% block platform_sync_ops %}
+void sharedmemory_lock(const sharedmemory_channel_t *chan) {
+    if (chan->blocking) {
+        pthread_mutex_lock(&shmem_mutex);
+    } else {
+        pthread_mutex_trylock(&shmem_mutex);
+    }
+}
+
+void sharedmemory_unlock(const sharedmemory_channel_t *chan) {
+    pthread_mutex_unlock(&shmem_mutex);
+}
+{% endblock %}
+
+{% block platform_fence %}
+void sharedmemory_fence_acquire(void) {
+    __atomic_thread_fence(__ATOMIC_ACQUIRE);
+}
+
+void sharedmemory_fence_release(void) {
+    __atomic_thread_fence(__ATOMIC_RELEASE);
+}
+
+void sharedmemory_fence_full(void) {
+    __atomic_thread_fence(__ATOMIC_SEQ_CST);
+}
+{% endblock %}
+
+{% block platform_cache %}
+void sharedmemory_cache_flush(const sharedmemory_channel_t *chan, 
+                            halo_size_t offset, halo_size_t len) {
+    /* Linux kernel handles cache coherency for mmap regions - use msync for explicit sync */
+    if (chan->cacheable && chan->writeback) {
+        msync((void*)(chan->base + offset), len, MS_SYNC);
+    }
+}
+
+void sharedmemory_cache_invalidate(const sharedmemory_channel_t *chan,
+                                 halo_size_t offset, halo_size_t len) {
+    /* Linux kernel handles cache invalidation automatically for mmap */
+    (void)chan;
+    (void)offset;
+    (void)len;
+}
+{% endblock %}
+

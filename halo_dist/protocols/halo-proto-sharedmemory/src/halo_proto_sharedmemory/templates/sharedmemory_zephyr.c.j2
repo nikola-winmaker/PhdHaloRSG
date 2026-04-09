@@ -1,0 +1,71 @@
+{% extends "sharedmemory_impl.c.j2" %}
+
+{% block platform_includes %}
+#include <zephyr/kernel.h>
+#include <zephyr/sys/mutex.h>
+#include <zephyr/sys/cache.h>
+{% endblock %}
+
+{% block platform_globals %}
+/* Zephyr-specific synchronization using kernel mutex */
+static struct k_mutex shmem_mutex;
+{% endblock %}
+
+{% block platform_init_extra %}
+    /* Initialize kernel mutex */
+    k_mutex_init(&shmem_mutex);
+{% endblock %}
+
+{% block platform_sync_ops %}
+void sharedmemory_lock(const sharedmemory_channel_t *chan) {
+    if (chan->blocking) {
+        k_mutex_lock(&shmem_mutex, K_FOREVER);
+    } else {
+        k_mutex_lock(&shmem_mutex, K_NO_WAIT);
+    }
+}
+
+void sharedmemory_unlock(const sharedmemory_channel_t *chan) {
+    k_mutex_unlock(&shmem_mutex);
+}
+{% endblock %}
+
+{% block platform_fence %}
+void sharedmemory_fence_acquire(void) {
+    /* Zephyr memory barrier for acquire semantics */
+    __sync_synchronize();
+}
+
+void sharedmemory_fence_release(void) {
+    /* Zephyr memory barrier for release semantics */
+    __sync_synchronize();
+}
+
+void sharedmemory_fence_full(void) {
+    /* Zephyr full memory barrier */
+    __sync_synchronize();
+}
+{% endblock %}
+
+{% block platform_cache %}
+void sharedmemory_cache_flush(const sharedmemory_channel_t *chan,
+                            halo_size_t offset, halo_size_t len) {
+    /* Zephyr cache operations - conditional on CONFIG_DCACHE */
+    if (chan->cacheable && chan->writeback) {
+#ifdef CONFIG_DCACHE
+        sys_cache_data_flush_range((void*)(chan->base + offset), len);
+#endif
+    }
+}
+
+void sharedmemory_cache_invalidate(const sharedmemory_channel_t *chan,
+                                 halo_size_t offset, halo_size_t len) {
+    /* Zephyr cache invalidation - conditional on CONFIG_DCACHE */
+    if (chan->cacheable) {
+#ifdef CONFIG_DCACHE
+        sys_cache_data_invd_range((void*)(chan->base + offset), len);
+#endif
+    }
+}
+{% endblock %}
+

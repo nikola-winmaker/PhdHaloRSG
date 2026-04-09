@@ -1,0 +1,12 @@
+/* HALO platform configuration for {{ environment }} */
+#ifndef HALO_PLATFORM_CONFIG_H
+#define HALO_PLATFORM_CONFIG_H
+
+#define HALO_PLATFORM_{{ environment|upper }}
+#define HALO_PLATFORM_{{ environment|upper }}_HAS_OS {{ '1' if has_os else '0' }}
+
+/* HALO USER CODE BEGIN: platform_config.defines */
+/* Add extra platform configuration macros here. */
+/* HALO USER CODE END: platform_config.defines */
+
+#endif /* HALO_PLATFORM_CONFIG_H */

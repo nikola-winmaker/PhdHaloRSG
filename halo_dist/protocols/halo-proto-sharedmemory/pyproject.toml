@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "halo-proto-sharedmemory"
+version = "0.1.0"
+description = "HALO protocol generator for SharedMemory"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+dependencies = [
+    "jinja2>=3.0.0",
+]
+
+[project.entry-points."halo.protocol_generators"]
+sharedmemory = "halo_proto_sharedmemory.config:get_protocol_config"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+halo_proto_sharedmemory = [
+    "templates/**/*.j2",
+]

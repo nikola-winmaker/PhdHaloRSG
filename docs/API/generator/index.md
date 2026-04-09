@@ -175,8 +175,8 @@ If you need to update generator after it is already created:
 halo update-generator --path ./generated_plugins/halo_proto_eventchannel --list-platforms
 
 # Add/remove supported platforms
-halo update-generator --path ./generated_plugins/halo_proto_eventchannel --add-platforms baremetal
-halo update-generator --path ./generated_plugins/halo_proto_eventchannel --remove-platforms linux
+halo update-generator --path ./generated_plugins/halo_proto_eventchannel --add-platforms linux, rtos, my_platform
+halo update-generator --path ./generated_plugins/halo_proto_eventchannel --remove-platforms linux, rtos, my_platform
 ```
 
 After scaffolding:

@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "halo_gen_riscv64-h3-baremetal"
+version = "0.1.0"
+description = "Bare-metal application running on riscv 64 U74"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Nikola Stojkov", email = "nikola.winmaker@gmail.com" }
+]
+dependencies = [
+    "jinja2>=3.0.0",
+]
+
+[project.entry-points."halo.generators"]
+riscv64_h3_baremetal = "halo_gen_riscv64_h3_baremetal.config:get_generator_config"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+halo_gen_riscv64_h3_baremetal = [
+    "templates/**/*.j2",
+]

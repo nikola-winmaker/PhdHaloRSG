@@ -1,0 +1,60 @@
+/* HALO {{ protocol }} common header - Platform Independent */
+#ifndef HALO_{{ protocol|upper }}_COMMON_H
+#define HALO_{{ protocol|upper }}_COMMON_H
+
+#include "halo_types.h"
+
+/* Event type - can be lightweight bitmask, enum, or small data payload */
+typedef halo_u32_t {{ protocol }}_event_t;
+
+/* Channel configuration structure */
+typedef struct {
+{% if protocol_channels %}
+{% set first_channel = protocol_channels[0] %}
+{% if first_channel.c_fields %}
+{% for field_name, field_type in first_channel.c_fields.items() %}
+    {{ field_type }} {{ field_name }};
+{% endfor %}
+{% endif %}
+    halo_u32_t queue_index;  /* Index into static queue array */
+{% endif %}
+} {{ protocol }}_channel_t;
+
+/* Static routing table entry for event channel */
+typedef struct {
+    const char *channel_name;
+    {{ protocol }}_channel_t *channel_config;
+    halo_u32_t queue_depth;
+} {{ protocol }}_route_t;
+
+/* Core send/receive API - pass channel struct directly (no string lookup) */
+int {{ protocol }}_send({{ protocol }}_channel_t *channel, const void *src, halo_u32_t length);
+int {{ protocol }}_recv({{ protocol }}_channel_t *channel, void *dst, halo_u32_t dst_length);
+int {{ protocol }}_recv_blocking({{ protocol }}_channel_t *channel, void *dst, halo_u32_t dst_length);
+
+/* Platform hooks - can be overridden */
+void* {{ protocol }}_get_external_buffer({{ protocol }}_channel_t *channel);
+void {{ protocol }}_notify_send({{ protocol }}_channel_t *channel);
+int {{ protocol }}_wait_data({{ protocol }}_channel_t *channel, halo_u32_t timeout_ms);
+
+/* Initialization */
+void {{ protocol }}_init({{ protocol }}_channel_t *channel);
+
+{% if protocol_channels %}
+/* Channel instances (defined in {{ protocol }}_common.c) */
+{% for channel in protocol_channels %}
+extern {{ protocol }}_channel_t {{ channel.name }}_channel;
+{% endfor %}
+
+/* Channel-specific convenience macros - use direct channel struct */
+{% for channel in protocol_channels %}
+#define {{ protocol }}_send_{{ channel.name|upper }}(src, len) \
+    {{ protocol }}_send(&{{ channel.name }}_channel, (src), (len))
+#define {{ protocol }}_recv_{{ channel.name|upper }}(dst, len) \
+    {{ protocol }}_recv(&{{ channel.name }}_channel, (dst), (len))
+#define {{ protocol }}_recv_blocking_{{ channel.name|upper }}(dst, len) \
+    {{ protocol }}_recv_blocking(&{{ channel.name }}_channel, (dst), (len))
+{% endfor %}
+{% endif %}
+
+#endif /* HALO_{{ protocol|upper }}_COMMON_H */

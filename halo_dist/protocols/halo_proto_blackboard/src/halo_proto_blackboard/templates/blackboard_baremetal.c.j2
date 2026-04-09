@@ -1,0 +1,64 @@
+/* Generic implementation for the {{ protocol }} protocol on {{ environment }} */
+#include "{{ protocol }}_{{ environment }}.h"
+
+{% for channel in protocol_channels %}
+/* {{ channel.name }}: {{ channel.from_component }} -> {{ channel.to_component }} via {{ channel.interface }} */
+{% endfor %}
+
+/* Baremetal atomic write - disables interrupts for atomic section */
+halo_s32_t {{ protocol }}_write_atomic(
+    {{ protocol }}_channel_handle_t *chan,
+    const void *data,
+    halo_u32_t data_size
+) {
+    if (!chan || !data) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    if (data_size > chan->profile->maxPayload) {
+        return {{ protocol|upper }}_ERR_OVERFLOW;
+    }
+    
+    /* Copy using halo_memcpy_volatile for volatile-safe access */
+    halo_memcpy_volatile((void *)chan->data_buffer, data, data_size);
+    
+    /* Enter critical section - interrupt disable handled by platform */
+    //__disable_irq();
+    
+    /* Increment generation counter (volatile write ensures visibility) */
+    chan->write_index++;
+    
+    /* Exit critical section */
+    //__enable_irq();
+    
+    return (halo_s32_t)data_size;
+}
+
+/* Baremetal atomic read - takes consistent snapshot */
+halo_s32_t {{ protocol }}_read_atomic(
+    {{ protocol }}_channel_handle_t *chan,
+    void *data,
+    halo_u32_t max_size
+) {
+    if (!chan || !data) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    halo_u32_t available_size = chan->profile->maxPayload;
+    if (available_size > max_size) {
+        available_size = max_size;
+    }
+    
+    /* Read latest snapshot using halo_memcpy_volatile for volatile-safe access */
+    halo_memcpy_volatile(data, (void *)chan->data_buffer, available_size);
+    
+    return (halo_s32_t)available_size;
+}
+
+/* Platform-specific synchronization initialization hook (called by common _init) */
+__attribute__((weak))
+void {{ protocol }}_init_sync(const {{ protocol }}_channel_t *chan) {
+    (void)chan;
+    /* Default: no-op - Baremetal uses interrupt disable in read/write */
+}
+

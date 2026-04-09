@@ -1,0 +1,32 @@
+
+/**
+ * @file platform_init.h
+ * @brief Platform-specific initialization and utilities
+ */
+
+#ifndef HALO_PLATFORM_INIT_H
+#define HALO_PLATFORM_INIT_H
+
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Interrupt control */
+void halo_disable_interrupts(void);
+void halo_enable_interrupts(void);
+
+/* Cache management (optional) */
+void halo_platform_cache_flush(void *addr, size_t size);
+void halo_platform_cache_invalidate(void *addr, size_t size);
+
+/* HALO USER CODE BEGIN: platform_init.declarations */
+/* Add extra platform declarations here. */
+/* HALO USER CODE END: platform_init.declarations */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* HALO_PLATFORM_INIT_H */

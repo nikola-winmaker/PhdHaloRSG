@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "halo_proto_blackboard"
+version = "0.1.0"
+description = "Blackboard/Sampled Port Protocol - One writer updates latest value, readers always read newest snapshot"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "HALO Dev", email = "dev@halo.dev" }
+]
+dependencies = [
+    "jinja2>=3.0.0",
+]
+
+[project.entry-points."halo.protocol_generators"]
+blackboard = "halo_proto_blackboard.config:get_protocol_config"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+halo_proto_blackboard = [
+    "templates/**/*.j2",
+]

@@ -1,0 +1,15 @@
+// Generated shared-memory transport interface - Zephyr Platform
+#ifndef SHAREDMEMORY_ZEPHYR_H
+#define SHAREDMEMORY_ZEPHYR_H
+
+#include "halo_types.h"
+
+/* Platform-specific includes for Zephyr can be added here */
+/* #include <zephyr/kernel.h> */
+/* #include <zephyr/sys/mutex.h> */
+
+/* Include common shared memory definitions */
+{% include "sharedmemory_common.h.j2" %}
+
+#endif /* SHAREDMEMORY_ZEPHYR_H */
+

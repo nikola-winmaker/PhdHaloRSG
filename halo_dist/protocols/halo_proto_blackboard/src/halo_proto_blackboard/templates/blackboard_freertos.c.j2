@@ -1,0 +1,83 @@
+/* Generic implementation for the {{ protocol }} protocol on {{ environment }} */
+#include "{{ protocol }}_{{ environment }}.h"
+
+{% for channel in protocol_channels %}
+/* {{ channel.name }}: {{ channel.from_component }} -> {{ channel.to_component }} via {{ channel.interface }} */
+{% endfor %}
+
+/* FreeRTOS semaphore protected write */
+halo_s32_t {{ protocol }}_write_freertos(
+    {{ protocol }}_channel_handle_t *chan,
+    const void *data,
+    halo_u32_t data_size
+) {
+    if (!chan || !data) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    if (data_size > chan->profile->maxPayload) {
+        return {{ protocol|upper }}_ERR_OVERFLOW;
+    }
+    
+    struct {{ protocol }}_channel_freertos *freertos_chan = 
+        (struct {{ protocol }}_channel_freertos *)chan;
+    
+    /* Acquire write semaphore with indefinite timeout */
+    if (xSemaphoreTake(freertos_chan->write_semaphore, portMAX_DELAY) == pdTRUE) {
+        /* Copy using halo_memcpy_volatile for volatile-safe access */
+        halo_memcpy_volatile((void *)chan->data_buffer, data, data_size);
+        
+        /* Increment generation counter */
+        chan->write_index++;
+        
+        /* Release semaphore */
+        xSemaphoreGive(freertos_chan->write_semaphore);
+        
+        return (halo_s32_t)data_size;
+    }
+    
+    return {{ protocol|upper }}_ERR_INVALID;
+}
+
+/* FreeRTOS semaphore protected read */
+halo_s32_t {{ protocol }}_read_freertos(
+    {{ protocol }}_channel_handle_t *chan,
+    void *data,
+    halo_u32_t max_size
+) {
+    if (!chan || !data) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    halo_u32_t available_size = chan->profile->maxPayload;
+    if (available_size > max_size) {
+        available_size = max_size;
+    }
+    
+    struct {{ protocol }}_channel_freertos *freertos_chan = 
+        (struct {{ protocol }}_channel_freertos *)chan;
+    
+    /* Acquire read semaphore with indefinite timeout */
+    if (xSemaphoreTake(freertos_chan->read_semaphore, portMAX_DELAY) == pdTRUE) {
+        /* Copy using halo_memcpy_volatile for volatile-safe access */
+        halo_memcpy_volatile(data, (void *)chan->data_buffer, available_size);
+        
+        /* Update read index (no backlog - always read latest) */
+        chan->read_index = chan->write_index;
+        
+        /* Release semaphore */
+        xSemaphoreGive(freertos_chan->read_semaphore);
+        
+        return (halo_s32_t)available_size;
+    }
+    
+    return {{ protocol|upper }}_ERR_INVALID;
+}
+
+/* Platform-specific synchronization initialization hook (called by common _init) */
+__attribute__((weak))
+void {{ protocol }}_init_sync(const {{ protocol }}_channel_t *chan) {
+    (void)chan;
+    /* Default: no-op - FreeRTOS uses semaphores in read/write */
+}
+

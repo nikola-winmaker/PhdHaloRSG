@@ -1,0 +1,82 @@
+/* HALO {{ protocol }} common header - Platform Independent */
+#ifndef HALO_{{ protocol|upper }}_COMMON_H
+#define HALO_{{ protocol|upper }}_COMMON_H
+
+#include "halo_types.h"
+#include "halo_lib.h"
+
+/* Protocol structures and types - define your channel_t here */
+typedef struct {
+{% if protocol_channels %}
+{% set first_channel = protocol_channels[0] %}
+{% if first_channel.c_fields %}
+{% for field_name, field_type in first_channel.c_fields.items() %}
+    {{ field_type }} {{ field_name }};    /* From profile */
+{% endfor %}
+{% endif %}
+{% endif %}
+} {{ protocol }}_channel_t;
+
+/* Protocol initialization function */
+void {{ protocol }}_init(const {{ protocol }}_channel_t *chan);
+
+/* Platform-specific synchronization initialization hook (called by common _init) */
+__attribute__((weak))
+void {{ protocol }}_init_sync(const {{ protocol }}_channel_t *chan);
+
+/* Blackboard/Sampled Port Protocol
+ * One writer updates latest value; readers always read newest snapshot.
+ * No queue growth, no backlog semantics.
+ */
+
+/* Blackboard channel handle for runtime operations */
+typedef struct {
+    const {{ protocol }}_channel_t *profile;
+    volatile halo_u32_t write_index;
+    volatile halo_u32_t read_index;
+    volatile halo_u8_t *data_buffer;
+} {{ protocol }}_channel_handle_t;
+
+/* Blackboard API functions */
+halo_s32_t {{ protocol }}_channel_init(
+    {{ protocol }}_channel_handle_t *chan,
+    const {{ protocol }}_channel_t *profile,
+    void *buffer_mem,
+    halo_u32_t buffer_mem_size
+);
+
+/* Public send/recv API - takes channel profile (called by generated code) */
+halo_s32_t {{ protocol }}_send(
+    const {{ protocol }}_channel_t *channel_profile,
+    const void *data,
+    halo_u32_t data_size
+);
+
+halo_s32_t {{ protocol }}_recv(
+    const {{ protocol }}_channel_t *channel_profile,
+    void *data,
+    halo_u32_t max_size
+);
+
+/* Optional external buffer support - set before calling halo_profile_init_*() */
+{% if protocol_channels %}
+{% for channel in protocol_channels %}
+extern void *{{ protocol }}_{{ channel.name }}_external_buffer;
+extern halo_u32_t {{ protocol }}_{{ channel.name }}_external_size;
+{% endfor %}
+{% endif %}
+
+/* Error codes */
+#define {{ protocol|upper }}_OK           (0)
+#define {{ protocol|upper }}_ERR_INVALID  (-1)
+#define {{ protocol|upper }}_ERR_OVERFLOW (-2)
+#define {{ protocol|upper }}_ERR_EMPTY    (-3)
+
+{% if protocol_channels %}
+/* Channel instances (defined in {{ protocol }}_common.c) */
+{% for channel in protocol_channels %}
+extern {{ protocol }}_channel_t {{ channel.name }}_channel;
+{% endfor %}
+{% endif %}
+
+#endif /* HALO_{{ protocol|upper }}_COMMON_H */

@@ -1,0 +1,147 @@
+
+/**
+ * @file platform_init.c
+ * @brief Platform-specific initialization and interrupt handling
+ * 
+ * This file provides platform-specific implementations required by HALO:
+ * - Interface initialization functions
+ * - Profile initialization functions
+ * - Interrupt control functions
+ */
+
+#include "halo_api.h"
+
+{% set profile_types = {} %}
+{% for profile_name, profile_config in model.profiles.items() %}
+{% set ptype = profile_config.get('type', '')|lower %}
+{% if ptype %}
+{% set _ = profile_types.update({ptype: True}) %}
+{% endif %}
+{% endfor %}
+
+{% for ptype in profile_types.keys()|sort %}
+{% if _has_profile_type_connections(model, ptype) and _is_protocol_generator_available(ptype) %}
+#include "{{ ptype }}_{{ environment|lower }}.h"
+{% endif %}
+{% endfor %}
+/* HALO USER CODE BEGIN: platform_init.includes */
+/* Add extra platform-specific includes here. */
+/* HALO USER CODE END: platform_init.includes */
+
+/* ============================================================================
+ * Interrupt Control (Platform-Specific)
+ * ========================================================================== */
+
+/**
+ * @brief Disable interrupts for atomic operations
+ * 
+ * Platform must implement this to ensure atomicity in shared memory access.
+ * Example implementations:
+ * - ARM Cortex-M: __disable_irq() or CPSID I
+ * - x86: cli
+ * - RISC-V: csrc mstatus, 0x8
+ */
+void halo_disable_interrupts(void) {
+    // TODO: Implement platform-specific interrupt disable
+    // Example for ARM Cortex-M:
+    // __asm volatile ("cpsid i" : : : "memory");
+    /* HALO USER CODE BEGIN: halo_disable_interrupts */
+    /* HALO USER CODE END: halo_disable_interrupts */
+}
+
+/**
+ * @brief Enable interrupts after atomic operations
+ */
+void halo_enable_interrupts(void) {
+    // TODO: Implement platform-specific interrupt enable
+    // Example for ARM Cortex-M:
+    // __asm volatile ("cpsie i" : : : "memory");
+    /* HALO USER CODE BEGIN: halo_enable_interrupts */
+    /* HALO USER CODE END: halo_enable_interrupts */
+}
+
+/* ============================================================================
+ * Interface Initialization Stubs
+ * ========================================================================== */
+
+{% for iface_name in model.interfaces.keys() %}
+/**
+ * @brief Initialize interface {{ iface_name }}
+ * 
+ * Called during channel initialization. Implement hardware-specific setup here:
+ * - Configure communication peripherals (UART, SPI, I2C, etc.)
+ * - Set up GPIO pins if needed
+ * - Initialize protocol-specific hardware
+ */
+void halo_interface_init_{{ iface_name }}(void) {
+    // TODO: Implement platform-specific interface initialization
+    // Initialize hardware resources for {{ iface_name }}
+    /* HALO USER CODE BEGIN: halo_interface_init_{{ iface_name }} */
+    /* HALO USER CODE END: halo_interface_init_{{ iface_name }} */
+}
+
+{% endfor %}
+
+/* ============================================================================
+ * Profile Initialization Stubs
+ * ========================================================================== */
+
+{% for profile_name in model.profiles.keys()|sort %}
+{% set prof = model.profiles.get(profile_name, {}) %}
+{% set prof_type = prof.get('type', '')|lower %}
+/**
+ * @brief Initialize profile {{ profile_name }}
+ * 
+ * Called during channel initialization.
+ */
+void halo_profile_init_{{ profile_name }}(void) {
+    {% if prof_type and _is_protocol_generator_available(prof_type) %}
+    {% for conn in model.get('connections', []) %}
+    {% if conn.get('profile', '') == profile_name %}
+    // Initialize connection {{ conn.get('name', '') }} using {{ prof_type }}
+    {{ prof_type }}_init(&{{ conn.get('name', '') }}_channel);
+    {% endif %}
+    {% endfor %}
+    {% else %}
+    // TODO: Implement profile initialization for {{ profile_name }} ({{ prof_type }} protocol)
+    {% endif %}
+    /* HALO USER CODE BEGIN: halo_profile_init_{{ profile_name }} */
+    /* HALO USER CODE END: halo_profile_init_{{ profile_name }} */
+}
+
+{% endfor %}
+
+
+/* ============================================================================
+ * Cache Management (Optional - for platforms with cache)
+ * ========================================================================== */
+
+/**
+ * @brief Flush cache for shared memory region
+ * @param addr Start address
+ * @param size Size in bytes
+ */
+void halo_platform_cache_flush(void *addr, size_t size) {
+    // TODO: Implement cache flush if platform has data cache
+    // Example for ARM Cortex-A:
+    // SCB_CleanDCache_by_Addr(addr, size);
+    (void)addr;
+    (void)size;
+    /* HALO USER CODE BEGIN: halo_platform_cache_flush */
+    /* HALO USER CODE END: halo_platform_cache_flush */
+}
+
+/**
+ * @brief Invalidate cache for shared memory region
+ * @param addr Start address
+ * @param size Size in bytes
+ */
+void halo_platform_cache_invalidate(void *addr, size_t size) {
+    // TODO: Implement cache invalidate if platform has data cache
+    // Example for ARM Cortex-A:
+    // SCB_InvalidateDCache_by_Addr(addr, size);
+    (void)addr;
+    (void)size;
+    /* HALO USER CODE BEGIN: halo_platform_cache_invalidate */
+    /* HALO USER CODE END: halo_platform_cache_invalidate */
+}

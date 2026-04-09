@@ -1,0 +1,76 @@
+/* Generic implementation for the {{ protocol }} protocol on {{ environment }} */
+#include "{{ protocol }}_{{ environment }}.h"
+
+{% for channel in protocol_channels %}
+/* {{ channel.name }}: {{ channel.from_component }} -> {{ channel.to_component }} via {{ channel.interface }} */
+{% endfor %}
+
+/* POSIX mutex protected write with memory ordering */
+halo_s32_t {{ protocol }}_write_mutex(
+    {{ protocol }}_channel_handle_t *chan,
+    const void *data,
+    halo_u32_t data_size
+) {
+    if (!chan || !data) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    if (data_size > chan->profile->maxPayload) {
+        return {{ protocol|upper }}_ERR_OVERFLOW;
+    }
+    
+    /* Lock write section - ensures atomic update */
+    struct {{ protocol }}_channel_linux *linux_chan = 
+        (struct {{ protocol }}_channel_linux *)chan;
+    
+    pthread_mutex_lock(&linux_chan->write_lock);
+    
+    /* Copy using halo_memcpy_volatile for volatile-safe access */
+    halo_memcpy_volatile((void *)chan->data_buffer, data, data_size);
+    
+    /* Increment generation counter */
+    chan->write_index++;
+    
+    pthread_mutex_unlock(&linux_chan->write_lock);
+    
+    return (halo_s32_t)data_size;
+}
+
+/* POSIX mutex protected read with consistent snapshot */
+halo_s32_t {{ protocol }}_read_mutex(
+    {{ protocol }}_channel_handle_t *chan,
+    void *data,
+    halo_u32_t max_size
+) {
+    if (!chan || !data) {
+        return {{ protocol|upper }}_ERR_INVALID;
+    }
+    
+    halo_u32_t available_size = chan->profile->maxPayload;
+    if (available_size > max_size) {
+        available_size = max_size;
+    }
+    
+    struct {{ protocol }}_channel_linux *linux_chan = 
+        (struct {{ protocol }}_channel_linux *)chan;
+    
+    pthread_mutex_lock(&linux_chan->read_lock);
+    
+    /* Copy using halo_memcpy_volatile for volatile-safe access */
+    halo_memcpy_volatile(data, (void *)chan->data_buffer, available_size);
+    
+    /* Update read index (no backlog - always read latest) */
+    chan->read_index = chan->write_index;
+    
+    pthread_mutex_unlock(&linux_chan->read_lock);
+    
+    return (halo_s32_t)available_size;
+}
+
+/* Platform-specific synchronization initialization hook (called by common _init) */
+__attribute__((weak))
+void {{ protocol }}_init_sync(const {{ protocol }}_channel_t *chan) {
+    (void)chan;
+    /* Default: no-op - Linux uses mutexes in read/write */
+}
+

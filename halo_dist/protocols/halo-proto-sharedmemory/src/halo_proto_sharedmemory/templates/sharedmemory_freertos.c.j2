@@ -1,0 +1,75 @@
+{% extends "sharedmemory_impl.c.j2" %}
+
+{% block platform_includes %}
+#include "FreeRTOS.h"
+#include "semphr.h"
+{% endblock %}
+
+{% block platform_globals %}
+/* FreeRTOS-specific synchronization using semaphores */
+static SemaphoreHandle_t shmem_semaphore = NULL;
+{% endblock %}
+
+{% block platform_init_extra %}
+    /* Create semaphore for synchronization */
+    if (shmem_semaphore == NULL) {
+        shmem_semaphore = xSemaphoreCreateMutex();
+    }
+{% endblock %}
+
+{% block platform_sync_ops %}
+void sharedmemory_lock(const sharedmemory_channel_t *chan) {
+    if (shmem_semaphore != NULL) {
+        if (chan->blocking) {
+            xSemaphoreTake(shmem_semaphore, portMAX_DELAY);
+        } else {
+            xSemaphoreTake(shmem_semaphore, 0);
+        }
+    }
+}
+
+void sharedmemory_unlock(const sharedmemory_channel_t *chan) {
+    if (shmem_semaphore != NULL) {
+        xSemaphoreGive(shmem_semaphore);
+    }
+}
+{% endblock %}
+
+{% block platform_fence %}
+void sharedmemory_fence_acquire(void) {
+    /* ARM memory barrier for acquire semantics */
+    __asm__ volatile("dmb" ::: "memory");
+}
+
+void sharedmemory_fence_release(void) {
+    /* ARM memory barrier for release semantics */
+    __asm__ volatile("dmb" ::: "memory");
+}
+
+void sharedmemory_fence_full(void) {
+    /* ARM full memory barrier */
+    __asm__ volatile("dsb" ::: "memory");
+    __asm__ volatile("isb" ::: "memory");
+}
+{% endblock %}
+
+{% block platform_cache %}
+void sharedmemory_cache_flush(const sharedmemory_channel_t *chan,
+                            halo_size_t offset, halo_size_t len) {
+    /* FreeRTOS cache flush - requires CMSIS or HAL implementation */
+    if (chan->cacheable && chan->writeback) {
+        /* Platform-specific cache operations to be added */
+        /* Example: SCB_CleanDCache_by_Addr((uint32_t*)(chan->base + offset), len); */
+    }
+}
+
+void sharedmemory_cache_invalidate(const sharedmemory_channel_t *chan,
+                                 halo_size_t offset, halo_size_t len) {
+    /* FreeRTOS cache invalidate */
+    if (chan->cacheable) {
+        /* Platform-specific cache operations to be added */
+        /* Example: SCB_InvalidateDCache_by_Addr((uint32_t*)(chan->base + offset), len); */
+    }
+}
+{% endblock %}
+
