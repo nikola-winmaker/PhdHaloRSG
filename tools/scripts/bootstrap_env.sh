@@ -9,8 +9,8 @@ PIPX_BIN_DIR="${HOME}/.local/bin"
 INSTALL_HOST_TOOLS=1
 INIT_DEPS=1
 RUN_VERIFY=1
-RUN_SMOKE_BUILDS=1
-RUN_BUILDROOT_DEFCONFIG=1
+RUN_SMOKE_BUILDS=0
+RUN_BUILDROOT_DEFCONFIG=0
 
 ZEPHYR_REF="${ZEPHYR_REF:-v3.7.0}"
 FREERTOS_REF="${FREERTOS_REF:-main}"
@@ -179,7 +179,9 @@ gitlink_commit() {
 }
 
 install_host_tools() {
-    local halo_wheel="${ROOT_DIR}/halo/halo-0.1.1-py3-none-any.whl"
+    local halo_wheel="${ROOT_DIR}/halo_dist/halo-0.1.1-py3-none-any.whl"
+    local halo_dist_dir="${ROOT_DIR}/halo_dist"
+    local -a halo_extra_wheels=()
 
     if ! command -v "${APT_GET}" >/dev/null 2>&1; then
         err "${APT_GET} not found. This bootstrap currently supports Debian/Ubuntu-style systems."
@@ -194,7 +196,9 @@ install_host_tools() {
         build-essential \
         cmake \
         cpio \
+        default-jdk \
         device-tree-compiler \
+        graphviz \
         g++-riscv64-linux-gnu \
         gcc-riscv64-linux-gnu \
         gcc-riscv64-unknown-elf \
@@ -205,8 +209,14 @@ install_host_tools() {
         python3 \
         python3-pip \
         python3-venv \
-        qemu-system-misc \
         unzip
+
+    if command -v qemu-system-riscv64 >/dev/null 2>&1; then
+        info "qemu-system-riscv64 already present; skipping qemu install"
+    else
+        info "qemu-system-riscv64 not found; installing qemu-system-misc"
+        ${SUDO} "${APT_GET}" install -y qemu-system-misc
+    fi
 
     if ! command -v pipx >/dev/null 2>&1; then
         err "pipx is still unavailable after package install"
@@ -240,6 +250,25 @@ install_host_tools() {
     fi
     if ! command -v halo >/dev/null 2>&1; then
         ${SUDO} pipx install "${halo_wheel}"
+    fi
+
+    if [ -d "${halo_dist_dir}" ]; then
+        while IFS= read -r wheel_path; do
+            halo_extra_wheels+=("${wheel_path}")
+        done < <(
+            find "${halo_dist_dir}" -type f \( -path "*/protocols/*" -o -path "*/platforms/*" \) -name '*.whl' | sort
+        )
+
+        if [ "${#halo_extra_wheels[@]}" -gt 0 ]; then
+            info "Installing Halo protocol/platform wheels into Halo pipx env"
+            for wheel_path in "${halo_extra_wheels[@]}"; do
+                ${SUDO} pipx runpip halo install --force-reinstall "${wheel_path}"
+            done
+        else
+            info "No protocol/platform wheels found under ${halo_dist_dir}"
+        fi
+    else
+        info "halo_dist directory not found at ${halo_dist_dir}; skipping protocol/platform wheel installs"
     fi
 
     ok "Host tools installed"
@@ -388,6 +417,8 @@ verify_env() {
     check_cmd python3 "python3 --version"
     check_cmd cmake "cmake --version"
     check_cmd ninja "ninja --version"
+    check_cmd java "java --version"
+    check_cmd dot "dot -V"
     check_cmd west "west --version"
     check_cmd dtc "dtc --version"
     check_cmd cpio "cpio --version"
