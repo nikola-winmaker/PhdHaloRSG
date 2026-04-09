@@ -179,6 +179,8 @@ gitlink_commit() {
 }
 
 install_host_tools() {
+    local halo_wheel="${ROOT_DIR}/halo/halo-0.1.1-py3-none-any.whl"
+
     if ! command -v "${APT_GET}" >/dev/null 2>&1; then
         err "${APT_GET} not found. This bootstrap currently supports Debian/Ubuntu-style systems."
         exit 1
@@ -229,6 +231,15 @@ install_host_tools() {
     if ! command -v readelf.py >/dev/null 2>&1; then
         info "Installing pyelftools globally via pipx"
         ${SUDO} pipx install pyelftools
+    fi
+
+    info "Ensuring Halo CLI is installed"
+    if [ ! -f "${halo_wheel}" ]; then
+        err "Halo wheel not found: ${halo_wheel}"
+        exit 1
+    fi
+    if ! command -v halo >/dev/null 2>&1; then
+        ${SUDO} pipx install "${halo_wheel}"
     fi
 
     ok "Host tools installed"
