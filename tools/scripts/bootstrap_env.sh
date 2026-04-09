@@ -181,6 +181,7 @@ gitlink_commit() {
 install_host_tools() {
     local halo_wheel="${ROOT_DIR}/halo_dist/halo-0.1.1-py3-none-any.whl"
     local halo_dist_dir="${ROOT_DIR}/halo_dist"
+    local halo_build_script="${halo_dist_dir}/build_n_install_all.sh"
     local -a halo_extra_wheels=()
 
     if ! command -v "${APT_GET}" >/dev/null 2>&1; then
@@ -250,6 +251,13 @@ install_host_tools() {
     fi
     if ! command -v halo >/dev/null 2>&1; then
         ${SUDO} pipx install "${halo_wheel}"
+    fi
+
+    if [ -f "${halo_build_script}" ]; then
+        info "Building HALO protocol/platform wheels"
+        bash "${halo_build_script}" --build-wheels
+    else
+        info "HALO package build script not found at ${halo_build_script}; skipping wheel build"
     fi
 
     if [ -d "${halo_dist_dir}" ]; then
