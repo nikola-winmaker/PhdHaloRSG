@@ -48,7 +48,7 @@ rectangle "RISC-V AMP System" as SYS #F7F7F7 {
 
   rectangle "Shared Services" as SH #EDEDED {
     rectangle "Shared Memory" as SHM #F5F5F5
-    rectangle "Peripherals" as CLINT #F5F5F5
+    rectangle "Virtual Peripherals" as CLINT #F5F5F5
     rectangle "UART Console" as UART #F5F5F5
   }
 }
@@ -56,6 +56,11 @@ rectangle "RISC-V AMP System" as SYS #F7F7F7 {
 TOPNOTE -[hidden]down- H1
 TOPNOTE -[hidden]down- H2
 TOPNOTE -[hidden]down- H3
+
+H1 -[hidden]right- H2
+H2 -[hidden]right- H3
+H3 -[hidden]right- H4
+H4 -[hidden]right- H0
 
 H0 -down- SH
 H1 -down- SH

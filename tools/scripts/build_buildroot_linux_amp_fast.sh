@@ -17,7 +17,7 @@ fi
 
 EXTERNAL_DIR="${WS_DIR}/external"
 POST_BUILD_SCRIPT="${EXTERNAL_DIR}/board/risc5_eval/post-build.sh"
-APP_SRC="${ROOT_DIR}/apps/linux-hart0/src/amp_hart0_app.c"
+APP_SRC="${ROOT_DIR}/apps/linux-hart4/src/linux_app.c"
 TARGET_DIR="${OUTPUT_DIR}/target"
 HOST_DIR="${OUTPUT_DIR}/host"
 ARTIFACT_DIR="${ROOT_DIR}/artifacts/buildroot/images"
@@ -63,8 +63,8 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
         -O2 -Wall -Wextra \
         -Wl,--dynamic-linker=/lib/ld-linux-riscv64-lp64d.so.1 \
         "${APP_SRC}" \
-        -o "${OVERLAY_DIR}/usr/bin/amp-hart0-app"
-    chmod 0755 "${OVERLAY_DIR}/usr/bin/amp-hart0-app"
+        -o "${OVERLAY_DIR}/usr/bin/linux_app"
+    chmod 0755 "${OVERLAY_DIR}/usr/bin/linux_app"
 
     (
         cd "${OVERLAY_DIR}"
@@ -78,7 +78,7 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
     echo "[INFO] Updated artifact: ${ARTIFACT_ROOTFS}"
     echo "[OK] Expected artifacts:"
     echo "     ${ARTIFACT_ROOTFS}"
-    echo "     ${OVERLAY_DIR}/usr/bin/amp-hart0-app"
+    echo "     ${OVERLAY_DIR}/usr/bin/linux_app"
     exit 0
 fi
 
@@ -98,10 +98,12 @@ echo "[INFO] Fast Linux app/rootfs rebuild using existing Buildroot output"
 echo "[INFO] Buildroot output directory: ${OUTPUT_DIR}"
 
 echo "[INFO] Rebuilding userspace app into target rootfs"
-HOST_DIR="${HOST_DIR}" AMP_HART0_APP_SRC="${APP_SRC}" "${POST_BUILD_SCRIPT}" "${TARGET_DIR}"
+HOST_DIR="${HOST_DIR}" \
+AMP_HART4_APP_SRC="${APP_SRC}" \
+"${POST_BUILD_SCRIPT}" "${TARGET_DIR}"
 
 echo "[INFO] Repacking rootfs.cpio with Buildroot (preserves device files)"
-AMP_HART0_APP_SRC="${APP_SRC}" \
+AMP_HART4_APP_SRC="${APP_SRC}" \
 make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" rootfs-cpio
 
 # Copy newly built artifacts to git-tracked location
@@ -111,4 +113,4 @@ echo "[INFO] Updated artifact: ${ARTIFACT_DIR}/rootfs.cpio"
 
 echo "[OK] Expected artifacts:"
 echo "     ${OUTPUT_DIR}/images/rootfs.cpio"
-echo "     ${OUTPUT_DIR}/target/usr/bin/amp-hart0-app"
+echo "     ${OUTPUT_DIR}/target/usr/bin/linux_app"

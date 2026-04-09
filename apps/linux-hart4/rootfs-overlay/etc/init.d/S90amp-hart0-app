@@ -3,11 +3,11 @@
 case "$1" in
     start)
         mkdir -p /dev
-        echo "[init] starting amp-hart0-app"
-        /usr/bin/amp-hart0-app &
+        echo "[init] starting linux_app"
+        /usr/bin/linux_app &
         ;;
     stop)
-        killall amp-hart0-app 2>/dev/null || true
+        killall linux_app 2>/dev/null || true
         ;;
     restart)
         "$0" stop

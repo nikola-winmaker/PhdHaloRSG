@@ -9,17 +9,17 @@ fi
 TARGET_DIR="$1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-DEFAULT_SRC="${APP_DIR}/src/amp_hart0_app.c"
-if [ -n "${ROOT_DIR:-}" ] && [ -f "${ROOT_DIR}/apps/linux-hart0/src/amp_hart0_app.c" ]; then
-    DEFAULT_SRC="${ROOT_DIR}/apps/linux-hart0/src/amp_hart0_app.c"
+DEFAULT_SRC="${APP_DIR}/src/linux_app.c"
+if [ -n "${ROOT_DIR:-}" ] && [ -f "${ROOT_DIR}/apps/linux-hart4/src/linux_app.c" ]; then
+    DEFAULT_SRC="${ROOT_DIR}/apps/linux-hart4/src/linux_app.c"
 fi
-SRC="${AMP_HART0_APP_SRC:-${DEFAULT_SRC}}"
-OUT="${TARGET_DIR}/usr/bin/amp-hart0-app"
+SRC="${AMP_HART4_APP_SRC:-${DEFAULT_SRC}}"
+OUT="${TARGET_DIR}/usr/bin/linux_app"
 
 mkdir -p "${TARGET_DIR}/usr/bin"
 
 if [ ! -f "${SRC}" ]; then
-    echo "[ERR] Linux Hart 0 app source not found: ${SRC}" >&2
+    echo "[ERR] Linux Hart 4 app source not found: ${SRC}" >&2
     exit 1
 fi
 
@@ -55,4 +55,4 @@ fi
 "${TARGET_GCC}" -O2 -Wall -Wextra "${SRC}" -o "${OUT}"
 chmod 0755 "${OUT}"
 
-echo "[INFO] Installed Linux Hart 0 app from ${SRC}: ${OUT}"
+echo "[INFO] Installed Linux Hart 4 app from ${SRC}: ${OUT}"

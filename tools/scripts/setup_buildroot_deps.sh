@@ -7,8 +7,8 @@ BUILDROOT_DIR="${WS_DIR}/buildroot"
 BUILDROOT_REF="${BUILDROOT_REF:-2024.02.9}"
 EXTERNAL_DIR="${WS_DIR}/external"
 DEFCONFIG_PATH="${WS_DIR}/risc5_eval_linux_amp_defconfig"
-APP_BUILDROOT_DIR="${ROOT_DIR}/apps/linux-hart0/buildroot"
-APP_ROOTFS_OVERLAY_DIR="${ROOT_DIR}/apps/linux-hart0/rootfs-overlay"
+APP_BUILDROOT_DIR="${ROOT_DIR}/apps/linux-hart4/buildroot"
+APP_ROOTFS_OVERLAY_DIR="${ROOT_DIR}/apps/linux-hart4/rootfs-overlay"
 
 seed_buildroot_scaffold() {
     local board_dir="${EXTERNAL_DIR}/board/risc5_eval"

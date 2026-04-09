@@ -1,4 +1,4 @@
-# Extra static device nodes for the Linux Hart 0 AMP image.
+# Extra static device nodes for the Linux Hart 4 AMP image.
 # Keep this intentionally small and deterministic.
 #
 # <name>      <type> <mode> <uid> <gid> <major> <minor> <start> <inc> <count>
