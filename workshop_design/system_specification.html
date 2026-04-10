@@ -141,17 +141,18 @@
       <thead>
         <tr>
           <th>Interface</th>
-          <th>From → To</th>
+          <th>Write by</th>
+          <th>Read by</th>
           <th>Purpose</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td><code>SensorFrameIf</code></td><td>SensorFusion → ChargeController</td><td>periodic measurements</td></tr>
-        <tr><td><code>ChargeCommandIf</code></td><td>ChargeController → SafetyMonitor</td><td>charging command</td></tr>
-        <tr><td><code>ChargeStatusIf</code></td><td>ChargeController → LinuxSupervisor</td><td>controller status</td></tr>
-        <tr><td><code>SafetyStateIf</code></td><td>SafetyMonitor → LinuxSupervisor</td><td>safety state</td></tr>
-        <tr><td><code>OperatorCommandIf</code></td><td>LinuxSupervisor → ChargeController</td><td>structured internal command</td></tr>
-        <tr><td><code>UartConsoleCommandIf</code></td><td>UART → LinuxSupervisor</td><td>raw console input</td></tr>
+        <tr><td><code>SensorFrameIf</code></td><td>SensorFusion</td><td>ChargeController</td><td>periodic measurements</td></tr>
+        <tr><td><code>ChargeCommandIf</code></td><td>ChargeController</td><td>SafetyMonitor</td><td>charging command</td></tr>
+        <tr><td><code>ChargeStatusIf</code></td><td>ChargeController</td><td>LinuxSupervisor</td><td>controller status</td></tr>
+        <tr><td><code>SafetyStateIf</code></td><td>SafetyMonitor</td><td>LinuxSupervisor</td><td>safety state</td></tr>
+        <tr><td><code>OperatorCommandIf</code></td><td>LinuxSupervisor</td><td>ChargeController</td><td>structured internal command</td></tr>
+        <tr><td><code>UartConsoleCommandIf</code></td><td>UART</td><td>LinuxSupervisor</td><td>raw console input</td></tr>
       </tbody>
     </table>
   </div>
