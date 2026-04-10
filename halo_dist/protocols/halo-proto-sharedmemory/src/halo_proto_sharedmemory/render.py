@@ -134,6 +134,25 @@ def _render_shared_crc_header(model: Dict[str, Any], output_dir: Path) -> None:
         logger.warning("Could not generate shared CRC header: %s", e)
 
 
+def _render_shared_crc_impl(model: Dict[str, Any], output_dir: Path) -> None:
+    """Generate the shared CRC implementation file used by all platforms."""
+    env = _get_jinja_env()
+    try:
+        template = env.get_template("sharedmemory_crc.c.j2")
+        integrity_type = _get_protocol_integrity_type(model)
+        output = template.render(
+            protocol=PROTOCOL_NAME,
+            integrity_type=integrity_type,
+            crc_type=_map_integrity_to_crc_type(integrity_type),
+        )
+
+        output_file = output_dir / "sharedmemory_crc.c"
+        write_generated_file(output_file, output)
+        #logger.info("Generated: %s", output_file)
+    except Exception as e:
+        logger.warning("Could not generate shared CRC implementation: %s", e)
+
+
 def _extract_protocol_channels(model: Dict[str, Any]) -> list[Dict[str, Any]]:
     channels = []
     try:
@@ -223,8 +242,9 @@ def _render_platform_impl(
 ) -> None:
     #logger.info("Rendering %s protocol for %s", PROTOCOL_NAME, platform_name)
     
-    # Generate shared CRC header (idempotent - safe to call multiple times)
+    # Generate shared CRC files (idempotent - safe to call multiple times)
     _render_shared_crc_header(model, output_dir)
+    _render_shared_crc_impl(model, output_dir)
     
     _render_protocol_header(platform_name, model, analysis, environment, output_dir)
 

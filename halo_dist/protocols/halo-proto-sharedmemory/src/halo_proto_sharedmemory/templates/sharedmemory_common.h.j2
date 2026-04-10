@@ -1,8 +1,4 @@
-/* HALO {{ protocol }} common header - Platform Independent */
-#ifndef HALO_{{ protocol|upper }}_COMMON_H
-#define HALO_{{ protocol|upper }}_COMMON_H
-
-#include "halo_types.h"
+/* CRC function declarations from shared module */
 #include "{{ protocol }}_crc.h"
 
 typedef enum {
@@ -30,8 +26,6 @@ typedef enum {
 #define SHAREDMEMORY_CRC_TYPE {{crc_type}}
 #endif
 
-/* CRC function declarations from shared module */
-{% include "sharedmemory_crc.h.j2" %}
 
 // Ring buffer control block (at start of shared memory region)
 typedef struct {
@@ -87,5 +81,3 @@ int sharedmemory_try_recv(const sharedmemory_channel_t *chan, void *dst, halo_si
 extern sharedmemory_channel_t {{ channel.name }}_channel;
 {% endfor %}
 {% endif %}
-
-#endif /* HALO_{{ protocol|upper }}_COMMON_H */

@@ -16,9 +16,6 @@
 /* Platform synchronization primitives */
 {% endblock %}
 
-/* Include shared CRC implementations */
-{% include "sharedmemory_crc.c.j2" %}
-
 void sharedmemory_init(const sharedmemory_channel_t *chan) {
     /* Initialize channel */
     if (!chan || !chan->base) {
