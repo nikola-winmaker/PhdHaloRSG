@@ -161,11 +161,11 @@
 
     <h3>SensorFrameIf</h3>
     <ul>
-      <li>battery voltage (<code>unsigned int battery_voltage_mv</code>)</li>
-      <li>charge current (<code>int charge_current_ma</code>)</li>
-      <li>battery temperature (<code>float battery_temp_c</code>)</li>
-      <li>breaker state (<code>bool breaker_closed</code>)</li>
-      <li>fault/status flags (<code>unsigned int fault_flags</code>)</li>
+      <li>battery voltage (<code>unsigned int battery_voltage_mv = 0</code>)</li>
+      <li>charge current (<code>int charge_current_ma = 0</code>)</li>
+      <li>battery temperature (<code>float battery_temp_c = 0.0</code>)</li>
+      <li>breaker state (<code>bool breaker_closed = False</code>)</li>
+      <li>fault/status flags (<code>unsigned int fault_flags = 0</code>)</li>
     </ul>
     <p><strong>fault_flags definition (bitmask, uint32):</strong></p>
     <ul>
@@ -184,33 +184,45 @@
 
     <h3>ChargeCommandIf</h3>
     <ul>
-      <li>enable charging (<code>bool enable_charging</code>)</li>
-      <li>current limit (<code>unsigned int current_limit_ma</code>)</li>
-      <li>voltage limit (<code>unsigned int voltage_limit_mv</code>)</li>
-      <li>charging mode (<code>string charging_mode</code>)</li>
+      <li>enable charging (<code>bool enable_charging = False</code>)</li>
+      <li>current limit (<code>unsigned int current_limit_ma = 0</code>)</li>
+      <li>voltage limit (<code>unsigned int voltage_limit_mv = 0</code>)</li>
+      <li>charging mode (<code>string charging_mode = "normal"</code>)</li>
     </ul>
+    <p><strong>Allowed values for <code>charging_mode</code>:</strong> <code>"normal"</code>, <code>"fast"</code>.</p>
 
     <h3>ChargeStatusIf</h3>
     <ul>
-      <li>charger state (<code>string charger_state</code>)</li>
-      <li>requested current (<code>unsigned int requested_current_ma</code>)</li>
-      <li>requested voltage (<code>unsigned int requested_voltage_mv</code>)</li>
-      <li>fault state (<code>unsigned int fault_state</code>)</li>
+      <li>charger state (<code>string charger_state = "idle"</code>)</li>
+      <li>requested current (<code>unsigned int requested_current_ma = 0</code>)</li>
+      <li>requested voltage (<code>unsigned int requested_voltage_mv = 0</code>)</li>
+      <li>fault state (<code>unsigned int fault_state = 0</code>)</li>
     </ul>
 
     <h3>SafetyStateIf</h3>
     <ul>
-      <li>safe mode (<code>bool safe_mode</code>)</li>
-      <li>breaker open (<code>bool breaker_open</code>)</li>
-      <li>charging allowed (<code>bool charging_allowed</code>)</li>
-      <li>heartbeat (<code>unsigned int heartbeat_counter</code>)</li>
+      <li>safe mode (<code>bool safe_mode = False</code>)</li>
+      <li>breaker open (<code>bool breaker_open = False</code>)</li>
+      <li>charging allowed (<code>bool charging_allowed = False</code>)</li>
+      <li>heartbeat (<code>unsigned int heartbeat_counter = 0</code>)</li>
     </ul>
 
     <h3>OperatorCommandIf</h3>
     <ul>
-      <li>command id (<code>unsigned int command_id</code>)</li>
-      <li>parameter (<code>int command_param</code>)</li>
+      <li>command id (<code>unsigned int command_id = 0</code>)</li>
+      <li>parameter (<code>int command_param = 0</code>)</li>
     </ul>
+    <p><strong>Allowed values for <code>command_id</code>:</strong></p>
+    <ul>
+      <li><code>0</code>: no-op (ignore command, keep current state). <code>command_param</code> ignored.</li>
+      <li><code>1</code>: start charging. <code>command_param</code> ignored.</li>
+      <li><code>2</code>: stop charging. <code>command_param</code> ignored.</li>
+      <li><code>3</code>: reset controller/safety state. <code>command_param</code> ignored.</li>
+      <li><code>4</code>: set mode normal. <code>command_param</code> ignored.</li>
+      <li><code>5</code>: set mode fast. <code>command_param</code> ignored.</li>
+      <li><code>6</code>: set current limit in mA. <code>command_param</code> contains the requested current value.</li>
+    </ul>
+    <p>For unknown <code>command_id</code> values, ignore the command and set an appropriate fault or log entry.</p>
   </div>
 
   <div class="section">
