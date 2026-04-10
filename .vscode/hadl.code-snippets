@@ -144,27 +144,12 @@
     ]
   },
 
-  "HADL HML - Profiles skeleton": {
-    "scope": "hadl,plaintext",
-    "prefix": "hml_profile",
-    "description": "Insert an HML Profiles block",
-    "body": [
-      "include ${1:halo_hml_profiles.hmml}",
-      "",
-      "Profiles {",
-      "    ${2:ProfileType} ${3:profileName} {",
-      "        // override profile attributes here defined in the included HMML file if you are using built-in profiles, or add custom attributes for code generation",
-      "        ${4:attribute}: ${5:value}",
-      "    }",
-      "}"
-    ]
-  },
-
   "HADL HML - EventChannel": {
     "scope": "hadl,plaintext",
-    "prefix": "hml_eventchannel",
+    "prefix": "hml_profile_eventchannel",
     "description": "Insert EventChannel profile instance",
     "body": [
+        "// override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles",
       "EventChannel ${1:eventChannelProfile} {",
       "    eventQueueSize: ${2:256}",
       "    maxChannels: ${3:5}",
@@ -176,9 +161,10 @@
   },
   "HADL HML - BlackBoard": {
     "scope": "hadl,plaintext",
-    "prefix": "hml_blackboard",
+    "prefix": "hml_profile_blackboard",
     "description": "Insert BlackBoard profile instance",
     "body": [
+      "// override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles",
       "BlackBoard ${1:blackBoardProfile} {",
       "    maxPayload: ${2:64}",
       "    bufferSize: ${3:512}",
@@ -187,9 +173,10 @@
   },
   "HADL HML - SharedMemory": {
     "scope": "hadl,plaintext",
-    "prefix": "hml_sharedmemory",
+    "prefix": "hml_profile_sharedmemory",
     "description": "Insert SharedMemory profile instance with built-in options",
     "body": [
+      "// override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles",
       "SharedMemory ${1:sharedMemoryProfile1} {",
       "    memSize: ${2:64MB}",
       "    baseAddress: ${3:0x80000000}",
@@ -208,10 +195,11 @@
   "HADL HML - Built-in profiles bundle": {
     "scope": "hadl,plaintext",
     "prefix": "hml_built_in_profiles",
-    "description": "Insert EventChannel, BlackBoard, and SharedMemory profile blocks",
+    "description": "Insert skeleton with built-in profile blocks",
     "body": [
       "// Insert built-in profiles for common communication patterns.",
       "// if you don't need to override the default values, you can just reference these profiles without attributes EventChannel eventChannelProfile { }",
+      "// If you are referencing built-in profiles don't forgert to use --include-stdlib-profiles when composing your system.",
       "Profiles {",
       "    EventChannel ${1:eventChannelProfile} {",
       "        eventQueueSize: ${2:256}",
@@ -244,16 +232,27 @@
   },
   "HADL HMML - Profile template": {
     "scope": "hadl,plaintext",
-    "prefix": "HMML",
+    "prefix": "hml_profile_custom",
     "description": "Insert an HMML profile template",
     "body": [
+      " // Arbitrary profile template - replace with specific profile types and attributes as needed",
+      " // you will use these atttributes in code generation.",
+      " ${1:CustomProfile} {",
+      "     ${2:attribute1}: ${3:value}",
+      " }",
+
+    ]
+  },
+
+  "HADL HMML - Profile skeleton": {
+    "scope": "hadl,plaintext",
+    "prefix": "hml_insert_skeleton",
+    "description": "Insert an HMML profile skeleton only",
+    "body": [
       "Profiles {",
-      "    // Arbitrary profile template - replace with specific profile types and attributes as needed",
-      "    // you will use these atttributes in code generation.",
-      "    ${1:CustomProfile} {",
-      "        ${2:attribute1}: ${3:value}",
-      "    }",
-      "}"
+      "    // Fill in profile instances here...",
+      "}",
+
     ]
   },
 
