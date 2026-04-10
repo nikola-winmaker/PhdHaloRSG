@@ -1,0 +1,273 @@
+{
+  "HADL ADL - HALOFramework skeleton": {
+    "scope": "hadl,plaintext",
+    "prefix": "halo",
+    "description": "Create a full HALOFramework ADL skeleton",
+    "body": [
+      "${1:SystemName} {",
+      "    components {",
+      "        ${2:Core1} : Component { Type: ${3|Application,Acceleration|}, Platform: ${4:Linux}, Function: ${5|GeneralProcessing,RealTimeProcessing,OffloadProcessing|} }",
+      "        ${6:Core2} : Component { Type: ${7|Application,Acceleration|}, Platform: FreeRTOS, Function: ${8|GeneralProcessing,RealTimeProcessing,OffloadProcessing|} }",
+      "    }",
+      "",
+      "    connections {",
+      "        connection ${9:LinuxToRTOS} {",
+      "            from ${2:Core1} to ${6:Core2}",
+      "            interface: ${10:InterfaceName}",
+      "            profile: ${11:ProfileName}",
+      "        }",
+      "    }",
+      "}"
+    ]
+  },
+  "HADL ADL - Component": {
+    "scope": "hadl,plaintext",
+    "prefix": "comp",
+    "description": "Insert a Component definition",
+    "body": [
+      "${1:Name} : Component { Type: ${2|Application,Acceleration|}, Platform: ${3:Linux}, Function: ${4|GeneralProcessing,RealTimeProcessing,OffloadProcessing|} }"
+    ]
+  },
+  "HADL ADL - Connection": {
+    "scope": "hadl,plaintext",
+    "prefix": "conn",
+    "description": "Insert a connection block",
+    "body": [
+      "connection ${1:ConnectionName} {",
+      "    from ${2:SourceComponent} to ${3:DestinationComponent}",
+      "    interface: ${4:InterfaceName}",
+      "    profile: ${5:ProfileName}",
+      "}"
+    ]
+  },
+
+  "HADL IDL - Interface skeleton": {
+    "scope": "hadl,plaintext",
+    "prefix": "interf",
+    "description": "Insert an IDL interface with access/integrity blocks",
+    "body": [
+      "include ${1:halo_interface_data.iddl}",
+      "",
+      "interface ${2:InterfaceName} {",
+      "    access {",
+      "        read {",
+      "            ${3:DataStructureName}",
+      "        }",
+      "        write {",
+      "            ${4:DataStructureName}",
+      "        }",
+      "    }",
+      "",
+      "    integrity {",
+      "        ${5|crc16,crc32|} {",
+      "            ${3:DataStructureName}",
+      "        }",
+      "    }",
+      "}"
+    ]
+  },
+  "HADL IDL - include": {
+    "scope": "hadl,plaintext",
+    "prefix": "include",
+    "description": "Insert an IDL include statement",
+    "body": [
+      "include ${1:halo_interface_data.iddl}"
+    ]
+  },
+  "HADL IDDL - dataStructures skeleton": {
+    "scope": "hadl,plaintext",
+    "prefix": "datastructures",
+    "description": "Insert an IDDL dataStructures block",
+    "body": [
+      "dataStructures {",
+      "    ${1:SharedData} {",
+      "       // IDDL primitive types: bool, byte, int, float, double, unsigned int, \"string\"",
+      "       // array types are formed by adding an array suffix to the field name (e.g., fieldName[128])",
+      "       // Optional initializer: = <int>",
+      "       // Examples:",
+      "       // integer counter",
+      "       // byte dataPayload[1024] = 0",
+      "       // string description = \"Example description\"",
+      "       // bool isValid = True",
+      "       // float temperature = 25.0",
+      "       // double pressure = 1.0",
+      "    }",
+      "}"
+    ]
+  },
+  "HADL IDDL - Struct": {
+    "scope": "hadl,plaintext",
+    "prefix": "struct",
+    "description": "Insert an IDDL structure",
+    "body": [
+      "${1:SharedData} {",
+      "    // IDDL primitive types: bool, byte, int, float, double, unsigned int, \"string\"",
+      "    // array types are formed by adding an array suffix to the field name (e.g., fieldName[128])",
+      "    ${2|bool,byte,int,float,double,unsigned int,string|} ${3:field}",
+      "    ${4|bool,byte,int,float,double,unsigned int,string|} ${5:arrayField}[${6:128}]",
+      "    ${7|bool,byte,int,float,double,unsigned int,string|} ${8:initField} = ${9:0}",
+      "}"
+    ]
+  },
+  "HADL IDDL - Field": {
+    "scope": "hadl,plaintext",
+    "prefix": "iddlfield",
+    "description": "Insert an IDDL field with optional array suffix and initializer",
+    "body": [
+      "${1|bool,byte,int,float,double,unsigned int,string|} ${2:fieldName}${5: = ${6:0}}"
+    ]
+  },
+  "HADL IDDL - Array field": {
+    "scope": "hadl,plaintext",
+    "prefix": "iddlarray",
+    "description": "Insert an IDDL array field (array is a suffix, not a type)",
+    "body": [
+      "${1|bool,byte,int,float,double,unsigned int,string|} ${2:fieldName}[${3:512}]"
+    ]
+  },
+
+  "HADL IDDL - Types reference": {
+    "scope": "hadl,plaintext",
+    "prefix": "iddltypes",
+    "description": "Insert quick reference for IDDL field forms",
+    "body": [
+      "// IDDL primitive types: bool, byte, int, float, double, unsigned int, \"string\"",
+      "// array types are formed by adding an array suffix to the field name (e.g., fieldName[128])",
+      "// Optional initializer: = <int>",
+      "// Examples:",
+      "// byte payload[512]",
+      "// byte dataPayload[1024] = 0",
+      "// string description = \"Example description\"",
+      "// bool isValid = True",
+      "// float temperature = 25.0",
+      "// double pressure = 1.0"
+    ]
+  },
+  "HADL HML - Profiles skeleton": {
+    "scope": "hadl,plaintext",
+    "prefix": "profile",
+    "description": "Insert an HML Profiles block",
+    "body": [
+      "include ${1:halo_hml_profiles.hmml}",
+      "",
+      "Profiles {",
+      "    ${2|EventChannel,BlackBoard,SharedMemory|} ${3:profileName} {",
+      "        ${4:attribute}: ${5:value}",
+      "    }",
+      "}"
+    ]
+  },
+  "HADL HML - EventChannel": {
+    "scope": "hadl,plaintext",
+    "prefix": "eventchannel",
+    "description": "Insert EventChannel profile instance",
+    "body": [
+      "EventChannel ${1:eventChannelProfile} {",
+      "    eventQueueSize: ${2:256}",
+      "    maxChannels: ${3:5}",
+      "    eventType: \"${4:signal}\"",
+      "    timeout: ${5:5000}",
+      "    blocking: ${6|True,False|}",
+      "}"
+    ]
+  },
+  "HADL HML - BlackBoard": {
+    "scope": "hadl,plaintext",
+    "prefix": "blackboard",
+    "description": "Insert BlackBoard profile instance",
+    "body": [
+      "BlackBoard ${1:blackBoardProfile} {",
+      "    maxPayload: ${2:64}",
+      "    bufferSize: ${3:512}",
+      "}"
+    ]
+  },
+  "HADL HML - SharedMemory": {
+    "scope": "hadl,plaintext",
+    "prefix": "sharedmemory",
+    "description": "Insert SharedMemory profile instance with built-in options",
+    "body": [
+      "SharedMemory ${1:sharedMemoryProfile1} {",
+      "    memSize: ${2:64MB}",
+      "    baseAddress: ${3:0x80000000}",
+      "    cacheable: ${4|True,False|}",
+      "    policy: ${5|WriteBack,WriteThrough,NonCacheable|}",
+      "    cacheLine: ${6:64B}",
+      "    coherence: ${7|Software,Hardware|}",
+      "    syncType: ${8|AcquireRelease,FullFence,None|}",
+      "    permissions: ${9|RW,RO,WO|}",
+      "    priority: ${10|Critical,High,Medium,Low|}",
+      "    syncBlocking: ${11|True,False|}",
+      "    syncPrimitive: ${12|mutex,semaphore,spinlock|}",
+      "}"
+    ]
+  },
+  "HADL HML - Built-in profiles bundle": {
+    "scope": "hadl,plaintext",
+    "prefix": "all_profiles",
+    "description": "Insert EventChannel, BlackBoard, and SharedMemory profile blocks",
+    "body": [
+      "Profiles {",
+      "    EventChannel ${1:eventChannelProfile} {",
+      "        eventQueueSize: ${2:256}",
+      "        maxChannels: ${3:5}",
+      "        eventType: \"${4:signal}\"",
+      "        timeout: ${5:5000}",
+      "        blocking: ${6|True,False|}",
+      "    }",
+      "",
+      "    BlackBoard ${7:blackBoardProfile} {",
+      "        maxPayload: ${8:64}",
+      "        bufferSize: ${9:512}",
+      "    }",
+      "",
+      "    SharedMemory ${10:sharedMemoryProfile1} {",
+      "        memSize: ${11:64MB}",
+      "        baseAddress: ${12:0x80000000}",
+      "        cacheable: ${13|True,False|}",
+      "        policy: ${14|WriteBack,WriteThrough,NonCacheable|}",
+      "        cacheLine: ${15:64B}",
+      "        coherence: ${16|Software,Hardware|}",
+      "        syncType: ${17|AcquireRelease,FullFence,None|}",
+      "        permissions: ${18|RW,RO,WO|}",
+      "        priority: ${19|Critical,High,Medium,Low|}",
+      "        syncBlocking: ${20|True,False|}",
+      "        syncPrimitive: ${21|mutex,semaphore,spinlock|}",
+      "    }",
+      "}"
+    ]
+  },
+  "HADL HMML - Profile template": {
+    "scope": "hadl,plaintext",
+    "prefix": "profil",
+    "description": "Insert an HMML profile template",
+    "body": [
+      "Profiles {",
+      "    ${1:CustomProfile} {",
+      "        ${2:attribute1}: ${3:value}",
+      "    }",
+      "}"
+    ]
+  },
+
+  "HADL Common - Integrity crc16": {
+    "scope": "hadl,plaintext",
+    "prefix": "crc16",
+    "description": "Integrity block: crc16",
+    "body": [
+      "crc16 {",
+      "    ${1:TypeName}",
+      "}"
+    ]
+  },
+  "HADL Common - Integrity crc32": {
+    "scope": "hadl,plaintext",
+    "prefix": "crc32",
+    "description": "Integrity block: crc32",
+    "body": [
+      "crc32 {",
+      "    ${1:TypeName}",
+      "}"
+    ]
+  }
+}

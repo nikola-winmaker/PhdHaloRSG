@@ -1,0 +1,18 @@
+{
+  "files.associations": {
+    "*.adl": "plaintext",
+    "*.idl": "plaintext",
+    "*.iddl": "plaintext",
+    "*.hml": "plaintext",
+    "*.hmml": "plaintext"
+  },
+  "[plaintext]": {
+    "editor.wordBasedSuggestions": "currentDocument",
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": false,
+      "strings": true
+    },
+    "editor.suggestOnTriggerCharacters": true
+  }
+}
