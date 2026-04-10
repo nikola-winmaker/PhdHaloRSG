@@ -46,8 +46,6 @@
     "prefix": "idl_interface",
     "description": "Insert an IDL interface with access/integrity blocks",
     "body": [
-      "include ${1:halo_interface_data.iddl}",
-      "",
       "interface ${2:InterfaceName} {",
       "    access {",
       "        read {",
@@ -59,8 +57,12 @@
       "    }",
       "",
       "    integrity {",
-      "        ${5|crc16,crc32|} {",
+      "        crc16 {",
       "            ${3:DataStructureName}",
+      "        }",
+      "",
+      "        crc32 {",
+      "            ${4:DataStructureName}",
       "        }",
       "    }",
       "}"
@@ -74,6 +76,17 @@
       "include ${1:halo_interface_data.iddl}"
     ]
   },
+  "HADL IDL - CRC": {
+    "scope": "hadl,plaintext",
+    "prefix": "idl_crc",
+    "description": "Insert an IDL CRC definition",
+    "body": [
+      "${1|crc16,crc32|} {",
+      "    ${2:DataStructureName}",
+      "}"
+    ]
+  },
+
   "HADL IDDL - dataStructures skeleton": {
     "scope": "hadl,plaintext",
     "prefix": "iddl_dts",
@@ -83,7 +96,7 @@
       "    ${1:SharedData} {",
       "       // IDDL primitive types: bool, byte, int, float, double, unsigned int, \"string\"",
       "       // array types are formed by adding an array suffix to the field name (e.g., fieldName[128])",
-      "       // Optional initializer: = <int>",
+      "       // Optional initializer: = value",
       "       // Examples:",
       "       // integer counter",
       "       // byte dataPayload[1024] = 0",
@@ -133,7 +146,7 @@
     "body": [
       "// IDDL primitive types: bool, byte, int, float, double, unsigned int, \"string\"",
       "// array types are formed by adding an array suffix to the field name (e.g., fieldName[128])",
-      "// Optional initializer: = <int>",
+      "// Optional initializer: = value",
       "// Examples:",
       "// byte payload[512]",
       "// byte dataPayload[1024] = 0",
