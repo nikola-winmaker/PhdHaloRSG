@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 PROTOCOL_NAME = "sharedmemory"
 
+
 def _get_supported_platforms() -> set[str]:
     """Load supported platforms from config.py so CLI updates stay in sync."""
     config_path = Path(__file__).with_name("config.py")
@@ -53,6 +54,7 @@ def _get_supported_platforms() -> set[str]:
     spec.loader.exec_module(config_module)
     config = config_module.get_protocol_config()
     return set(config.get("supported_platforms", []))
+
 
 def _get_jinja_env() -> Environment:
     return Environment(
@@ -69,6 +71,25 @@ def _map_integrity_to_crc_type(integrity_type: str) -> str:
     if integrity_type == "SHAREDMEMORY_INTEGRITY_CRC32":
         return "SHAREDMEMORY_CRC_SW_CRC32"
     return "SHAREDMEMORY_CRC_NONE"
+
+
+def _get_protocol_integrity_type(model: Dict[str, Any]) -> str:
+    channels = _extract_protocol_channels(model)
+    integrity_types = [
+        channel["integrity_type"]
+        for channel in channels
+        if channel.get("integrity_type")
+    ]
+    if not integrity_types:
+        return "SHAREDMEMORY_INTEGRITY_NONE"
+
+    selected = integrity_types[0]
+    if any(integrity_type != selected for integrity_type in integrity_types[1:]):
+        logger.warning(
+            "Sharedmemory protocol has mixed integrity settings across channels; using %s for static CRC selection.",
+            selected,
+        )
+    return selected
 
 
 def _render_protocol_header(
@@ -91,12 +112,17 @@ def _render_protocol_header(
     #logger.info("Generated: %s", output_file)
 
 
-def _render_shared_crc_header(output_dir: Path) -> None:
+def _render_shared_crc_header(model: Dict[str, Any], output_dir: Path) -> None:
     """Generate the shared CRC header file used by all platforms."""
     env = _get_jinja_env()
     try:
         template = env.get_template("sharedmemory_crc.h.j2")
-        output = template.render()
+        integrity_type = _get_protocol_integrity_type(model)
+        output = template.render(
+            protocol=PROTOCOL_NAME,
+            integrity_type=integrity_type,
+            crc_type=_map_integrity_to_crc_type(integrity_type),
+        )
 
         include_dir = output_dir.parent / "include"
         include_dir.mkdir(parents=True, exist_ok=True)
@@ -198,7 +224,7 @@ def _render_platform_impl(
     #logger.info("Rendering %s protocol for %s", PROTOCOL_NAME, platform_name)
     
     # Generate shared CRC header (idempotent - safe to call multiple times)
-    _render_shared_crc_header(output_dir)
+    _render_shared_crc_header(model, output_dir)
     
     _render_protocol_header(platform_name, model, analysis, environment, output_dir)
 
