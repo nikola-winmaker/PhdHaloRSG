@@ -1,7 +1,7 @@
 {
   "HADL ADL - HALOFramework skeleton": {
     "scope": "hadl,plaintext",
-    "prefix": "halo",
+    "prefix": "addl",
     "description": "Create a full HALOFramework ADL skeleton",
     "body": [
       "${1:SystemName} {",
@@ -11,7 +11,7 @@
       "    }",
       "",
       "    connections {",
-      "        connection ${9:LinuxToRTOS} {",
+      "        connection ${9:Core1ToCore2} {",
       "            from ${2:Core1} to ${6:Core2}",
       "            interface: ${10:InterfaceName}",
       "            profile: ${11:ProfileName}",
@@ -22,7 +22,7 @@
   },
   "HADL ADL - Component": {
     "scope": "hadl,plaintext",
-    "prefix": "comp",
+    "prefix": "addl_comp",
     "description": "Insert a Component definition",
     "body": [
       "${1:Name} : Component { Type: ${2|Application,Acceleration|}, Platform: ${3:Linux}, Function: ${4|GeneralProcessing,RealTimeProcessing,OffloadProcessing|} }"
@@ -30,7 +30,7 @@
   },
   "HADL ADL - Connection": {
     "scope": "hadl,plaintext",
-    "prefix": "conn",
+    "prefix": "addl_conn",
     "description": "Insert a connection block",
     "body": [
       "connection ${1:ConnectionName} {",
@@ -43,7 +43,7 @@
 
   "HADL IDL - Interface skeleton": {
     "scope": "hadl,plaintext",
-    "prefix": "interf",
+    "prefix": "idl_interface",
     "description": "Insert an IDL interface with access/integrity blocks",
     "body": [
       "include ${1:halo_interface_data.iddl}",
@@ -68,7 +68,7 @@
   },
   "HADL IDL - include": {
     "scope": "hadl,plaintext",
-    "prefix": "include",
+    "prefix": "idl_include",
     "description": "Insert an IDL include statement",
     "body": [
       "include ${1:halo_interface_data.iddl}"
@@ -76,7 +76,7 @@
   },
   "HADL IDDL - dataStructures skeleton": {
     "scope": "hadl,plaintext",
-    "prefix": "datastructures",
+    "prefix": "iddl_dts",
     "description": "Insert an IDDL dataStructures block",
     "body": [
       "dataStructures {",
@@ -97,7 +97,7 @@
   },
   "HADL IDDL - Struct": {
     "scope": "hadl,plaintext",
-    "prefix": "struct",
+    "prefix": "iddl_struct",
     "description": "Insert an IDDL structure",
     "body": [
       "${1:SharedData} {",
@@ -111,7 +111,7 @@
   },
   "HADL IDDL - Field": {
     "scope": "hadl,plaintext",
-    "prefix": "iddlfield",
+    "prefix": "iddl_field",
     "description": "Insert an IDDL field with optional array suffix and initializer",
     "body": [
       "${1|bool,byte,int,float,double,unsigned int,string|} ${2:fieldName}${5: = ${6:0}}"
@@ -119,7 +119,7 @@
   },
   "HADL IDDL - Array field": {
     "scope": "hadl,plaintext",
-    "prefix": "iddlarray",
+    "prefix": "iddl_array",
     "description": "Insert an IDDL array field (array is a suffix, not a type)",
     "body": [
       "${1|bool,byte,int,float,double,unsigned int,string|} ${2:fieldName}[${3:512}]"
@@ -128,7 +128,7 @@
 
   "HADL IDDL - Types reference": {
     "scope": "hadl,plaintext",
-    "prefix": "iddltypes",
+    "prefix": "iddl_types",
     "description": "Insert quick reference for IDDL field forms",
     "body": [
       "// IDDL primitive types: bool, byte, int, float, double, unsigned int, \"string\"",
@@ -143,23 +143,26 @@
       "// double pressure = 1.0"
     ]
   },
+
   "HADL HML - Profiles skeleton": {
     "scope": "hadl,plaintext",
-    "prefix": "profile",
+    "prefix": "hml_profile",
     "description": "Insert an HML Profiles block",
     "body": [
       "include ${1:halo_hml_profiles.hmml}",
       "",
       "Profiles {",
-      "    ${2|EventChannel,BlackBoard,SharedMemory|} ${3:profileName} {",
+      "    ${2:ProfileType} ${3:profileName} {",
+      "        // override profile attributes here defined in the included HMML file if you are using built-in profiles, or add custom attributes for code generation",
       "        ${4:attribute}: ${5:value}",
       "    }",
       "}"
     ]
   },
+
   "HADL HML - EventChannel": {
     "scope": "hadl,plaintext",
-    "prefix": "eventchannel",
+    "prefix": "hml_eventchannel",
     "description": "Insert EventChannel profile instance",
     "body": [
       "EventChannel ${1:eventChannelProfile} {",
@@ -173,7 +176,7 @@
   },
   "HADL HML - BlackBoard": {
     "scope": "hadl,plaintext",
-    "prefix": "blackboard",
+    "prefix": "hml_blackboard",
     "description": "Insert BlackBoard profile instance",
     "body": [
       "BlackBoard ${1:blackBoardProfile} {",
@@ -184,7 +187,7 @@
   },
   "HADL HML - SharedMemory": {
     "scope": "hadl,plaintext",
-    "prefix": "sharedmemory",
+    "prefix": "hml_sharedmemory",
     "description": "Insert SharedMemory profile instance with built-in options",
     "body": [
       "SharedMemory ${1:sharedMemoryProfile1} {",
@@ -204,9 +207,11 @@
   },
   "HADL HML - Built-in profiles bundle": {
     "scope": "hadl,plaintext",
-    "prefix": "all_profiles",
+    "prefix": "hml_built_in_profiles",
     "description": "Insert EventChannel, BlackBoard, and SharedMemory profile blocks",
     "body": [
+      "// Insert built-in profiles for common communication patterns.",
+      "// if you don't need to override the default values, you can just reference these profiles without attributes EventChannel eventChannelProfile { }",
       "Profiles {",
       "    EventChannel ${1:eventChannelProfile} {",
       "        eventQueueSize: ${2:256}",
@@ -239,10 +244,12 @@
   },
   "HADL HMML - Profile template": {
     "scope": "hadl,plaintext",
-    "prefix": "profil",
+    "prefix": "HMML",
     "description": "Insert an HMML profile template",
     "body": [
       "Profiles {",
+      "    // Arbitrary profile template - replace with specific profile types and attributes as needed",
+      "    // you will use these atttributes in code generation.",
       "    ${1:CustomProfile} {",
       "        ${2:attribute1}: ${3:value}",
       "    }",
