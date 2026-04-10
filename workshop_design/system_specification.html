@@ -190,6 +190,7 @@
       <li>charging mode (<code>string charging_mode = "normal"</code>)</li>
     </ul>
     <p><strong>Allowed values for <code>charging_mode</code>:</strong> <code>"normal"</code>, <code>"fast"</code>.</p>
+    <p><strong>Voltage/current limit rule:</strong> clamp <code>current_limit_ma</code> and <code>voltage_limit_mv</code> to your platform-safe range before applying. Recommended defaults: <code>current_limit_ma = 10000</code>, <code>voltage_limit_mv = 4200</code>.</p>
 
     <h3>ChargeStatusIf</h3>
     <ul>
@@ -222,6 +223,7 @@
       <li><code>4</code>: set mode normal. <code>command_param</code> ignored.</li>
       <li><code>5</code>: set mode fast. <code>command_param</code> ignored.</li>
       <li><code>6</code>: set current limit in mA. <code>command_param</code> contains the requested current value.</li>
+      <li><code>7</code>: set voltage limit in mV. <code>command_param</code> contains the requested voltage value.</li>
     </ul>
     <p>For unknown <code>command_id</code> values, ignore the command and set an appropriate fault or log entry.</p>
   </div>
@@ -235,6 +237,7 @@
       <li><code>mode normal</code></li>
       <li><code>mode fast</code></li>
       <li><code>set_current 10</code></li>
+      <li><code>set_voltage 12000</code></li>
     </ul>
   </div>
 
