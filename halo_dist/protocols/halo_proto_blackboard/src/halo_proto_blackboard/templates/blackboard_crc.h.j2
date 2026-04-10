@@ -1,0 +1,38 @@
+/* Shared CRC declarations for all platforms */
+#ifndef {{ protocol|upper }}_CRC_H
+#define {{ protocol|upper }}_CRC_H
+
+#include "halo_types.h"
+
+typedef enum {
+    {{ protocol|upper }}_CRC_NONE = 0,
+    {{ protocol|upper }}_CRC_SW_CRC16 = 1,
+    {{ protocol|upper }}_CRC_SW_CRC32 = 2,
+    {{ protocol|upper }}_CRC_HW_CRC16 = 3,
+    {{ protocol|upper }}_CRC_HW_CRC32 = 4,
+} {{ protocol }}_crc_t;
+
+/* Software CRC function declarations */
+halo_u16_t {{ protocol }}_crc16(const halo_u8_t *data, halo_size_t len);
+halo_u32_t {{ protocol }}_crc32(const halo_u8_t *data, halo_size_t len);
+
+/* Hardware CRC stubs - platform overrides these if HW accelerator available */
+/* Default implementations return 0 (no-op). Override in platform-specific code. */
+halo_u16_t {{ protocol }}_hw_crc16(const halo_u8_t *data, halo_size_t len);
+halo_u32_t {{ protocol }}_hw_crc32(const halo_u8_t *data, halo_size_t len);
+
+/* Change SHAREDMEMORY_CRC_TYPE to one of: */
+/*   - SHAREDMEMORY_CRC_NONE (no CRC) */
+/*   - SHAREDMEMORY_CRC_SW_CRC16 (software CRC16 CCITT) */
+/*   - SHAREDMEMORY_CRC_SW_CRC32 (software CRC32 Ethernet) - default */
+/*   - SHAREDMEMORY_CRC_HW_CRC16 (hardware CRC16 accelerator) */
+/*   - SHAREDMEMORY_CRC_HW_CRC32 (hardware CRC32 accelerator) */
+#ifndef {{ protocol|upper }}_CRC_TYPE
+// Selected default CRC type based on protocol integrity mode
+#define {{ protocol|upper }}_CRC_TYPE {{ crc_type }}
+#endif
+
+/* CRC calculation wrapper - selected statically from protocol integrity mode */
+halo_u32_t {{ protocol }}_calculate_crc(const halo_u8_t *data, halo_size_t len);
+
+#endif /* {{ protocol|upper }}_CRC_H */

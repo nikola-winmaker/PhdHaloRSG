@@ -4,6 +4,17 @@
 
 #include "halo_types.h"
 
+/* Change SHAREDMEMORY_CRC_TYPE to one of: */
+/*   - SHAREDMEMORY_CRC_NONE (no CRC) */
+/*   - SHAREDMEMORY_CRC_SW_CRC16 (software CRC16 CCITT) */
+/*   - SHAREDMEMORY_CRC_SW_CRC32 (software CRC32 Ethernet) - default */
+/*   - SHAREDMEMORY_CRC_HW_CRC16 (hardware CRC16 accelerator) */
+/*   - SHAREDMEMORY_CRC_HW_CRC32 (hardware CRC32 accelerator) */
+#ifndef {{ protocol|upper }}_CRC_TYPE
+// Selected default CRC type based on protocol integrity mode
+#define {{ protocol|upper }}_CRC_TYPE {{ crc_type }}
+#endif
+
 // Software CRC function declarations
 halo_u16_t sharedmemory_crc16(const halo_u8_t *data, halo_size_t len);
 halo_u32_t sharedmemory_crc32(const halo_u8_t *data, halo_size_t len);

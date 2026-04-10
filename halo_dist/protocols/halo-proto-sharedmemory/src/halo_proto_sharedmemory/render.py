@@ -4,6 +4,7 @@ Provides platform-specific rendering for the sharedmemory protocol.
 """
 from __future__ import annotations
 
+import importlib.util
 import logging
 from pathlib import Path
 from typing import Any, Dict
@@ -40,14 +41,18 @@ except ImportError:
 logger = logging.getLogger(__name__)
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 PROTOCOL_NAME = "sharedmemory"
-SUPPORTED_PLATFORMS = {
-    "baremetal",
-    "freertos",
-    "linux",
-    "stm32",
-    "zephyr",
-}
 
+def _get_supported_platforms() -> set[str]:
+    """Load supported platforms from config.py so CLI updates stay in sync."""
+    config_path = Path(__file__).with_name("config.py")
+    spec = importlib.util.spec_from_file_location(f"{PROTOCOL_NAME}_config", config_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Failed to load protocol config: {config_path}")
+
+    config_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(config_module)
+    config = config_module.get_protocol_config()
+    return set(config.get("supported_platforms", []))
 
 def _get_jinja_env() -> Environment:
     return Environment(
@@ -224,7 +229,7 @@ def __getattr__(name: str):
         raise AttributeError(name)
 
     platform_name = name[len(prefix):]
-    if platform_name not in SUPPORTED_PLATFORMS:
+    if platform_name not in _get_supported_platforms():
         raise AttributeError(name)
 
     return _build_render_function(platform_name)

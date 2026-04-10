@@ -5,7 +5,7 @@
 /* {{ channel.name }}: {{ channel.from_component }} -> {{ channel.to_component }} via {{ channel.interface }} */
 {% endfor %}
 
-/* STM32 hardware-atomic write using critical sections */
+/* hardware-atomic write using critical sections */
 halo_s32_t {{ protocol }}_write_hwmutex(
     {{ protocol }}_channel_handle_t *chan,
     const void *data,
@@ -34,7 +34,7 @@ halo_s32_t {{ protocol }}_write_hwmutex(
     return (halo_s32_t)data_size;
 }
 
-/* STM32 hardware-atomic read using critical sections */
+/* hardware-atomic read using critical sections */
 halo_s32_t {{ protocol }}_read_hwmutex(
     {{ protocol }}_channel_handle_t *chan,
     void *data,
@@ -68,6 +68,6 @@ halo_s32_t {{ protocol }}_read_hwmutex(
 __attribute__((weak))
 void {{ protocol }}_init_sync(const {{ protocol }}_channel_t *chan) {
     (void)chan;
-    /* Default: no-op - STM32 uses critical sections in read/write */
+    /* Default: no-op - uses critical sections in read/write */
 }
 

@@ -9,7 +9,7 @@ def get_protocol_config():
 
     return {
         "name": "eventchannel",
-        "supported_platforms": ["halo_gen_riscv64_h1_zephyr", "riscv64_h2_freertos", "halo_gen_riscv64_h3_baremetal", "halo_gen_riscv64_h4_linux"],
+        "supported_platforms": ["riscv64_h1_zephyr", "riscv64_h2_freertos", "riscv64_h3_baremetal", "riscv64_h4_linux"],
         "module": str(render_module),
         "description": "Event Channel Protocol",
     }

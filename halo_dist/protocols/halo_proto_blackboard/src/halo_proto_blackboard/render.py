@@ -4,6 +4,7 @@ Provides platform-specific rendering for the blackboard protocol.
 """
 from __future__ import annotations
 
+import importlib.util
 import logging
 from pathlib import Path
 from typing import Any, Dict
@@ -12,7 +13,13 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 try:
     from generator.codegen.render.render_utils import write_generated_file
-    from generator.codegen.utils import get_connections_by_protocol, get_profiles, to_c_value, infer_c_type
+    from generator.codegen.utils import (
+        get_connection_integrity_config,
+        get_connections_by_protocol,
+        get_profiles,
+        infer_c_type,
+        to_c_value,
+    )
 except ImportError:
     import sys
 
@@ -20,19 +27,29 @@ except ImportError:
     if str(sw_path) not in sys.path:
         sys.path.insert(0, str(sw_path))
     from generator.codegen.render.render_utils import write_generated_file
-    from generator.codegen.utils import get_connections_by_protocol, get_profiles, to_c_value, infer_c_type
-
+    from generator.codegen.utils import (
+        get_connection_integrity_config,
+        get_connections_by_protocol,
+        get_profiles,
+        infer_c_type,
+        to_c_value,
+    )
 
 logger = logging.getLogger(__name__)
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 PROTOCOL_NAME = "blackboard"
-SUPPORTED_PLATFORMS = {
-    "stm32",
-    "linux",
-    "freertos",
-    "baremetal",
-}
 
+def _get_supported_platforms() -> set[str]:
+    """Load supported platforms from config.py so CLI updates stay in sync."""
+    config_path = Path(__file__).with_name("config.py")
+    spec = importlib.util.spec_from_file_location(f"{PROTOCOL_NAME}_config", config_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Failed to load protocol config: {config_path}")
+
+    config_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(config_module)
+    config = config_module.get_protocol_config()
+    return set(config.get("supported_platforms", []))
 
 def _get_jinja_env() -> Environment:
     return Environment(
@@ -83,7 +100,8 @@ def _extract_protocol_channels(model: Dict[str, Any]) -> list[Dict[str, Any]]:
     for connection in protocol_connections:
         profile_name = connection.get("profile", "")
         profile_data = profiles.get(profile_name, {}) if isinstance(profiles.get(profile_name), dict) else {}
-        
+        integrity_type = get_connection_integrity_config(model, connection)
+
         # Convert profile values to C syntax and infer types
         c_values = {}
         c_fields = {}
@@ -99,6 +117,7 @@ def _extract_protocol_channels(model: Dict[str, Any]) -> list[Dict[str, Any]]:
                 "profile_data": profile_data,  # Original profile data
                 "c_values": c_values,  # C-formatted values
                 "c_fields": c_fields,  # Inferred C types
+                "integrity_type": integrity_type,
                 "from_component": connection.get("from_component", ""),
                 "to_component": connection.get("to_component", ""),
             }
@@ -212,7 +231,7 @@ def __getattr__(name: str):
         raise AttributeError(name)
 
     platform_name = name[len(prefix):]
-    if platform_name not in SUPPORTED_PLATFORMS:
+    if platform_name not in _get_supported_platforms():
         raise AttributeError(name)
 
     return _build_render_function(platform_name)

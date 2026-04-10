@@ -1,0 +1,81 @@
+/* Shared CRC implementations for all platforms */
+#include "halo_types.h"
+#include "{{ protocol }}_crc.h"
+
+/* CRC16 calculation (CCITT polynomial: 0x1021) */
+halo_u16_t {{ protocol }}_crc16(const halo_u8_t *data, halo_size_t len) {
+    halo_u16_t crc = 0xFFFF;
+
+    for (halo_size_t i = 0; i < len; i++) {
+        crc ^= (halo_u16_t)data[i] << 8;
+        for (int j = 0; j < 8; j++) {
+            if (crc & 0x8000) {
+                crc = (crc << 1) ^ 0x1021;
+            } else {
+                crc = crc << 1;
+            }
+            crc &= 0xFFFF;
+        }
+    }
+    return crc;
+}
+
+/* CRC32 calculation (standard Ethernet polynomial) */
+halo_u32_t {{ protocol }}_crc32(const halo_u8_t *data, halo_size_t len) {
+    static const halo_u32_t crc32_table[256] = {
+        0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
+        0x0EDB8832, 0x79DCB8A4, 0xE0D5E91E, 0x97D2D988, 0x09B64C2B, 0x7EB17CBD, 0xE7B82D07, 0x90BF1D91,
+        0x1DB71642, 0x6AB020F2, 0xF3B97148, 0x84BE41DE, 0x1ADAD47D, 0x6DDDE4EB, 0xF4D4B551, 0x83D385C7,
+        0x136C9856, 0x646BA8C0, 0xFD62F97A, 0x8A65C9EC, 0x14015C4F, 0x63066CD9, 0xFA44E5D6, 0x8D079D40,
+        0x3B6E20C8, 0x4C69105E, 0xD56041E4, 0xA2677172, 0x3C03E4D1, 0x4B04D447, 0xD20D85FD, 0xA50AB56B,
+        0x35B5A8FA, 0x42B2986C, 0xDBBBC9D6, 0xACBCF940, 0x32D86CE3, 0x45DF5C75, 0xDCD60DCF, 0xABD13D59,
+        0x26D930AC, 0x51DE003A, 0xC8D75180, 0xBFD06116, 0x21B4F4B5, 0x56B3C423, 0xCFBA9599, 0xB8BDA50F,
+        0x2802B89E, 0x5F058808, 0xC60CD9B2, 0xB10BE924, 0x2F6F7C87, 0x58684C11, 0xC1611DAB, 0xB6662D3D,
+    };
+
+    halo_u32_t crc = 0xFFFFFFFF;
+
+    for (halo_size_t i = 0; i < len; i++) {
+        halo_u8_t byte = data[i];
+        crc = crc32_table[(crc ^ byte) & 0xFF] ^ (crc >> 8);
+    }
+
+    return crc ^ 0xFFFFFFFF;
+}
+
+/* CRC calculation wrapper - statically selected at generation time */
+halo_u32_t {{ protocol }}_calculate_crc(const halo_u8_t *data, halo_size_t len) {
+#if {{ protocol|upper }}_CRC_TYPE == {{ protocol|upper }}_CRC_SW_CRC16
+    return (halo_u32_t){{ protocol }}_crc16(data, len);
+#elif {{ protocol|upper }}_CRC_TYPE == {{ protocol|upper }}_CRC_SW_CRC32
+    return {{ protocol }}_crc32(data, len);
+#elif {{ protocol|upper }}_CRC_TYPE == {{ protocol|upper }}_CRC_HW_CRC16
+    #ifdef {{ protocol|upper }}_HAS_HW_CRC16
+    return (halo_u32_t){{ protocol }}_hw_crc16(data, len);
+    #else
+    return 0;
+    #endif
+#elif {{ protocol|upper }}_CRC_TYPE == {{ protocol|upper }}_CRC_HW_CRC32
+    #ifdef {{ protocol|upper }}_HAS_HW_CRC32
+    return {{ protocol }}_hw_crc32(data, len);
+    #else
+    return 0;
+    #endif
+#else
+    return 0;
+#endif
+}
+
+/* Default weak HW CRC stub implementations */
+/* These can be overridden by platform-specific implementations */
+halo_u16_t {{ protocol }}_hw_crc16(const halo_u8_t *data, halo_size_t len) {
+    (void)data;
+    (void)len;
+    return 0;  /* Default: no-op stub */
+}
+
+halo_u32_t {{ protocol }}_hw_crc32(const halo_u8_t *data, halo_size_t len) {
+    (void)data;
+    (void)len;
+    return 0;  /* Default: no-op stub */
+}
