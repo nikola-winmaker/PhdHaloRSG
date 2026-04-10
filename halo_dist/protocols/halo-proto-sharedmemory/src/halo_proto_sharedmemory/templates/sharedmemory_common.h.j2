@@ -21,7 +21,7 @@ typedef enum {
 /*   - SHAREDMEMORY_CRC_HW_CRC16 (hardware CRC16 accelerator) */
 /*   - SHAREDMEMORY_CRC_HW_CRC32 (hardware CRC32 accelerator) */
 #ifndef SHAREDMEMORY_CRC_TYPE
-#define SHAREDMEMORY_CRC_TYPE SHAREDMEMORY_CRC_SW_CRC32
+#define SHAREDMEMORY_CRC_TYPE {{crc_type}}
 #endif
 
 /* CRC function declarations from shared module */

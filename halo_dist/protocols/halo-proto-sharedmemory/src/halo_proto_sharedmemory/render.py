@@ -63,6 +63,14 @@ def _get_jinja_env() -> Environment:
     )
 
 
+def _map_integrity_to_crc_type(integrity_type: str) -> str:
+    if integrity_type == "SHAREDMEMORY_INTEGRITY_CRC16":
+        return "SHAREDMEMORY_CRC_SW_CRC16"
+    if integrity_type == "SHAREDMEMORY_INTEGRITY_CRC32":
+        return "SHAREDMEMORY_CRC_SW_CRC32"
+    return "SHAREDMEMORY_CRC_NONE"
+
+
 def _render_protocol_header(
     platform_name: str,
     model: Dict[str, Any],
@@ -170,6 +178,7 @@ def _extract_protocol_channels(model: Dict[str, Any]) -> list[Dict[str, Any]]:
                 "to_component": connection.get("to_component", ""),
                 "sync": sync_type,
                 "integrity_type": integrity_type,
+                "crc_type": _map_integrity_to_crc_type(integrity_type),
                 "cacheable": str(cacheable).lower(),
                 "base_address": base_addr,
                 "size": size_bytes,

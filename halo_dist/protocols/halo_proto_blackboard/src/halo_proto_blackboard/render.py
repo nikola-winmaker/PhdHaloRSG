@@ -60,6 +60,35 @@ def _get_jinja_env() -> Environment:
     )
 
 
+def _map_integrity_to_crc_type(integrity_type: str) -> str:
+    prefix = PROTOCOL_NAME.upper()
+    if integrity_type.endswith("_INTEGRITY_CRC16"):
+        return f"{prefix}_CRC_SW_CRC16"
+    if integrity_type.endswith("_INTEGRITY_CRC32"):
+        return f"{prefix}_CRC_SW_CRC32"
+    return f"{prefix}_CRC_NONE"
+
+
+def _get_protocol_integrity_type(model: Dict[str, Any]) -> str:
+    channels = _extract_protocol_channels(model)
+    integrity_types = [
+        channel["integrity_type"]
+        for channel in channels
+        if channel.get("integrity_type")
+    ]
+    if not integrity_types:
+        return f"{PROTOCOL_NAME.upper()}_INTEGRITY_NONE"
+
+    selected = integrity_types[0]
+    if any(integrity_type != selected for integrity_type in integrity_types[1:]):
+        logger.warning(
+            "Protocol %s has mixed integrity settings across channels; using %s for static CRC selection.",
+            PROTOCOL_NAME,
+            selected,
+        )
+    return selected
+
+
 def _render_protocol_header(
     platform_name: str,
     model: Dict[str, Any],
@@ -84,6 +113,37 @@ def _render_protocol_header(
     include_dir.mkdir(parents=True, exist_ok=True)
 
     output_file = include_dir / f"{PROTOCOL_NAME}_{platform_name}.h"
+    write_generated_file(output_file, output)
+
+
+def _render_crc_header(model: Dict[str, Any], output_dir: Path) -> None:
+    env = _get_jinja_env()
+    template = env.get_template(f"{PROTOCOL_NAME}_crc.h.j2")
+    integrity_type = _get_protocol_integrity_type(model)
+    output = template.render(
+        protocol=PROTOCOL_NAME,
+        integrity_type=integrity_type,
+        crc_type=_map_integrity_to_crc_type(integrity_type),
+    )
+
+    include_dir = output_dir.parent / "include"
+    include_dir.mkdir(parents=True, exist_ok=True)
+
+    output_file = include_dir / f"{PROTOCOL_NAME}_crc.h"
+    write_generated_file(output_file, output)
+
+
+def _render_crc_impl(model: Dict[str, Any], output_dir: Path) -> None:
+    env = _get_jinja_env()
+    template = env.get_template(f"{PROTOCOL_NAME}_crc.c.j2")
+    integrity_type = _get_protocol_integrity_type(model)
+    output = template.render(
+        protocol=PROTOCOL_NAME,
+        integrity_type=integrity_type,
+        crc_type=_map_integrity_to_crc_type(integrity_type),
+    )
+
+    output_file = output_dir / f"{PROTOCOL_NAME}_crc.c"
     write_generated_file(output_file, output)
 
 
@@ -118,6 +178,7 @@ def _extract_protocol_channels(model: Dict[str, Any]) -> list[Dict[str, Any]]:
                 "c_values": c_values,  # C-formatted values
                 "c_fields": c_fields,  # Inferred C types
                 "integrity_type": integrity_type,
+                "crc_type": _map_integrity_to_crc_type(integrity_type),
                 "from_component": connection.get("from_component", ""),
                 "to_component": connection.get("to_component", ""),
             }
@@ -208,6 +269,8 @@ def _build_render_function(platform_name: str):
         model: Dict[str, Any], analysis: Dict[str, Any], environment: str, output_dir: Path
     ) -> None:
         # Always render common files first (only once, harmless if called multiple times)
+        _render_crc_header(model, output_dir)
+        _render_crc_impl(model, output_dir)
         _render_common_header(model, analysis, output_dir)
         _render_common_impl(model, analysis, output_dir)
         # Then render platform-specific files
@@ -221,6 +284,8 @@ def render_blackboard(
     model: Dict[str, Any], analysis: Dict[str, Any], environment: str, output_dir: Path
 ) -> None:
     """Main entry point: renders common protocol files."""
+    _render_crc_header(model, output_dir)
+    _render_crc_impl(model, output_dir)
     _render_common_header(model, analysis, output_dir)
     _render_common_impl(model, analysis, output_dir)
 

@@ -3,6 +3,7 @@
 #define HALO_{{ protocol|upper }}_COMMON_H
 
 #include "halo_types.h"
+#include "{{ protocol }}_crc.h"
 
 /* Event type - can be lightweight bitmask, enum, or small data payload */
 typedef halo_u32_t {{ protocol }}_event_t;
