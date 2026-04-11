@@ -1,8 +1,8 @@
 /* Generated Shared Memory Protocol Implementation - Base Template */
 #include "halo_types.h"
+#include "halo_lib.h"
 #include "sharedmemory_{{ environment|lower }}.h"
 #include "sharedmemory_crc.h"
-#include <string.h>
 
 {% block platform_includes %}
 /* Platform includes go here */
@@ -154,7 +154,7 @@ int sharedmemory_send(const sharedmemory_channel_t *chan, const void *src, halo_
     
     /* Copy payload after header */
     halo_u8_t *payload = (halo_u8_t *)(header + 1);
-    memcpy((void *)payload, src, len);
+    halo_memcpy_volatile((void *)payload, src, len);
     
     /* Calculate CRC if enabled */
     if (SHAREDMEMORY_CRC_TYPE != SHAREDMEMORY_CRC_NONE) {
@@ -218,7 +218,7 @@ int sharedmemory_recv(const sharedmemory_channel_t *chan, void *dst, halo_size_t
     /* Copy payload to destination */
     halo_size_t copy_len = (header->size < len) ? header->size : len;
     halo_u8_t *payload = (halo_u8_t *)(header + 1);
-    memcpy(dst, (const void *)payload, copy_len);
+    halo_memcpy_volatile(dst, (const void *)payload, copy_len);
     
     /* Mark as consumed */
     header->valid = 0;
