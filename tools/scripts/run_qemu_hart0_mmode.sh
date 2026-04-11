@@ -57,7 +57,10 @@ qemu-system-riscv64 \
     -serial none \
     -monitor none >/dev/null 2>&1
 
-dtc -I dtb -O dts -o "${DTB_DTS}" "${DTB_RAW}"
+# QEMU's dumped DTB stores interrupt parents as numeric phandles; when dtc
+# decompiles that blob back to DTS it emits a known false-positive warning for
+# interrupts-extended because the original symbolic references are gone.
+dtc -W no-interrupts_extended_property -I dtb -O dts -o "${DTB_DTS}" "${DTB_RAW}"
 
 INITRD_SIZE="$(stat -c%s "${LINUX_INITRD}")"
 python3 "${LAYOUT_TOOL}" patch-dts \
@@ -67,7 +70,7 @@ python3 "${LAYOUT_TOOL}" patch-dts \
     --initrd-size "${INITRD_SIZE}" \
     --overlay-out "${DTB_OVERLAY}"
 
-dtc -I dts -O dtb -o "${DTB_PATCHED}" "${DTB_DTS}"
+dtc -W no-interrupts_extended_property -I dts -O dtb -o "${DTB_PATCHED}" "${DTB_DTS}"
 
 echo "[INFO] Starting QEMU direct M-mode AMP launch"
 echo "[INFO] Hart0 firmware (M-mode): ${HART0}"
