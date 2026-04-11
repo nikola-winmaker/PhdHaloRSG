@@ -45,3 +45,7 @@ boot/hart0/build/*
 # /external/  # Uncomment if using external/ for deps
 apps/zephyr-hart1/zephyr/build-qemu/*
 deps/halo/*
+apps/zephyr-hart1/deps/halo/*
+apps/bare-hart3/deps/halo/*
+apps/freertos-hart2/deps/halo/*
+apps/linux-hart4/deps/halo/*

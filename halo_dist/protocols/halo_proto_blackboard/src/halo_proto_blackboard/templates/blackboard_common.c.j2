@@ -11,10 +11,14 @@ halo_u32_t {{ protocol }}_{{ channel.name }}_external_size = 0;
 {% endif %}
 
 /* Static buffer allocation for each channel instance */
-// __attribute__((section(".blackboard_buffers"))) can be used to place these in a specific memory section if needed
 {% if protocol_channels %}
 {% for channel in protocol_channels %}
+{% if channel.c_values.baseAddress is defined %}
+static halo_u8_t *{{ channel.name }}_buffer = (halo_u8_t *){{ channel.profile_data.baseAddress }};
+{% else %} 
+// __attribute__((section(".blackboard_buffers"))) can be used to place these in a specific memory section if needed
 static halo_u8_t {{ channel.name }}_buffer[{{ channel.c_values.maxPayload }}];
+{% endif %}
 {% endfor %}
 {% endif %}
 

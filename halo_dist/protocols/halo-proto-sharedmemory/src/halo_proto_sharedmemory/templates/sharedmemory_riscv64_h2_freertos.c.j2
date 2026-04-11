@@ -37,19 +37,16 @@ void sharedmemory_unlock(const sharedmemory_channel_t *chan) {
 
 {% block platform_fence %}
 void sharedmemory_fence_acquire(void) {
-    /* ARM memory barrier for acquire semantics */
-    __asm__ volatile("dmb" ::: "memory");
+    SHMEM_DMB();
 }
 
 void sharedmemory_fence_release(void) {
-    /* ARM memory barrier for release semantics */
-    __asm__ volatile("dmb" ::: "memory");
+    SHMEM_DMB();
 }
 
 void sharedmemory_fence_full(void) {
-    /* ARM full memory barrier */
-    __asm__ volatile("dsb" ::: "memory");
-    __asm__ volatile("isb" ::: "memory");
+    SHMEM_DSB();
+    SHMEM_ISB();
 }
 {% endblock %}
 

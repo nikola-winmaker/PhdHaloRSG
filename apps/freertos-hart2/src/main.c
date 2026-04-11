@@ -3,6 +3,12 @@
 #include "uart.h"
 #include "../../../src/shared_memory.h"
 
+#if !defined(USE_HALO) || (USE_HALO == 0)
+    #include "classical_api.h"
+#else
+    #include "halo_api.h"
+#endif
+
 static void uart_write_uint( uint32_t value )
 {
     char buf[ 11 ];
@@ -102,7 +108,15 @@ void vApplicationMallocFailedHook( void )
 int main( void )
 {
     uart_init();
-    uart_write_string( "\n[APP2] Starting FreeRTOS scheduler\n" );
+#if !defined( USE_HALO ) || ( USE_HALO == 0 )
+    classical_hello();
+#else
+    uart_write_string( "\n[APP2] Starting FreeRTOS scheduler HALO\n" );
+
+    // Initialize HALO protocol (if enabled) before starting scheduler
+    halo_freertos_h2_init_riscv64_h2_freertos();
+#endif
+
 
     if( xTaskCreate( hello_task, "hello", configMINIMAL_STACK_SIZE, NULL, 1, NULL ) != pdPASS )
     {

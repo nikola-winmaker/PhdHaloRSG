@@ -35,8 +35,12 @@ typedef struct {
 } {{ protocol }}_queue_t;
 
 /* Event queues for all channels */
+{% if protocol_channels and protocol_channels[0].c_values.baseAddress is defined %}
+static {{ protocol }}_queue_t *{{ protocol }}_queues = ({{ protocol }}_queue_t *){{ protocol_channels[0].profile_data.baseAddress }};
+{% else %}
 //__attribute__((section(".shared_data")));
 static {{ protocol }}_queue_t {{ protocol }}_queues[HALO_{{ protocol|upper }}_MAX_CHANNELS];
+{% endif %}
 
 /* Initialize protocol - sets up queue for channel */
 void {{ protocol }}_init({{ protocol }}_channel_t *channel) {

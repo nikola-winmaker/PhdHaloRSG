@@ -1,6 +1,17 @@
 # Hart 2 FreeRTOS app build.
 
 ROOT_DIR := $(abspath ../..)
+USE_HALO ?= 0
+
+ifeq ($(USE_HALO),1)
+	DEPS_DIR := deps/halo/codegen/riscv64_h2_freertos
+	DEPS_INC := -I$(DEPS_DIR)/include
+	DEPS_SRCS := $(wildcard $(DEPS_DIR)/src/*.c)
+else
+	DEPS_DIR := deps/classical
+	DEPS_INC := -I$(DEPS_DIR)/include
+	DEPS_SRCS := $(wildcard $(DEPS_DIR)/src/*.c)
+endif
 FREERTOS_KERNEL_DIR ?= $(ROOT_DIR)/deps/freertos/FreeRTOS-Kernel
 OPEN_SBI_SMODE ?= 0
 AMP_LAYOUT_TOOL := $(ROOT_DIR)/tools/scripts/amp_layout.py
@@ -21,26 +32,17 @@ GEN_DIR := $(BUILD_DIR)/generated
 LINKER_SCRIPT := $(GEN_DIR)/linker.ld
 
 ifeq ($(OPEN_SBI_SMODE),1)
-APP_SOURCES := \
-	src/main_smode.c \
-	src/uart.c \
-	src/start_smode.S
-
+APP_SOURCES := src/main_smode.c src/uart.c src/start_smode.S $(DEPS_SRCS)
 KERNEL_SOURCES :=
 else
-APP_SOURCES := \
-	src/main.c \
-	src/libc.c \
-	src/uart.c \
-	src/start.S
-
+APP_SOURCES := src/main.c src/libc.c src/uart.c src/start.S $(DEPS_SRCS)
 KERNEL_SOURCES := \
-	$(FREERTOS_KERNEL_DIR)/tasks.c \
-	$(FREERTOS_KERNEL_DIR)/list.c \
-	$(FREERTOS_KERNEL_DIR)/queue.c \
-	$(PORT_DIR)/port.c \
-	$(PORT_DIR)/portASM.S \
-	$(HEAP_DIR)/heap_4.c
+  $(FREERTOS_KERNEL_DIR)/tasks.c \
+  $(FREERTOS_KERNEL_DIR)/list.c \
+  $(FREERTOS_KERNEL_DIR)/queue.c \
+  $(PORT_DIR)/port.c \
+  $(PORT_DIR)/portASM.S \
+  $(HEAP_DIR)/heap_4.c
 endif
 
 SOURCES := $(APP_SOURCES) $(KERNEL_SOURCES)
@@ -49,7 +51,7 @@ OBJECTS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(filter %.c,$(SOURCES))) \
 
 CFLAGS := -march=rv64imafdc -mabi=lp64d -mcmodel=medany -msmall-data-limit=0 \
 	-nostdlib -ffreestanding -fno-builtin -Wall -Wextra -g \
-	-I. -Isrc -I$(FREERTOS_KERNEL_DIR)/include -I$(PORT_DIR)
+	-I. -Isrc $(DEPS_INC) -I$(FREERTOS_KERNEL_DIR)/include -I$(PORT_DIR) -DUSE_HALO=$(USE_HALO)
 
 ifeq ($(OPEN_SBI_SMODE),1)
 CFLAGS += -DOPEN_SBI_SMODE

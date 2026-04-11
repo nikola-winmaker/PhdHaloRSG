@@ -3,6 +3,9 @@
 #define HALO_{{ protocol|upper }}_{{ environment|upper }}_H
 
 #include "{{ protocol }}_common.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
 
 /* Platform-specific definitions for {{ environment }} */
 /* Override or extend common protocol structures here */

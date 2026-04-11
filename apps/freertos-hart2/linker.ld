@@ -46,7 +46,6 @@ SECTIONS {
   .heap : {
     . = ALIGN(16);
     __heap_start = .;
-    . = ORIGIN(APP2_RAM) + LENGTH(APP2_RAM);
     __heap_end = .;
   } > APP2_RAM
 }

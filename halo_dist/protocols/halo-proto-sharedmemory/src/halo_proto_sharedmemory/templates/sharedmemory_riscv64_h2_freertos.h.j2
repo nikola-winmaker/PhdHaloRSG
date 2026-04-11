@@ -11,5 +11,19 @@
 /* Include common shared memory definitions */
 {% include "sharedmemory_common.h.j2" %}
 
+/* HALO USER CODE BEGIN: frtos_platform_specific.define */
+#ifndef SHMEM_DMB
+#define SHMEM_DMB() /* User define*/
+#endif
+
+#ifndef SHMEM_DSB
+#define SHMEM_DSB() /* User define*/
+#endif
+
+#ifndef SHMEM_ISB
+#define SHMEM_ISB() /* User define*/
+#endif
+/* HALO USER CODE END: frtos_platform_specific.define*/
+
 #endif /* SHAREDMEMORY_FREERTOS_H */
 
