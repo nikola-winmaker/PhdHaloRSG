@@ -21,7 +21,7 @@
     {
       "label": "Clean build all & Run",
       "type": "shell",
-      "command": "make qemu-hart0-mmode",
+      "command": "make qemu-hart0-mmode USE_HALO=${input:useHalo}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -39,7 +39,7 @@
     {
       "label": "Hart1 Zephyr build",
       "type": "shell",
-      "command": "make zephyr-hart1-fast",
+      "command": "make zephyr-hart1-fast USE_HALO=${input:useHalo}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -53,7 +53,7 @@
     {
       "label": "Hart2 FreeRTOS build",
       "type": "shell",
-      "command": "make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=${workspaceFolder}/deps/freertos/FreeRTOS-Kernel",
+      "command": "make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=${workspaceFolder}/deps/freertos/FreeRTOS-Kernel USE_HALO=${input:useHalo}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -67,7 +67,7 @@
     {
       "label": "Hart3 BM build",
       "type": "shell",
-      "command": "make -C apps/bare-hart3 app3",
+      "command": "make -C apps/bare-hart3 app3 USE_HALO=${input:useHalo}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -81,7 +81,7 @@
     {
       "label": "Hart4 Linux build",
       "type": "shell",
-      "command": "make buildroot-linux-fast",
+      "command": "make buildroot-linux-fast USE_HALO=${input:useHalo}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -149,4 +149,22 @@
       "problemMatcher": []
     },
   ],
+  "inputs": [
+    {
+      "id": "useHalo",
+      "type": "pickString",
+      "description": "Select build mode",
+      "options": [
+        {
+          "label": "HALO",
+          "value": "1"
+        },
+        {
+          "label": "Classical",
+          "value": "0"
+        }
+      ],
+      "default": "0"
+    }
+  ]
 }
