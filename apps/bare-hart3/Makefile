@@ -7,7 +7,8 @@ LD = $(CROSS_COMPILE)ld
 OBJCOPY = $(CROSS_COMPILE)objcopy
 OBJDUMP = $(CROSS_COMPILE)objdump
 
-CFLAGS = -march=rv64imafdc -mabi=lp64d -mcmodel=medany -nostdlib -nostartfiles -ffreestanding -Wall -g
+HALO_CODEGEN_DIR := deps/halo/codegen/riscv64_h3_baremetal
+CFLAGS = -march=rv64imafdc -mabi=lp64d -mcmodel=medany -nostdlib -nostartfiles -ffreestanding -Wall -g -I$(HALO_CODEGEN_DIR)/include
 BUILD_DIR = build
 BIN_DIR = $(BUILD_DIR)/bin
 GEN_DIR = $(BUILD_DIR)/generated
@@ -17,6 +18,9 @@ LDFLAGS = -T $(LINKER_SCRIPT) -nostdlib
 .PHONY: all app3 clean
 
 all: app3
+
+# Add all .c files from HALO codegen dir to sources
+HALO_SRCS := $(wildcard $(HALO_CODEGEN_DIR)/src/*.c)
 
 app3: $(BIN_DIR)/app3.elf $(BIN_DIR)/app3.bin
 
@@ -28,17 +32,25 @@ $(BUILD_DIR)/src/start.o: src/start.S
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/src/main.o: src/main.c
+
+# Pattern rule for all .c files (main, uart, and codegen)
+$(BUILD_DIR)/src/%.o: src/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/src/uart.o: src/uart.c
+
+# Pattern rule for codegen .c files in src subdir
+$(BUILD_DIR)/halo_codegen/src/%.o: $(HALO_CODEGEN_DIR)/src/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BIN_DIR)/app3.elf: $(BUILD_DIR)/src/start.o $(BUILD_DIR)/src/main.o $(BUILD_DIR)/src/uart.o $(LINKER_SCRIPT)
+
+APP3_OBJS := $(BUILD_DIR)/src/main.o $(BUILD_DIR)/src/uart.o \
+	$(patsubst $(HALO_CODEGEN_DIR)/src/%.c,$(BUILD_DIR)/halo_codegen/src/%.o,$(HALO_SRCS))
+
+$(BIN_DIR)/app3.elf: $(BUILD_DIR)/src/start.o $(APP3_OBJS) $(LINKER_SCRIPT)
 	@mkdir -p $(BIN_DIR)
-	$(LD) $(LDFLAGS) $(BUILD_DIR)/src/start.o $(BUILD_DIR)/src/main.o $(BUILD_DIR)/src/uart.o -o $@
+	$(LD) $(LDFLAGS) $(BUILD_DIR)/src/start.o $(APP3_OBJS) -o $@
 	@echo "✓ Built App3 ELF"
 	@$(OBJDUMP) -h $@
 
