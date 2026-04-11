@@ -21,7 +21,7 @@ else
 	DEPS_OBJDIR := classical
 endif
 
-CFLAGS = -march=rv64imafdc -mabi=lp64d -mcmodel=medany -nostdlib -nostartfiles -ffreestanding -Wall -g $(DEPS_INC)
+CFLAGS = -march=rv64imafdc -mabi=lp64d -mcmodel=medany -nostdlib -nostartfiles -ffreestanding -Wall -g $(DEPS_INC) -Isrc -DUSE_HALO=$(USE_HALO)
 BUILD_DIR = build
 BIN_DIR = $(BUILD_DIR)/bin
 GEN_DIR = $(BUILD_DIR)/generated

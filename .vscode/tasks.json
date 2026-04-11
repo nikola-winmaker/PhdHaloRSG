@@ -53,7 +53,7 @@
     {
       "label": "Hart2 FreeRTOS build",
       "type": "shell",
-      "command": "make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=${workspaceFolder}/deps/freertos/FreeRTOS-Kernel USE_HALO=${input:useHalo}",
+      "command": "make -C apps/freertos-hart2 clean && make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=${workspaceFolder}/deps/freertos/FreeRTOS-Kernel USE_HALO=${input:useHalo}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -67,7 +67,7 @@
     {
       "label": "Hart3 BM build",
       "type": "shell",
-      "command": "make -C apps/bare-hart3 app3 USE_HALO=${input:useHalo}",
+      "command": "make -C apps/bare-hart3 clean && make -C apps/bare-hart3 app3 USE_HALO=${input:useHalo}",
       "options": {
         "cwd": "${workspaceFolder}"
       },

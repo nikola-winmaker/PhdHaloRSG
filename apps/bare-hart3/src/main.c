@@ -1,5 +1,10 @@
 #include "uart.h"
 #include "../../../src/shared_memory.h"
+#if !defined(USE_HALO) || (USE_HALO == 0)
+#include "classical_api.h"
+#else
+#include "halo_api.h"
+#endif
 
 static void delay_loop(void)
 {
@@ -33,10 +38,18 @@ void _start_c(void) {
     uint32_t seen[HALO_MAX_HARTS] = {0};
 
     uart_init();
+#if !defined(USE_HALO) || (USE_HALO == 0)
+    classical_hello();
+#else
     uart_write_string("\n╔════════════════════════════════════════════════════════════════╗\n");
-    uart_write_string("║               Hart 3 - Application 3                           ║\n");
+    uart_write_string("║               Hart 3 - HALO Application 3                       ║\n");
     uart_write_string("╚════════════════════════════════════════════════════════════════╝\n\n");
+#endif
+
     halo_shared_publish(3U, "bare3", 0U);
+#if defined(USE_HALO) && (USE_HALO == 1)
+    halo_baremetal_h3_init_riscv64_h3_baremetal();
+#endif
     
     /* Main loop - Hart 3 monitoring */
     while (1) {
