@@ -2,6 +2,12 @@
 #include <zephyr/sys/printk.h>
 #include "../../../../src/shared_memory.h"
 
+#if !defined(USE_HALO) || (USE_HALO == 0)
+    #include "classical_api.h"
+#else
+    #include "halo_api.h"
+#endif
+
 static void spin_delay(void)
 {
     for (volatile uint64_t i = 0; i < 900000000ULL; ++i) {
@@ -14,7 +20,14 @@ int main(void)
     uint32_t count = 0;
     uint32_t seen[HALO_MAX_HARTS] = {0};
 
-    printk("[APP1] Zephyr app started on HiFive Unmatched\n");
+#if !defined(USE_HALO) || (USE_HALO == 0)
+    classical_hello();
+#else
+    printk("[APP1] Zephyr App HALO\n");
+    halo_zephyr_h1_init_riscv64_h1_zephyr();
+#endif
+
+
     halo_shared_publish(1U, "zephyr", 0U);
 
     while (1) {

@@ -2,4 +2,17 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(hart1_zephyr_app)
 
-target_sources(app PRIVATE src/main.c)
+set(APP_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
+set(USE_HALO 0 CACHE STRING "Build Zephyr Hart1 with HALO-generated sources")
+
+if(USE_HALO)
+  set(DEPS_DIR ${APP_ROOT}/deps/halo/codegen/riscv64_h1_zephyr)
+else()
+  set(DEPS_DIR ${APP_ROOT}/deps/classical)
+endif()
+
+file(GLOB DEPS_SRCS ${DEPS_DIR}/src/*.c)
+
+target_sources(app PRIVATE src/main.c ${DEPS_SRCS})
+target_include_directories(app PRIVATE ${DEPS_DIR}/include)
+target_compile_definitions(app PRIVATE USE_HALO=${USE_HALO})

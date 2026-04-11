@@ -10,6 +10,7 @@ PRISTINE_MODE="${ZEPHYR_PRISTINE:-always}"
 TARGET_MODE="${ZEPHYR_HART1_TARGET:-qemu}"
 GENERATOR="${ZEPHYR_CMAKE_GENERATOR:-Ninja}"
 FAST_PATH_MODE="${ZEPHYR_FAST_PATH:-auto}"
+USE_HALO="${USE_HALO:-0}"
 
 case "${TARGET_MODE}" in
     qemu)
@@ -29,7 +30,7 @@ BUILD_DIR="${APP_DIR}/build-${TARGET_MODE}"
 OVERLAY_DIR="${ROOT_DIR}/apps/zephyr-hart1/build/generated"
 OVERLAY_FILE="${OVERLAY_DIR}/${BOARD}.overlay"
 SYSROOT_CMAKE_ARG=()
-CMAKE_EXTRA_ARGS=()
+CMAKE_EXTRA_ARGS=(-DUSE_HALO="${USE_HALO}")
 
 if [ -z "${ZEPHYR_TOOLCHAIN_VARIANT:-}" ]; then
     if command -v riscv64-unknown-elf-gcc >/dev/null 2>&1; then
@@ -92,9 +93,15 @@ fi
 
 if [ -f "${BUILD_DIR}/CMakeCache.txt" ]; then
     CACHE_GENERATOR="$(grep '^CMAKE_GENERATOR:INTERNAL=' "${BUILD_DIR}/CMakeCache.txt" | sed 's/^CMAKE_GENERATOR:INTERNAL=//')"
+    CACHE_USE_HALO="$(grep '^USE_HALO:' "${BUILD_DIR}/CMakeCache.txt" | sed 's/^[^=]*=//' || true)"
 
     if [ -n "${CACHE_GENERATOR}" ] && [ "${CACHE_GENERATOR}" != "${GENERATOR}" ]; then
         echo "[INFO] Zephyr build generator changed (${CACHE_GENERATOR} -> ${GENERATOR}); switching to pristine configure"
+        PRISTINE_MODE="always"
+    fi
+
+    if [ -n "${CACHE_USE_HALO}" ] && [ "${CACHE_USE_HALO}" != "${USE_HALO}" ]; then
+        echo "[INFO] Zephyr USE_HALO changed (${CACHE_USE_HALO} -> ${USE_HALO}); switching to pristine configure"
         PRISTINE_MODE="always"
     fi
 fi
@@ -102,6 +109,7 @@ fi
 echo "[INFO] Building Zephyr Hart1 target: ${BOARD} (${TARGET_MODE})"
 echo "[INFO] Using CMake generator: ${GENERATOR}"
 echo "[INFO] Using build directory: ${BUILD_DIR}"
+echo "[INFO] Zephyr Hart1 USE_HALO=${USE_HALO}"
 mkdir -p "${OVERLAY_DIR}"
 
 TMP_OVERLAY_FILE="${OVERLAY_FILE}.tmp"
