@@ -119,6 +119,34 @@
         "clear": true
       },
       "problemMatcher": []
-    }
-  ]
+    },
+    {
+      "label": "Halo: Compose",
+      "type": "shell",
+      "command": "halo compose -a ${workspaceFolder}/halo_dist/hadls -o ${workspaceFolder}/deps/halo/hc_out/ --include-stdlib-profiles",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Halo: Generate",
+      "type": "shell",
+      "command": "bash tools/scripts/halo_generate_all.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+  ],
 }
