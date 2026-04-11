@@ -226,10 +226,10 @@ buildroot-setup:
 	bash ./tools/scripts/setup_buildroot_deps.sh
 
 buildroot-linux:
-	bash ./tools/scripts/build_buildroot_linux_amp.sh
+	USE_HALO=$(USE_HALO) bash ./tools/scripts/build_buildroot_linux_amp.sh
 
 buildroot-linux-fast:
-	bash ./tools/scripts/build_buildroot_linux_amp_fast.sh
+	USE_HALO=$(USE_HALO) bash ./tools/scripts/build_buildroot_linux_amp_fast.sh
 
 buildroot-save-artifacts:
 	bash ./tools/scripts/save_buildroot_artifacts.sh

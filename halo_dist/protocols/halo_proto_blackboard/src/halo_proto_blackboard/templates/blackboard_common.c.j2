@@ -14,8 +14,8 @@ halo_u32_t {{ protocol }}_{{ channel.name }}_external_size = 0;
 {% if protocol_channels %}
 {% for channel in protocol_channels %}
 {% if channel.c_values.baseAddress is defined %}
-static halo_u8_t *{{ channel.name }}_buffer = (halo_u8_t *){{ channel.profile_data.baseAddress }};
-{% else %} 
+static const halo_uintptr_t {{ channel.name }}_buffer_addr = (halo_uintptr_t){{ channel.profile_data.baseAddress }};
+{% else %}
 // __attribute__((section(".blackboard_buffers"))) can be used to place these in a specific memory section if needed
 static halo_u8_t {{ channel.name }}_buffer[{{ channel.c_values.maxPayload }}];
 {% endif %}
@@ -45,8 +45,13 @@ static const {{ protocol }}_channel_descriptor_t {{ protocol }}_channels[] = {
     {
         .channel = &{{ channel.name }}_channel,
         .handle = &{{ channel.name }}_handle,
+{% if channel.c_values.baseAddress is defined %}
+        .static_buffer = (void *){{ channel.name }}_buffer_addr,
+        .static_buffer_size = {{ channel.c_values.bufferSize }},
+{% else %}
         .static_buffer = {{ channel.name }}_buffer,
         .static_buffer_size = sizeof({{ channel.name }}_buffer),
+{% endif %}
         .external_buffer_ptr = &{{ protocol }}_{{ channel.name }}_external_buffer,
         .external_size_ptr = &{{ protocol }}_{{ channel.name }}_external_size,
     },
@@ -202,4 +207,3 @@ halo_u32_t {{ protocol }}_get_latest_index({{ protocol }}_channel_handle_t *chan
 
 {% endfor %}
 {% endif %}
-

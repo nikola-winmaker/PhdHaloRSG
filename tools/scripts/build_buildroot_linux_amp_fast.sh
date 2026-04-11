@@ -18,10 +18,19 @@ fi
 EXTERNAL_DIR="${WS_DIR}/external"
 POST_BUILD_SCRIPT="${EXTERNAL_DIR}/board/risc5_eval/post-build.sh"
 APP_SRC="${ROOT_DIR}/apps/linux-hart4/src/linux_app.c"
+APP_BUILDROOT_DIR="${ROOT_DIR}/apps/linux-hart4/buildroot"
+DEPS_DIR="${ROOT_DIR}/apps/linux-hart4/deps/classical"
 TARGET_DIR="${OUTPUT_DIR}/target"
 HOST_DIR="${OUTPUT_DIR}/host"
 ARTIFACT_DIR="${ROOT_DIR}/artifacts/buildroot/images"
 ARTIFACT_ROOTFS="${ARTIFACT_DIR}/rootfs.cpio"
+USE_HALO="${USE_HALO:-0}"
+
+if [ "${USE_HALO}" = "1" ]; then
+    DEPS_DIR="${ROOT_DIR}/apps/linux-hart4/deps/halo/codegen/riscv64_h4_linux"
+fi
+
+DEPS_INC="${DEPS_DIR}/include"
 
 SAFE_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 if [ -d "${HOME}/.local/bin" ]; then
@@ -59,10 +68,19 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
     echo "[INFO] Buildroot output is not configured at ${OUTPUT_DIR}"
     echo "[INFO] Rebuilding Linux app directly against the tracked rootfs artifact"
 
+    if [ ! -d "${DEPS_INC}" ]; then
+        echo "[ERR] Linux Hart 4 dependency include directory not found: ${DEPS_INC}"
+        echo "      USE_HALO=${USE_HALO}"
+        exit 1
+    fi
+
     riscv64-linux-gnu-gcc \
         -O2 -Wall -Wextra \
+        -DUSE_HALO="${USE_HALO}" \
+        -I"${DEPS_INC}" \
         -Wl,--dynamic-linker=/lib/ld-linux-riscv64-lp64d.so.1 \
         "${APP_SRC}" \
+        "${DEPS_DIR}"/src/*.c \
         -o "${OVERLAY_DIR}/usr/bin/linux_app"
     chmod 0755 "${OVERLAY_DIR}/usr/bin/linux_app"
 
@@ -94,16 +112,21 @@ if [ ! -x "${POST_BUILD_SCRIPT}" ]; then
     exit 1
 fi
 
+install -m 0755 "${APP_BUILDROOT_DIR}/post-build.sh" "${POST_BUILD_SCRIPT}"
+
 echo "[INFO] Fast Linux app/rootfs rebuild using existing Buildroot output"
 echo "[INFO] Buildroot output directory: ${OUTPUT_DIR}"
+echo "[INFO] Linux Hart4 USE_HALO=${USE_HALO}"
 
 echo "[INFO] Rebuilding userspace app into target rootfs"
 HOST_DIR="${HOST_DIR}" \
 AMP_HART4_APP_SRC="${APP_SRC}" \
+USE_HALO="${USE_HALO}" \
 "${POST_BUILD_SCRIPT}" "${TARGET_DIR}"
 
 echo "[INFO] Repacking rootfs.cpio with Buildroot (preserves device files)"
 AMP_HART4_APP_SRC="${APP_SRC}" \
+USE_HALO="${USE_HALO}" \
 make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" rootfs-cpio
 
 # Copy newly built artifacts to git-tracked location

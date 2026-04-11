@@ -9,6 +9,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#if !defined( USE_HALO ) || ( USE_HALO == 0 )
+    #include "classical_api.h"
+#else
+    #include "halo_api.h"
+#endif
+
 #define SHARED_MEM_BASE 0x80340000UL
 #define SHARED_MEM_SIZE 0x1000UL
 #define SHARED_MAGIC 0x48414c4fUL
@@ -84,7 +90,15 @@ int main( void )
     }
 
     state = ( volatile shared_state_t * ) map;
-    printf( "[APP4] userspace app started\n" );
+
+#if !defined( USE_HALO ) || ( USE_HALO == 0 )
+    classical_hello();
+#else
+    printf( "\n[APP4] Starting Appl HALO\n" );
+
+    halo_linux_h4_init_riscv64_h4_linux();
+#endif
+
     fflush( stdout );
 
     while( keep_running )

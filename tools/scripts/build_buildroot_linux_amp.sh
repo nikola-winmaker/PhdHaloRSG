@@ -20,7 +20,10 @@ DEFCONFIG_NAME="risc5_eval_linux_amp_defconfig"
 DEFCONFIG_SRC="${WS_DIR}/${DEFCONFIG_NAME}"
 DEFCONFIG_DST="${BUILDROOT_DIR}/configs/${DEFCONFIG_NAME}"
 APP_SRC="${ROOT_DIR}/apps/linux-hart4/src/linux_app.c"
+APP_BUILDROOT_DIR="${ROOT_DIR}/apps/linux-hart4/buildroot"
+BOARD_DIR="${EXTERNAL_DIR}/board/risc5_eval"
 JOBS="${BUILDROOT_JOBS:-$(nproc)}"
+USE_HALO="${USE_HALO:-0}"
 
 SAFE_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 if [ -d "${HOME}/.local/bin" ]; then
@@ -58,16 +61,21 @@ fi
 
 mkdir -p "${BUILDROOT_DIR}/configs"
 cp -f "${DEFCONFIG_SRC}" "${DEFCONFIG_DST}"
+mkdir -p "${BOARD_DIR}"
+install -m 0755 "${APP_BUILDROOT_DIR}/post-build.sh" "${BOARD_DIR}/post-build.sh"
 
 echo "[INFO] Using sanitized PATH for Buildroot:"
 echo "       ${PATH}"
 echo "[INFO] Configuring Buildroot output directory: ${OUTPUT_DIR}"
+echo "[INFO] Linux Hart4 USE_HALO=${USE_HALO}"
 AMP_HART4_APP_SRC="${APP_SRC}" \
+USE_HALO="${USE_HALO}" \
 make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" "${DEFCONFIG_NAME}"
 
 echo "[INFO] Building Linux AMP artifacts with Buildroot"
 echo "[INFO] Using parallel jobs: ${JOBS}"
 AMP_HART4_APP_SRC="${APP_SRC}" \
+USE_HALO="${USE_HALO}" \
 make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" -j"${JOBS}"
 
 echo "[OK] Expected artifacts:"
