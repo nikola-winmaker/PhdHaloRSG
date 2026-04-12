@@ -21,7 +21,7 @@
     {
       "label": "Clean build all & Run",
       "type": "shell",
-      "command": "make qemu-hart0-mmode USE_HALO=${input:useHalo}",
+      "command": "make qemu-hart0-mmode USE_HALO=${input:useHalo} OUT_SELECT=${input:out_select}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -107,19 +107,40 @@
       "problemMatcher": []
     },
     {
-      "label": "QEMU Sys Run",
+      "label": "QEMU",
       "type": "shell",
-      "command": "make qemu-hart0-mmode-run",
+      "command": "echo ${input:out_select} > .out_select && make qemu-hart0-mmode-run OUT_SELECT=${input:out_select}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
       "presentation": {
-        "reveal": "always",
+        "reveal": "never",
         "panel": "shared",
         "clear": true
       },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "hide": true
     },
+  {
+    "label": "Apps QEMU Console",
+    "type": "shell",
+    "hide": true,
+    "command": "python3 tools/console/qemu_apps_console.py",
+    "options": { "cwd": "${workspaceFolder}" },
+    "presentation": {
+      "reveal": "always",
+      "panel": "shared",
+      "clear": true,
+      "close": true
+    },
+    "problemMatcher": []
+  },
+  {
+    "label": "QEMU Sys Run",
+    "dependsOn": ["QEMU", "Apps QEMU Console"],
+    "dependsOrder": "parallel",
+    "problemMatcher": []
+  },
     {
       "label": "Halo: Compose",
       "type": "shell",
@@ -165,6 +186,22 @@
         }
       ],
       "default": "0"
+    },
+    {
+      "id": "out_select",
+      "type": "pickString",
+      "description": "Select output mode",
+      "options": [
+        {
+          "label": "console",
+          "value": "stdio"
+        },
+        {
+          "label": "script",
+          "value": "pty"
+        }
+      ],
+      "default": "stdio"
     }
   ]
 }

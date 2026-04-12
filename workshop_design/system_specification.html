@@ -191,7 +191,6 @@
       <li>charging mode (<code>string charging_mode = "normal"</code>)</li>
     </ul>
     <p><strong>Allowed values for <code>charging_mode</code>:</strong> <code>"normal"</code>, <code>"fast"</code>.</p>
-    <p><strong>Voltage/current limit rule:</strong> clamp <code>current_limit_ma</code> and <code>voltage_limit_mv</code> to your platform-safe range before applying. Recommended defaults: <code>current_limit_ma = 10000</code>, <code>voltage_limit_mv = 4200</code>.</p>
 
     <h3>ChargeStatusIf</h3>
     <ul>
@@ -283,21 +282,43 @@
   </div>
 
   <div class="section">
+    <h2>Workshop Group Allocation</h2>
+    <ol>
+      <li>Five groups as G1 through G5.</li>
+      <li>Group will either start with the classical implementation or the HALO-based implementation first depending on the slip drawn, then switch to the other approach after a fixed time:
+        <ul>
+          <li>Two slips: <code>Classical -&gt; HALO</code></li>
+          <li>Three slips: <code>HALO -&gt; Classical</code></li>
+        </ul>
+      </li>
+      <li>Slips will be shuffled thoroughly in view of participants.</li>
+      <li>One representative from each group will draw exactly one slip.</li>
+      <li>Allocation will be immediately recorded in a log table with the following fields:
+        <ul>
+          <li>Group ID</li>
+          <li>Assigned order</li>
+          <li>Time</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+
+  <div class="section">
     <h2>Appendix: Diagrams</h2>
 
     <div class="diagram-block">
       <h3>System overview</h3>
-      <img src="system_design.svg" alt="System design diagram" style="max-width: 100%; height: auto;" />
+      <img src="/images/system_design.svg" alt="System design diagram" style="max-width: 100%; height: auto;" />
     </div>
 
     <div class="diagram-block">
       <h3>Normal communication flow</h3>
-      <img src="normal_comm_flow.svg" alt="Normal communication flow diagram" style="max-width: 100%; height: auto;" />
+      <img src="/images/normal_comm_flow.svg" alt="Normal communication flow diagram" style="max-width: 100%; height: auto;" />
     </div>
 
     <div class="diagram-block">
       <h3>Safety flow</h3>
-      <img src="safety_flow.svg" alt="Safety flow diagram" style="max-width: 100%; height: auto;" />
+      <img src="/images/safety_flow.svg" alt="Safety flow diagram" style="max-width: 100%; height: auto;" />
     </div>
   </div>
 

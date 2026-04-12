@@ -83,6 +83,9 @@ echo "[INFO] Linux initrd raw preload @ 0x$(printf '%08x' "${INITRD_ADDR}"): ${L
 echo "[INFO] Linux DTB raw preload @ 0x$(printf '%08x' "${DTB_ADDR}"): ${DTB_PATCHED}"
 echo "[INFO] Linux DT overlay fragment: ${DTB_OVERLAY}"
 
+# Kill any existing QEMU instances to free up the serial output, then launch QEMU with the specified images and memory layout. The HART0 firmware is loaded directly into each of the 5 harts to ensure they all start executing immediately, while the Linux kernel, initrd, and DTB are loaded at their designated addresses for the firmware bridge to jump to later.
+(pkill -f qemu-system-riscv64 || true) && sleep 1 
+
 exec qemu-system-riscv64 \
     -machine virt \
     -bios none \
@@ -90,7 +93,7 @@ exec qemu-system-riscv64 \
     -smp 5 \
     -nographic \
     -monitor none \
-    -serial stdio \
+    -serial ${OUT_SELECT} \
     -device loader,file="${HART0}",cpu-num=0 \
     -device loader,file="${HART0}",cpu-num=1 \
     -device loader,file="${HART0}",cpu-num=2 \
