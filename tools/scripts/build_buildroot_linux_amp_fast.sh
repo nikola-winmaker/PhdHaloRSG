@@ -145,8 +145,22 @@ USE_HALO="${USE_HALO}" \
 
 echo "[INFO] Repacking rootfs.cpio with Buildroot (preserves device files)"
 AMP_HART4_APP_SRC="${APP_SRC}" \
-USE_HALO="${USE_HALO}" \
-make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" rootfs-cpio
+USE_HALO="${USE_HALO}" 
+
+if [ ! -f "${ARTIFACT_ROOTFS_BASE}" ]; then
+    echo "[INFO] Base rootfs missing, generating with Buildroot"
+    make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" rootfs-cpio
+    mkdir -p "${ARTIFACT_DIR}"
+    cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_ROOTFS_BASE}"
+    cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_ROOTFS}"
+else
+    echo "[INFO] Base rootfs present, generating final rootfs from overlay"
+    # build linux_app
+    # copy init script
+    # create overlay cpio
+    cat "${ARTIFACT_ROOTFS_BASE}" "${OVERLAY_CPIO}" > "${ARTIFACT_ROOTFS}.tmp"
+    mv "${ARTIFACT_ROOTFS}.tmp" "${ARTIFACT_ROOTFS}"
+fi
 
 mkdir -p "${ARTIFACT_DIR}"
 cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_DIR}/rootfs.cpio"
