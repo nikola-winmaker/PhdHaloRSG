@@ -76,6 +76,7 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
     OVERLAY_CPIO="${TMP_DIR}/rootfs-overlay.cpio"
     mkdir -p "${OVERLAY_DIR}/usr/bin"
     mkdir -p "${OVERLAY_DIR}/etc/init.d"
+    mkdir -p "${OVERLAY_DIR}/etc"
 
     echo "[INFO] Buildroot output is not configured at ${OUTPUT_DIR}"
     echo "[INFO] Rebuilding Linux app directly against the tracked rootfs artifact"
@@ -92,6 +93,10 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
 
     cp "${INIT_SCRIPT_SOURCE}" "${OVERLAY_DIR}/etc/init.d/S90amp-hart0-app"
     chmod 0755 "${OVERLAY_DIR}/etc/init.d/S90amp-hart0-app"
+
+    # Always overlay our custom inittab to disable getty
+    cp "${ROOT_DIR}/apps/linux-hart4/rootfs-overlay/etc/inittab" "${OVERLAY_DIR}/etc/inittab"
+    chmod 0644 "${OVERLAY_DIR}/etc/inittab"
 
     (
         cd "${OVERLAY_DIR}"
@@ -158,6 +163,15 @@ else
     # build linux_app
     # copy init script
     # create overlay cpio
+    TMP_DIR2="$(mktemp -d)"
+    trap 'rm -rf "${TMP_DIR2}"' EXIT
+    OVERLAY_DIR2="${TMP_DIR2}/overlay"
+    mkdir -p "${OVERLAY_DIR2}/etc"
+    cp "${ROOT_DIR}/apps/linux-hart4/rootfs-overlay/etc/inittab" "${OVERLAY_DIR2}/etc/inittab"
+    chmod 0644 "${OVERLAY_DIR2}/etc/inittab"
+    (cd "${OVERLAY_DIR2}" && find . -mindepth 1 -printf '%P\n' | LC_ALL=C sort | cpio -o -H newc --quiet > "${TMP_DIR2}/inittab-overlay.cpio")
+    cat "${ARTIFACT_ROOTFS_BASE}" "${OVERLAY_CPIO}" "${TMP_DIR2}/inittab-overlay.cpio" > "${ARTIFACT_ROOTFS}.tmp"
+    mv "${ARTIFACT_ROOTFS}.tmp" "${ARTIFACT_ROOTFS}"
     cat "${ARTIFACT_ROOTFS_BASE}" "${OVERLAY_CPIO}" > "${ARTIFACT_ROOTFS}.tmp"
     mv "${ARTIFACT_ROOTFS}.tmp" "${ARTIFACT_ROOTFS}"
 fi
