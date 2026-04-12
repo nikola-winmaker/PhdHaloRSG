@@ -6,12 +6,10 @@ WS_DIR="${ROOT_DIR}/deps/buildroot"
 BUILDROOT_DIR="${WS_DIR}/buildroot"
 OUTPUT_DIR="${BUILDROOT_OUTPUT_DIR:-${HOME}/risc5_buildroot_output}"
 
-# Ensure output directory exists with proper permissions (use sudo if needed)
 if [ ! -d "${OUTPUT_DIR}" ]; then
     mkdir -p "${OUTPUT_DIR}"
     chmod 777 "${OUTPUT_DIR}"
 elif [ ! -w "${OUTPUT_DIR}" ]; then
-    # Directory exists but we can't write to it - use sudo to fix permissions
     sudo chmod 777 "${OUTPUT_DIR}"
 fi
 
@@ -24,6 +22,8 @@ TARGET_DIR="${OUTPUT_DIR}/target"
 HOST_DIR="${OUTPUT_DIR}/host"
 ARTIFACT_DIR="${ROOT_DIR}/artifacts/buildroot/images"
 ARTIFACT_ROOTFS="${ARTIFACT_DIR}/rootfs.cpio"
+ARTIFACT_ROOTFS_BASE="${ARTIFACT_DIR}/rootfs.base.cpio"
+INIT_SCRIPT_SOURCE="${EXTERNAL_DIR}/board/risc5_eval/rootfs-overlay/etc/init.d/S90amp-hart0-app"
 USE_HALO="${USE_HALO:-0}"
 
 if [ "${USE_HALO}" = "1" ]; then
@@ -45,7 +45,7 @@ if [ ! -d "${BUILDROOT_DIR}" ]; then
 fi
 
 if [ ! -f "${OUTPUT_DIR}/.config" ]; then
-    if [ ! -f "${ARTIFACT_ROOTFS}" ]; then
+    if [ ! -f "${ARTIFACT_ROOTFS}" ] && [ ! -f "${ARTIFACT_ROOTFS_BASE}" ]; then
         echo "[ERR] Buildroot output is not configured at ${OUTPUT_DIR}"
         echo "      No tracked rootfs artifact found at ${ARTIFACT_ROOTFS}"
         exit 1
@@ -58,21 +58,27 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
         exit 1
     fi
 
+    if [ ! -d "${DEPS_INC}" ]; then
+        echo "[ERR] Linux Hart 4 dependency include directory not found: ${DEPS_INC}"
+        echo "      USE_HALO=${USE_HALO}"
+        exit 1
+    fi
+
+    if [ ! -f "${INIT_SCRIPT_SOURCE}" ]; then
+        echo "[ERR] Init script overlay not found: ${INIT_SCRIPT_SOURCE}"
+        exit 1
+    fi
+
     TMP_DIR="$(mktemp -d)"
     trap 'rm -rf "${TMP_DIR}"' EXIT
 
     OVERLAY_DIR="${TMP_DIR}/overlay"
     OVERLAY_CPIO="${TMP_DIR}/rootfs-overlay.cpio"
     mkdir -p "${OVERLAY_DIR}/usr/bin"
+    mkdir -p "${OVERLAY_DIR}/etc/init.d"
 
     echo "[INFO] Buildroot output is not configured at ${OUTPUT_DIR}"
     echo "[INFO] Rebuilding Linux app directly against the tracked rootfs artifact"
-
-    if [ ! -d "${DEPS_INC}" ]; then
-        echo "[ERR] Linux Hart 4 dependency include directory not found: ${DEPS_INC}"
-        echo "      USE_HALO=${USE_HALO}"
-        exit 1
-    fi
 
     riscv64-linux-gnu-gcc \
         -O2 -Wall -Wextra \
@@ -84,19 +90,32 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
         -o "${OVERLAY_DIR}/usr/bin/linux_app"
     chmod 0755 "${OVERLAY_DIR}/usr/bin/linux_app"
 
+    cp "${INIT_SCRIPT_SOURCE}" "${OVERLAY_DIR}/etc/init.d/S90amp-hart0-app"
+    chmod 0755 "${OVERLAY_DIR}/etc/init.d/S90amp-hart0-app"
+
     (
         cd "${OVERLAY_DIR}"
         find . -mindepth 1 -printf '%P\n' | LC_ALL=C sort | cpio -o -H newc --quiet > "${OVERLAY_CPIO}"
     )
 
     mkdir -p "${ARTIFACT_DIR}"
-    cat "${ARTIFACT_ROOTFS}" "${OVERLAY_CPIO}" > "${ARTIFACT_ROOTFS}.tmp"
+
+    if [ -f "${ARTIFACT_ROOTFS_BASE}" ]; then
+        BASE_ROOTFS="${ARTIFACT_ROOTFS_BASE}"
+    else
+        BASE_ROOTFS="${ARTIFACT_ROOTFS}"
+        cp "${ARTIFACT_ROOTFS}" "${ARTIFACT_ROOTFS_BASE}"
+        echo "[INFO] Saved base rootfs artifact: ${ARTIFACT_ROOTFS_BASE}"
+    fi
+
+    cat "${BASE_ROOTFS}" "${OVERLAY_CPIO}" > "${ARTIFACT_ROOTFS}.tmp"
     mv "${ARTIFACT_ROOTFS}.tmp" "${ARTIFACT_ROOTFS}"
 
     echo "[INFO] Updated artifact: ${ARTIFACT_ROOTFS}"
     echo "[OK] Expected artifacts:"
     echo "     ${ARTIFACT_ROOTFS}"
     echo "     ${OVERLAY_DIR}/usr/bin/linux_app"
+    echo "     ${OVERLAY_DIR}/etc/init.d/S90amp-hart0-app"
     exit 0
 fi
 
@@ -129,10 +148,12 @@ AMP_HART4_APP_SRC="${APP_SRC}" \
 USE_HALO="${USE_HALO}" \
 make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" rootfs-cpio
 
-# Copy newly built artifacts to git-tracked location
 mkdir -p "${ARTIFACT_DIR}"
 cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_DIR}/rootfs.cpio"
+cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_DIR}/rootfs.base.cpio"
+
 echo "[INFO] Updated artifact: ${ARTIFACT_DIR}/rootfs.cpio"
+echo "[INFO] Updated base artifact: ${ARTIFACT_DIR}/rootfs.base.cpio"
 
 echo "[OK] Expected artifacts:"
 echo "     ${OUTPUT_DIR}/images/rootfs.cpio"
