@@ -137,7 +137,7 @@
     {
       "label": "Halo: Generate",
       "type": "shell",
-      "command": "bash tools/scripts/halo_generate_all.sh",
+      "command": "sudo bash tools/scripts/halo_generate_all.sh",
       "options": {
         "cwd": "${workspaceFolder}"
       },
