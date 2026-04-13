@@ -1,25 +1,9 @@
 #include "uart.h"
+#include "console_lock.h"
 #include <stdarg.h>
 
 static volatile uint8_t* uart = (volatile uint8_t*)UART0_BASE;
 static int uart_initialized = 0;
-static volatile uint32_t uart_log_lock = 0;
-
-static void uart_lock(void) {
-    for (;;) {
-        while (__atomic_load_n(&uart_log_lock, __ATOMIC_ACQUIRE) != 0U) {
-            __asm__ volatile("nop");
-        }
-
-        if (__atomic_exchange_n(&uart_log_lock, 1U, __ATOMIC_ACQ_REL) == 0U) {
-            return;
-        }
-    }
-}
-
-static void uart_unlock(void) {
-    __atomic_store_n(&uart_log_lock, 0U, __ATOMIC_RELEASE);
-}
 
 static void uart_buffer_append_char(char *buffer, size_t *length, char c) {
     if (*length + 1U >= UART_LOG_BUFFER_SIZE) {
@@ -160,9 +144,9 @@ void uart_log(const char *format, ...) {
 
     va_end(args);
 
-    uart_lock();
+    console_lock_acquire();
     uart_write_string(buffer);
-    uart_unlock();
+    console_lock_release();
 }
 
 void uart_log_line(const char *s) {

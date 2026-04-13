@@ -26,8 +26,9 @@
 
 /* Shared memory region for inter-hart communication. */
 #define SHARED_MEM_BASE  0x80340000UL
-#define SHARED_MEM_SIZE  0x00100000UL  /* 1 MB */
+#define SHARED_MEM_SIZE  0x000C0000UL  /* 768 KB */
 #define SHARED_MEM_END   (SHARED_MEM_BASE + SHARED_MEM_SIZE)
+#define SHARED_LOG_LOCK_ADDR (SHARED_MEM_END - 0x4UL)
 
 /* Alternate Linux AMP layout: Linux on Hart 0, AMP peers on Harts 1-3. */
 #define LINUX_AMP_LINUX_BASE   0x80400000UL

@@ -14,14 +14,14 @@
  * - Hart 2 (FreeRTOS):     256 KB @ 0x80280000
  * - Hart 3 (Bare-metal):   256 KB @ 0x802C0000
  * - Hart 4 (Bare-metal):   256 KB @ 0x80300000
- * - Shared IPC region:       1 MB @ 0x80340000
+ * - Shared IPC region:     768 KB @ 0x80340000
  *
  * Alternate Linux AMP layout scaffold:
  * - Hart 0 (Linux):      124 MB @ 0x80400000
  * - Hart 1 (Zephyr):     256 KB @ 0x80240000
  * - Hart 2 (FreeRTOS):   256 KB @ 0x80280000
  * - Hart 3 (Bare-metal): 256 KB @ 0x802C0000
- * - Shared IPC region:     1 MB @ 0x80340000
+ * - Shared IPC region:   768 KB @ 0x80340000
  */
 
 /* ============================================================
@@ -87,10 +87,12 @@
    and synchronization primitives.
  */
 #define HALO_IPC_BASE       0x80340000
-#define HALO_IPC_SIZE       0x00100000  /* 1 MB */
+#define HALO_IPC_SIZE       0x000C0000  /* 768 KB */
 #define HALO_IPC_END        (HALO_IPC_BASE + HALO_IPC_SIZE)
+#define HALO_UART_LOG_LOCK_ADDR   (HALO_IPC_END - 0x4)
+#define HALO_UART_LOG_LOCK_OFFSET (HALO_IPC_SIZE - 0x4)
 
-/* IPC subregions (4 KB mailboxes + shared payload area) */
+/* IPC subregions (4 KB mailboxes + shared payload area; last 4 bytes reserved for UART log lock) */
 #define HALO_IPC_CTRL       (HALO_IPC_BASE + 0x00000000)
 #define HALO_IPC_HART01     (HALO_IPC_BASE + 0x00001000)
 #define HALO_IPC_HART02     (HALO_IPC_BASE + 0x00002000)
@@ -107,12 +109,6 @@
 #define LINUX_AMP_LINUX_SIZE  0x07C00000  /* 124 MB */
 #define LINUX_AMP_LINUX_END   (LINUX_AMP_LINUX_BASE + LINUX_AMP_LINUX_SIZE)
 
-/* ============================================================
-   Platform Memory-Mapped I/O
-   ============================================================ */
-#define UART0_BASE          0x10010000
-#define CLINT_BASE          0x02000000
-#define PLIC_BASE           0x0C000000
 
 /* CLINT offsets */
 #define CLINT_MSIP_BASE     (CLINT_BASE + 0x0000)
