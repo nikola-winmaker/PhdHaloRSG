@@ -123,6 +123,11 @@ void uart_log(const char *format, ...) {
             case 'd':
                 uart_buffer_append_int(buffer, &length, va_arg(args, int));
                 break;
+            case 'u': {
+                unsigned int uval = va_arg(args, unsigned int);
+                uart_buffer_append_int(buffer, &length, (int)uval);
+                break;
+            }
             case 's': {
                 uart_buffer_append_string(buffer, &length, va_arg(args, const char *));
                 break;
@@ -130,6 +135,20 @@ void uart_log(const char *format, ...) {
             case 'c':
                 uart_buffer_append_char(buffer, &length, (char)va_arg(args, int));
                 break;
+            case 'p': {
+                void *ptr = va_arg(args, void *);
+                uintptr_t val = (uintptr_t)ptr;
+                char hex[2 + sizeof(uintptr_t) * 2 + 1];
+                int i = sizeof(uintptr_t) * 2;
+                hex[0] = '0';
+                hex[1] = 'x';
+                hex[2 + i] = '\0';
+                for (; i > 0; --i) {
+                    hex[1 + i] = "0123456789abcdef"[(val >> (4 * (i - 1))) & 0xF];
+                }
+                uart_buffer_append_string(buffer, &length, hex);
+                break;
+            }
             case '%':
                 uart_buffer_append_char(buffer, &length, '%');
                 break;
