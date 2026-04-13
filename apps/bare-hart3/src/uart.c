@@ -27,3 +27,18 @@ char uart_read_char(void) {
     while (!(uart[UART_LSR] & 0x01)) __asm__ volatile("nop");
     return uart[UART_RBR];
 }
+
+void uart_write_int(uint32_t value) {
+    char buffer[11];
+    int pos = 10;
+    buffer[pos] = '\0';
+    if (value == 0) {
+        uart_write_char('0');
+        return;
+    }
+    while (value > 0 && pos > 0) {
+        buffer[--pos] = '0' + (value % 10);
+        value /= 10;
+    }
+    uart_write_string(&buffer[pos]);
+}

@@ -19,6 +19,7 @@
 void uart_init(void);
 void uart_write_char(char c);
 void uart_write_string(const char *s);
+void uart_write_int(uint32_t value);
 char uart_read_char(void);
 
 #endif

@@ -5,16 +5,16 @@ static int uart_initialized = 0;
 
 void uart_init(void) {
     if (uart_initialized) return;
-    
+
     uint16_t divisor = 1;
-    
+
     uart[UART_LCR] = 0x80;
     uart[0x00] = divisor & 0xFF;
     uart[0x01] = (divisor >> 8) & 0xFF;
     uart[UART_LCR] = 0x03;
     uart[UART_FCR] = 0x07;
     uart[UART_IER] = 0x01;
-    
+
     uart_initialized = 1;
 }
 
@@ -36,4 +36,19 @@ char uart_read_char(void) {
         __asm__ volatile("nop");
     }
     return uart[UART_RBR];
+}
+
+void uart_write_int(uint32_t value) {
+    char buffer[11];
+    int pos = 10;
+    buffer[pos] = '\0';
+    if (value == 0) {
+        uart_write_char('0');
+        return;
+    }
+    while (value > 0 && pos > 0) {
+        buffer[--pos] = '0' + (value % 10);
+        value /= 10;
+    }
+    uart_write_string(&buffer[pos]);
 }
