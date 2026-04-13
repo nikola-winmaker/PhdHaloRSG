@@ -122,7 +122,14 @@ class PaneBuffer:
 
     def append(self, line: str) -> None:
         with self.lock:
+            at_bottom = (self.scroll == 0)
             self.lines.append(line.rstrip("\n"))
+            if at_bottom:
+                self.scroll = 0
+            else:
+                # If not at bottom, increment scroll to keep visible lines fixed
+                max_scroll = max(0, len(self.lines) - 1)
+                self.scroll = min(self.scroll + 1, max_scroll)
 
     def snapshot(self):
         with self.lock:
