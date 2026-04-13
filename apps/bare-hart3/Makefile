@@ -21,7 +21,10 @@ else
 	DEPS_OBJDIR := classical
 endif
 
-CFLAGS = -march=rv64imafdc -mabi=lp64d -mcmodel=medany -nostdlib -nostartfiles -ffreestanding -Wall -g $(DEPS_INC) -Isrc -DUSE_HALO=$(USE_HALO)
+DEPS_INC += -Isrc -I$(ROOT_DIR)/src/common
+COMMON_SRCS := $(wildcard $(ROOT_DIR)/src/common/*.c)
+
+CFLAGS = -march=rv64imafdc -mabi=lp64d -mcmodel=medany -nostdlib -nostartfiles -ffreestanding -Wall -g $(DEPS_INC) -DUSE_HALO=$(USE_HALO)
 BUILD_DIR = build
 BIN_DIR = $(BUILD_DIR)/bin
 GEN_DIR = $(BUILD_DIR)/generated
@@ -56,9 +59,14 @@ $(BUILD_DIR)/$(DEPS_OBJDIR)/src/%.o: $(DEPS_DIR)/src/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Pattern rule for shared common sources
+$(BUILD_DIR)/common/%.o: $(ROOT_DIR)/src/common/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-APP3_OBJS := $(BUILD_DIR)/src/main.o $(BUILD_DIR)/src/uart.o \
-	$(patsubst $(DEPS_DIR)/src/%.c,$(BUILD_DIR)/$(DEPS_OBJDIR)/src/%.o,$(DEPS_SRCS))
+APP3_OBJS := $(BUILD_DIR)/src/main.o \
+	$(patsubst $(DEPS_DIR)/src/%.c,$(BUILD_DIR)/$(DEPS_OBJDIR)/src/%.o,$(DEPS_SRCS)) \
+	$(patsubst $(ROOT_DIR)/src/common/%.c,$(BUILD_DIR)/common/%.o,$(COMMON_SRCS))
 
 $(BIN_DIR)/app3.elf: $(BUILD_DIR)/src/start.o $(APP3_OBJS) $(LINKER_SCRIPT)
 	@mkdir -p $(BIN_DIR)

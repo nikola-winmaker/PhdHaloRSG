@@ -12,6 +12,10 @@ else
 	DEPS_INC := -I$(DEPS_DIR)/include
 	DEPS_SRCS := $(wildcard $(DEPS_DIR)/src/*.c)
 endif
+
+DEPS_INC += -Isrc -I$(ROOT_DIR)/src/common
+COMMON_SRCS := $(wildcard $(ROOT_DIR)/src/common/*.c)
+
 FREERTOS_KERNEL_DIR ?= $(ROOT_DIR)/deps/freertos/FreeRTOS-Kernel
 OPEN_SBI_SMODE ?= 0
 AMP_LAYOUT_TOOL := $(ROOT_DIR)/tools/scripts/amp_layout.py
@@ -32,10 +36,10 @@ GEN_DIR := $(BUILD_DIR)/generated
 LINKER_SCRIPT := $(GEN_DIR)/linker.ld
 
 ifeq ($(OPEN_SBI_SMODE),1)
-APP_SOURCES := src/main_smode.c src/uart.c src/start_smode.S $(DEPS_SRCS)
+APP_SOURCES := src/main_smode.c src/start_smode.S $(DEPS_SRCS) $(COMMON_SRCS)
 KERNEL_SOURCES :=
 else
-APP_SOURCES := src/main.c src/libc.c src/uart.c src/start.S $(DEPS_SRCS)
+APP_SOURCES := src/main.c src/libc.c src/start.S $(DEPS_SRCS) $(COMMON_SRCS)
 KERNEL_SOURCES := \
   $(FREERTOS_KERNEL_DIR)/tasks.c \
   $(FREERTOS_KERNEL_DIR)/list.c \

@@ -121,7 +121,6 @@ void uart_log(const char *format, ...) {
     }
 
     buffer[0] = '\0';
-    uart_buffer_append_string(buffer, &length, "[APP3] ");
 
     va_start(args, format);
 

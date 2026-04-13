@@ -1,39 +1,28 @@
-# Common UART utilities for HiFive Unmatched
+#ifndef UART_H
+#define UART_H
 
-.section .text
-.global uart_init
-.global uart_putchar
-.global uart_getchar
+#include <stdint.h>
+#include <stddef.h>
 
-# UART0 Base Address: 0x10010000
-# TXDATA: offset 0x00
-# RXDATA: offset 0x04
-# TXCTRL: offset 0x08
-# RXCTRL: offset 0x0C
+#define UART_LOG_BUFFER_SIZE 256
+#define UART0_BASE 0x10000000
 
-.equ UART0_BASE, 0x10010000
-.equ UART0_TXDATA, 0x00
-.equ UART0_RXDATA, 0x04
-.equ UART0_TXCTRL, 0x08
-.equ UART0_RXCTRL, 0x0C
+#define UART_RBR 0x00
+#define UART_THR 0x00
+#define UART_IER 0x01
+#define UART_FCR 0x02
+#define UART_LCR 0x03
+#define UART_MCR 0x04
+#define UART_LSR 0x05
+#define UART_MSR 0x06
+#define UART_SCR 0x07
 
-# uart_init: Initialize UART0 (placeholder, assumes already initialized by bootloader)
-uart_init:
-    ret
+void uart_init(void);
+void uart_write_char(char c);
+void uart_write_string(const char *s);
+char uart_read_char(void);
+void uart_write_int(unsigned int value);
+void uart_log(const char *format, ...);
+void uart_log_line(const char *s);
 
-# uart_putchar(int c) - Write character to UART
-# Argument: a0 = character to write
-uart_putchar:
-    la t0, UART0_BASE
-1:
-    lw t1, UART0_TXDATA(t0)
-    bltz t1, 1b              # Wait for TXDATA ready bit (bit 31)
-    sw a0, UART0_TXDATA(t0)  # Write character
-    ret
-
-# uart_getchar(void) - Read character from UART
-# Return value: a0 = character read (or -1 if no data)
-uart_getchar:
-    la t0, UART0_BASE
-    lw a0, UART0_RXDATA(t0)  # Read RXDATA register
-    ret
+#endif
