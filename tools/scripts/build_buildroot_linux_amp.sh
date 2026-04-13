@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 WS_DIR="${ROOT_DIR}/deps/buildroot"
 BUILDROOT_DIR="${WS_DIR}/buildroot"
 OUTPUT_DIR="${BUILDROOT_OUTPUT_DIR:-${HOME}/risc5_buildroot_output}"
+ARTIFACT_DIR="${ROOT_DIR}/artifacts/buildroot/images"
 
 # Ensure output directory exists with proper permissions (use sudo if needed)
 if [ ! -d "${OUTPUT_DIR}" ]; then
@@ -77,6 +78,17 @@ echo "[INFO] Using parallel jobs: ${JOBS}"
 AMP_HART4_APP_SRC="${APP_SRC}" \
 USE_HALO="${USE_HALO}" \
 make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" -j"${JOBS}"
+
+mkdir -p "${ARTIFACT_DIR}"
+cp "${OUTPUT_DIR}/images/Image" "${ARTIFACT_DIR}/Image"
+cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_DIR}/rootfs.cpio"
+cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_DIR}/rootfs.base.cpio"
+
+echo "[INFO] Updated tracked artifacts:"
+echo "     ${ARTIFACT_DIR}/Image"
+echo "     ${ARTIFACT_DIR}/rootfs.cpio"
+echo "     ${ARTIFACT_DIR}/rootfs.base.cpio"
+
 
 echo "[OK] Expected artifacts:"
 echo "     ${OUTPUT_DIR}/images/Image"

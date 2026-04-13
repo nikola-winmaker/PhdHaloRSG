@@ -296,7 +296,8 @@ buildroot-linux-check:
 		echo "[INFO] Pre-built Buildroot artifacts not found. Building..."; \
 		$(MAKE) buildroot-linux; \
 	else \
-		echo "[INFO] Using pre-built Buildroot artifacts"; \
+		echo "[INFO] Refreshing Linux app/rootfs using existing Buildroot output..."; \
+		$(MAKE) buildroot-linux-fast; \
 	fi
 
 qemu-hart0-mmode-run:
