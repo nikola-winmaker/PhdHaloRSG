@@ -1,5 +1,5 @@
 {
-  "bootargs": "console=ttyS0 earlycon rdinit=/sbin/init root=/dev/ram rw maxcpus=1",
+  "bootargs": "console=ttyS0 quiet loglevel=0 rdinit=/sbin/init root=/dev/ram rw maxcpus=1",
   "memory": {
     "hart0_coord_addr": "0x80000000",
     "hart0_coord_size": "0x00040000",
