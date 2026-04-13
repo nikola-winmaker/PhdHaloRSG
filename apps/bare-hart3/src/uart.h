@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define UART_LOG_BUFFER_SIZE 256
 #define UART0_BASE 0x10000000
 
 #define UART_RBR 0x00
@@ -21,5 +22,7 @@ void uart_write_char(char c);
 void uart_write_string(const char *s);
 char uart_read_char(void);
 void uart_write_int(unsigned int value);
+void uart_log(const char *format, ...);
+void uart_log_line(const char *s);
 
 #endif
