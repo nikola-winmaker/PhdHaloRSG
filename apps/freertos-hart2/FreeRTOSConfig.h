@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define configCPU_CLOCK_HZ                  ( ( uint64_t ) 10000000 )
-#define configTICK_RATE_HZ                  ( ( TickType_t ) 100 )
+#define configTICK_RATE_HZ                  ( ( TickType_t ) 1000 )
 #define configUSE_PREEMPTION                1
 #define configUSE_TIME_SLICING              1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 0

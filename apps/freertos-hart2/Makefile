@@ -49,7 +49,9 @@ SOURCES := $(APP_SOURCES) $(KERNEL_SOURCES)
 OBJECTS := $(patsubst %.c,$(OBJ_DIR)/%.o,$(filter %.c,$(SOURCES))) \
 	$(patsubst %.S,$(OBJ_DIR)/%.o,$(filter %.S,$(SOURCES)))
 
-CFLAGS := -march=rv64imafdc -mabi=lp64d -mcmodel=medany -msmall-data-limit=0 \
+ARCH_FLAGS := -march=rv64imac_zicsr_zifencei -mabi=lp64 -mcmodel=medany -msmall-data-limit=0
+
+CFLAGS := $(ARCH_FLAGS) \
 	-nostdlib -ffreestanding -fno-builtin -Wall -Wextra -g \
 	-I. -Isrc $(DEPS_INC) -I$(FREERTOS_KERNEL_DIR)/include -I$(PORT_DIR) -DUSE_HALO=$(USE_HALO)
 
@@ -81,7 +83,7 @@ $(OBJ_DIR)/%.o: %.S
 
 $(BIN_DIR)/app2.elf: $(OBJECTS) $(LINKER_SCRIPT)
 	@mkdir -p $(BIN_DIR)
-	$(CC) $(OBJECTS) $(LDFLAGS) $(LDLIBS) -o $@
+	$(CC) $(ARCH_FLAGS) $(OBJECTS) $(LDFLAGS) -o $@ $(LDLIBS)
 	@$(OBJDUMP) -h $@
 
 $(BIN_DIR)/app2.bin: $(BIN_DIR)/app2.elf
