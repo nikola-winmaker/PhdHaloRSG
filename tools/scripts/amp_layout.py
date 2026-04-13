@@ -48,6 +48,7 @@ def emit_shell_vars(layout):
         "AMP_LINUX_DTB_ADDR": mem["linux_dtb_addr"],
         "AMP_SHARED_ADDR": mem["amp_shared_addr"],
         "AMP_SHARED_SIZE": mem["amp_shared_size"],
+        "AMP_SHARED_LOG_LOCK_ADDR": mem["amp_shared_log_lock_addr"],
     }
     for key, value in pairs.items():
         print(f"{key}={shlex.quote(str(value))}")
@@ -76,6 +77,7 @@ def emit_c_header(layout):
         f'#define LINUX_DTB_ADDR {mem["linux_dtb_addr"]}UL',
         f'#define AMP_SHARED_ADDR {mem["amp_shared_addr"]}UL',
         f'#define AMP_SHARED_SIZE {mem["amp_shared_size"]}UL',
+        f'#define AMP_SHARED_LOG_LOCK_ADDR {mem["amp_shared_log_lock_addr"]}UL',
         "",
         "#endif",
     ]

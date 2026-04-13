@@ -16,7 +16,8 @@
     "linux_initrd_addr": "0x89000000",
     "linux_dtb_addr": "0x8FE00000",
     "amp_shared_addr": "0x80340000",
-    "amp_shared_size": "0x000C0000"
+    "amp_shared_size": "0x000C0000",
+    "amp_shared_log_lock_addr": "0x803FFFFC"
   },
   "reserved_memory": [
     {

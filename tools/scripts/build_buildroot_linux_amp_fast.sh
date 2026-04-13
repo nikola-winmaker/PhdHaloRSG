@@ -15,9 +15,10 @@ fi
 
 EXTERNAL_DIR="${WS_DIR}/external"
 POST_BUILD_SCRIPT="${EXTERNAL_DIR}/board/risc5_eval/post-build.sh"
-APP_SRC="${ROOT_DIR}/apps/linux-hart4/src/linux_app.c"
+APP_SRC="${ROOT_DIR}/apps/linux-hart4/src"/*.c
 APP_BUILDROOT_DIR="${ROOT_DIR}/apps/linux-hart4/buildroot"
 DEPS_DIR="${ROOT_DIR}/apps/linux-hart4/deps/classical"
+DEPS_COMMON_DIR="${ROOT_DIR}/src/common"
 TARGET_DIR="${OUTPUT_DIR}/target"
 HOST_DIR="${OUTPUT_DIR}/host"
 ARTIFACT_DIR="${ROOT_DIR}/artifacts/buildroot/images"
@@ -31,6 +32,7 @@ if [ "${USE_HALO}" = "1" ]; then
 fi
 
 DEPS_INC="${DEPS_DIR}/include"
+DEPS_COMMON="${ROOT_DIR}/src/common"
 
 SAFE_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 if [ -d "${HOME}/.local/bin" ]; then
@@ -85,9 +87,11 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
         -O2 -Wall -Wextra \
         -DUSE_HALO="${USE_HALO}" \
         -I"${DEPS_INC}" \
+        -I"${DEPS_COMMON}" \
         -Wl,--dynamic-linker=/lib/ld-linux-riscv64-lp64d.so.1 \
-        "${APP_SRC}" \
+        ${APP_SRC} \
         "${DEPS_DIR}"/src/*.c \
+        "${DEPS_COMMON_DIR}"/*.c \
         -o "${OVERLAY_DIR}/usr/bin/linux_app"
     chmod 0755 "${OVERLAY_DIR}/usr/bin/linux_app"
 

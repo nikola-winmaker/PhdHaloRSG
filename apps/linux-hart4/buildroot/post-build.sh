@@ -68,6 +68,7 @@ fi
 
 "${TARGET_GCC}" -O2 -Wall -Wextra \
     -DUSE_HALO="${USE_HALO}" \
+    -I"${APP_DIR}/src" \
     -I"${DEPS_INC}" \
     "${SRC}" \
     "${DEPS_DIR}"/src/*.c \
