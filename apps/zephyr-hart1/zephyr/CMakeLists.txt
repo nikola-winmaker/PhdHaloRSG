@@ -19,7 +19,9 @@ endif()
 
 file(GLOB DEPS_SRCS ${DEPS_DIR}/src/*.c)
 file(GLOB COMMON_SRCS ${COMMON_DIR}/*.c)
+file(GLOB BATTERY_SRCS ${APP_ROOT}/../../src/battery/*.c)
+file(GLOB BMS_SRCS ${APP_ROOT}/../../src/bms/*.c)
 
-target_sources(app PRIVATE src/main.c ${DEPS_SRCS} ${COMMON_SRCS})
-target_include_directories(app PRIVATE src ${DEPS_DIR}/include ${COMMON_DIR})
+target_sources(app PRIVATE src/main.c ${DEPS_SRCS} ${COMMON_SRCS} ${BATTERY_SRCS} ${BMS_SRCS})
+target_include_directories(app PRIVATE src ${DEPS_DIR}/include ${COMMON_DIR} ${APP_ROOT}/../../src/battery ${APP_ROOT}/../../src/bms ${APP_ROOT}/../../src)
 target_compile_definitions(app PRIVATE USE_HALO=${USE_HALO})

@@ -6,7 +6,7 @@ ZEPHYR_SCRIPT := $(ROOT_DIR)/tools/scripts/build_zephyr_hart1.sh
 ZEPHYR_APP_BUILD_DIR := zephyr/build
 APP_BUILD_DIR := build
 USE_HALO ?= 0
-COMMON_DIR := $(ROOT_DIR)/src/common
+COMMON_DIR := $(ROOT_DIR)/src/common $(ROOT_DIR)/src/battery $(ROOT_DIR)/src/bms
 
 ifeq ($(USE_HALO),1)
 	DEPS_DIR := $(ROOT_DIR)/apps/zephyr-hart1/deps/halo/codegen/riscv64_h1_zephyr
