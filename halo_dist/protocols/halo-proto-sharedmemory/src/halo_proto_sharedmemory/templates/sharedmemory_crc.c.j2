@@ -44,7 +44,7 @@ halo_u32_t sharedmemory_crc32(const halo_u8_t *data, halo_size_t len) {
 }
 
 /* CRC calculation wrapper - uses macro-configured function */
-static halo_u32_t sharedmemory_calculate_crc(const halo_u8_t *data, halo_size_t len) {
+halo_u32_t sharedmemory_calculate_crc(const halo_u8_t *data, halo_size_t len) {
 #if SHAREDMEMORY_CRC_TYPE == SHAREDMEMORY_CRC_SW_CRC16
     return (halo_u32_t)sharedmemory_crc16(data, len);
 #elif SHAREDMEMORY_CRC_TYPE == SHAREDMEMORY_CRC_SW_CRC32
