@@ -19,6 +19,8 @@ APP_SRC="${ROOT_DIR}/apps/linux-hart4/src"/*.c
 APP_BUILDROOT_DIR="${ROOT_DIR}/apps/linux-hart4/buildroot"
 DEPS_DIR="${ROOT_DIR}/apps/linux-hart4/deps/classical"
 DEPS_COMMON_DIR="${ROOT_DIR}/src/common"
+DEPS_BMS_DIR="${ROOT_DIR}/src/bms"
+DEPS_BATT_DIR="${ROOT_DIR}/src/battery"
 TARGET_DIR="${OUTPUT_DIR}/target"
 HOST_DIR="${OUTPUT_DIR}/host"
 ARTIFACT_DIR="${ROOT_DIR}/artifacts/buildroot/images"
@@ -33,7 +35,8 @@ fi
 
 DEPS_INC="${DEPS_DIR}/include"
 DEPS_COMMON="${ROOT_DIR}/src/common"
-
+DEPS_BMS="${ROOT_DIR}/src/bms"
+DEPS_BATT="${ROOT_DIR}/src/battery"
 SAFE_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 if [ -d "${HOME}/.local/bin" ]; then
     SAFE_PATH="${HOME}/.local/bin:${SAFE_PATH}"
@@ -88,10 +91,14 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
         -DUSE_HALO="${USE_HALO}" \
         -I"${DEPS_INC}" \
         -I"${DEPS_COMMON}" \
+        -I"${DEPS_BMS_DIR}" \
+        -I"${DEPS_BATT_DIR}" \
         -Wl,--dynamic-linker=/lib/ld-linux-riscv64-lp64d.so.1 \
         ${APP_SRC} \
         "${DEPS_DIR}"/src/*.c \
         "${DEPS_COMMON_DIR}"/*.c \
+        "${DEPS_BMS_DIR}"/*.c \
+        "${DEPS_BATT_DIR}"/*.c \
         -o "${OVERLAY_DIR}/usr/bin/linux_app"
     chmod 0755 "${OVERLAY_DIR}/usr/bin/linux_app"
 

@@ -3,6 +3,7 @@
 
 #include "breaker.h"
 #include "../battery/battery.h" // Battery model parameters shared with BMS
+#include "workshop_protocol.h" // For command/fault definitions
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,15 +17,25 @@ typedef struct {
     int breaker_closed;
     unsigned int fault_flags;
     float soc_percent; // State of charge
+    float current_limit_ma;
+    float voltage_limit_mv;
+    unsigned int charging_enabled;
 } bms_state_t;
 
 
 // Initialize BMS and all virtual drivers
 void bms_init(void);
 // Simulate one tick (e.g., 100ms)
-void bms_tick(const int charging_enabled, const float current_limit_ma, const float voltage_limit_mv);
+void bms_tick(int charging_enabled);
 // Get current BMS state
 void bms_get_state(bms_state_t *state);
+
+// Write operator command to shared memory for BMS
+void write_to_bms_command(unsigned char * g_halo_region, uint32_t command_id, uint32_t command_param);
+// Send a command to the BMS
+void command_bms(uint32_t command_id, uint32_t command_param);
+// Get the latest operator command from shared memory (for BMS)
+void bms_get_operator_command(uint32_t *command_id, uint32_t *command_param);
 
 // Fault injection (bitmask: see system_specification.html)
 void bms_inject_fault(unsigned int fault_mask);

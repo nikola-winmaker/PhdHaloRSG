@@ -1,6 +1,5 @@
 #include "battery.h"
 #include <string.h>
-#include <math.h>
 
 #include "battery_config.h"
 

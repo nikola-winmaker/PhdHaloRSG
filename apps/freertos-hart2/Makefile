@@ -13,8 +13,10 @@ else
 	DEPS_SRCS := $(wildcard $(DEPS_DIR)/src/*.c)
 endif
 
-DEPS_INC += -Isrc -I$(ROOT_DIR)/src/common
-COMMON_SRCS := $(wildcard $(ROOT_DIR)/src/common/*.c)
+DEPS_INC += -Isrc -I$(ROOT_DIR)/src/common -I$(ROOT_DIR)/src/battery -I$(ROOT_DIR)/src/bms
+COMMON_SRCS := $(wildcard $(ROOT_DIR)/src/common/*.c) \
+	$(wildcard $(ROOT_DIR)/src/battery/*.c) \
+	$(wildcard $(ROOT_DIR)/src/bms/*.c)
 
 FREERTOS_KERNEL_DIR ?= $(ROOT_DIR)/deps/freertos/FreeRTOS-Kernel
 OPEN_SBI_SMODE ?= 0
