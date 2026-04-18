@@ -19,20 +19,27 @@
       "problemMatcher": []
     },
     {
-      "label": "Clean build all & Run",
+      "label": "Clean build all",
       "type": "shell",
-      "command": "make qemu-hart0-mmode USE_HALO=${input:useHalo} OUT_SELECT=${input:out_select}",
+      "command": "echo ${input:out_select} > .out_select && make qemu-hart0-mmode USE_HALO=${input:useHalo} OUT_SELECT=${input:out_select}",
       "options": {
         "cwd": "${workspaceFolder}"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": true
       },
       "presentation": {
         "reveal": "always",
         "panel": "shared",
         "clear": true
+      },
+      "problemMatcher": [],
+      "hide": true
+    },
+    {
+      "label": "Clean build all & Run",
+      "dependsOn": ["Clean build all", "Apps QEMU Console"],
+      "dependsOrder": "parallel",
+      "group": {
+        "kind": "build",
+        "isDefault": true
       },
       "problemMatcher": []
     },
