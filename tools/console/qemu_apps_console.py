@@ -90,8 +90,6 @@ else:
     os.remove('.out_select')
 
     if out_select == "stdio":
-        #delete the file to avoid confusion in future runs
-        os.remove('.qemu_startup.log')
         exit(0)
 
     while not os.path.exists('.qemu_startup.log'):
