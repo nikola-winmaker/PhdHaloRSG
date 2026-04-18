@@ -81,7 +81,7 @@ else:
     #wait until file is created
     while not os.path.exists('.out_select'):
         # print("[INFO] Waiting for .out_select file to be created by QEMU task...")
-        time.sleep(1)
+        time.sleep(0.1)
     with open('.out_select') as f:
         out_select = f.read().strip()
     # print(f"Output mode is: {out_select}")
@@ -90,17 +90,35 @@ else:
     os.remove('.out_select')
 
     if out_select == "stdio":
+        #delete the file to avoid confusion in future runs
+        os.remove('.qemu_startup.log')
         exit(0)
 
-    print("[INFO] No PTY argument provided. Waiting for new PTY after QEMU starts...")
-    before = list_pts()
-    # print(f"[INFO] Existing PTYs before QEMU: {sorted(before)}")
-    found = find_first_active_new_pts(before, timeout=600)
-    if not found:
-        print("[ERROR] No new PTY with traffic detected after waiting. Start QEMU first.", file=sys.stderr)
-        sys.exit(1)
-    print(f"[INFO] Detected active PTY: {found}")
-    PTS_PATH = found
+    while not os.path.exists('.qemu_startup.log'):
+        # print("[INFO] Waiting for .qemu_startup.log file to be created by QEMU task...")
+        time.sleep(0.1)
+
+    with open('.qemu_startup.log') as f:
+        log = f.read()
+
+    #delete the file to avoid confusion in future runs
+    os.remove('.qemu_startup.log')
+
+    # char device redirected to /dev/pts/4 (label serial0)
+    match = re.search(r"char device redirected to (/dev/pts/\d+)", log)
+
+    if match:
+        PTS_PATH = match.group(1)
+        print(f"[INFO] Detected PTY from log: {PTS_PATH}")
+    else:
+        print("[WARN] No PTY found in log, attempting auto-detection...")
+        before_pts = list_pts()
+        PTS_PATH = find_first_active_new_pts(before_pts)
+        if PTS_PATH:
+            print(f"[INFO] Auto-detected active PTY: {PTS_PATH}")
+        else:
+            print("[ERROR] Failed to auto-detect active PTY. Please specify it as an argument.")
+            sys.exit(1)
 
 APP_PATTERNS = {
     "APP1": re.compile(r"^\[APP1\]"),
@@ -171,13 +189,30 @@ def classify_line(line: str) -> str:
     return "OTHER"
 
 
-def reader_thread():
-    fd = os.open(PTS_PATH, os.O_RDWR | os.O_NOCTTY)
+def open_pts_reader():
+    return os.open(PTS_PATH, os.O_RDONLY | os.O_NOCTTY | os.O_NONBLOCK)
 
+
+def reader_thread():
     partial = b""
+    fd = None
+
     try:
         while not stop_event.is_set():
+            if fd is None:
+                try:
+                    fd = open_pts_reader()
+                    buffers["OTHER"].append(f"[INFO] Connected to {PTS_PATH}")
+                except OSError as e:
+                    buffers["OTHER"].append(f"[READER WAIT] {e}")
+                    time.sleep(0.25)
+                    continue
+
             try:
+                readable, _, _ = select.select([fd], [], [], 0.25)
+                if not readable:
+                    continue
+
                 chunk = os.read(fd, 1024)
                 if not chunk:
                     time.sleep(0.01)
@@ -194,15 +229,21 @@ def reader_thread():
             except BlockingIOError:
                 time.sleep(0.01)
             except OSError as e:
-                buffers["OTHER"].append(f"[READER ERROR] {e}")
-                break
+                buffers["OTHER"].append(f"[READER RETRY] {e}")
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+                fd = None
+                time.sleep(0.25)
 
         if partial:
             line = partial.decode("utf-8", errors="replace")
             target = classify_line(line)
             buffers[target].append(line)
     finally:
-        os.close(fd)
+        if fd is not None:
+            os.close(fd)
 
 
 def writer_send(text: str):

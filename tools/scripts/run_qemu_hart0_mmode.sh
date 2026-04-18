@@ -86,23 +86,41 @@ echo "[INFO] Linux DT overlay fragment: ${DTB_OVERLAY}"
 # Kill any existing QEMU instances to free up the serial output, then launch QEMU with the specified images and memory layout. The HART0 firmware is loaded directly into each of the 5 harts to ensure they all start executing immediately, while the Linux kernel, initrd, and DTB are loaded at their designated addresses for the firmware bridge to jump to later.
 (pkill -f qemu-system-riscv64 || true) && sleep 1 
 
-exec qemu-system-riscv64 \
-    -machine virt \
-    -bios none \
-    -m 512 \
-    -smp 5 \
-    -nographic \
-    -monitor none \
-    -serial ${OUT_SELECT} \
-    -device loader,file="${HART0}",cpu-num=0 \
-    -device loader,file="${HART0}",cpu-num=1 \
-    -device loader,file="${HART0}",cpu-num=2 \
-    -device loader,file="${HART0}",cpu-num=3 \
-    -device loader,file="${HART0}",cpu-num=4 \
-    -device loader,file="${APP1}",addr=${HART1_ADDR},force-raw=on \
-    -device loader,file="${APP2}",addr=${HART2_ADDR},force-raw=on \
-    -device loader,file="${APP3}",addr=${HART3_ADDR},force-raw=on \
-    -device loader,file="${FW_JUMP}",addr=${FW_BRIDGE_ADDR},force-raw=on \
-    -device loader,file="${LINUX_IMAGE}",addr=${LINUX_ADDR},force-raw=on \
-    -device loader,file="${LINUX_INITRD}",addr=${INITRD_ADDR},force-raw=on \
+QEMU_LOG="${ROOT_DIR}/.qemu_startup.log"
+rm -f "$QEMU_LOG"
+
+QEMU_CMD=(
+    qemu-system-riscv64
+    -machine virt
+    -bios none
+    -m 512
+    -smp 5
+    -nographic
+    -monitor none
+    -serial "${OUT_SELECT}"
+    -device loader,file="${HART0}",cpu-num=0
+    -device loader,file="${HART0}",cpu-num=1
+    -device loader,file="${HART0}",cpu-num=2
+    -device loader,file="${HART0}",cpu-num=3
+    -device loader,file="${HART0}",cpu-num=4
+    -device loader,file="${APP1}",addr=${HART1_ADDR},force-raw=on
+    -device loader,file="${APP2}",addr=${HART2_ADDR},force-raw=on
+    -device loader,file="${APP3}",addr=${HART3_ADDR},force-raw=on
+    -device loader,file="${FW_JUMP}",addr=${FW_BRIDGE_ADDR},force-raw=on
+    -device loader,file="${LINUX_IMAGE}",addr=${LINUX_ADDR},force-raw=on
+    -device loader,file="${LINUX_INITRD}",addr=${INITRD_ADDR},force-raw=on
     -device loader,file="${DTB_PATCHED}",addr=${DTB_ADDR},force-raw=on
+)
+
+# Start QEMU and capture its output only when we need the PTY path from QEMU's
+# startup banner. For stdio, keep the serial stream attached directly to the terminal.
+if [ "${OUT_SELECT}" = "pty" ]; then
+    "${QEMU_CMD[@]}" 2>&1 | tee "$QEMU_LOG" &
+    QEMU_PID=$!
+
+    start_pts_logger || true
+    # Wait for QEMU process to finish
+    wait $QEMU_PID
+else
+    exec "${QEMU_CMD[@]}"
+fi
