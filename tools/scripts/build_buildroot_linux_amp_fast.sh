@@ -17,6 +17,7 @@ EXTERNAL_DIR="${WS_DIR}/external"
 POST_BUILD_SCRIPT="${EXTERNAL_DIR}/board/risc5_eval/post-build.sh"
 APP_SRC="${ROOT_DIR}/apps/linux-hart4/src"/*.c
 APP_BUILDROOT_DIR="${ROOT_DIR}/apps/linux-hart4/buildroot"
+APP_ROOTFS_OVERLAY_DIR="${ROOT_DIR}/apps/linux-hart4/rootfs-overlay"
 DEPS_DIR="${ROOT_DIR}/apps/linux-hart4/deps/classical"
 DEPS_COMMON_DIR="${ROOT_DIR}/src/common"
 DEPS_BMS_DIR="${ROOT_DIR}/src/bms"
@@ -27,6 +28,8 @@ ARTIFACT_DIR="${ROOT_DIR}/artifacts/buildroot/images"
 ARTIFACT_ROOTFS="${ARTIFACT_DIR}/rootfs.cpio"
 ARTIFACT_ROOTFS_BASE="${ARTIFACT_DIR}/rootfs.base.cpio"
 INIT_SCRIPT_SOURCE="${EXTERNAL_DIR}/board/risc5_eval/rootfs-overlay/etc/init.d/S90amp-hart0-app"
+INIT_SCRIPT_OVERLAY_SOURCE="${APP_ROOTFS_OVERLAY_DIR}/etc/init.d/S90amp-hart0-app"
+INITTAB_SOURCE="${APP_ROOTFS_OVERLAY_DIR}/etc/inittab"
 USE_HALO="${USE_HALO:-0}"
 
 if [ "${USE_HALO}" = "1" ]; then
@@ -105,8 +108,8 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
     cp "${INIT_SCRIPT_SOURCE}" "${OVERLAY_DIR}/etc/init.d/S90amp-hart0-app"
     chmod 0755 "${OVERLAY_DIR}/etc/init.d/S90amp-hart0-app"
 
-    # Always overlay our custom inittab to disable getty
-    cp "${ROOT_DIR}/apps/linux-hart4/rootfs-overlay/etc/inittab" "${OVERLAY_DIR}/etc/inittab"
+    # Always overlay our custom inittab to disable getty.
+    cp "${INITTAB_SOURCE}" "${OVERLAY_DIR}/etc/inittab"
     chmod 0644 "${OVERLAY_DIR}/etc/inittab"
 
     (
@@ -147,6 +150,9 @@ if [ ! -x "${POST_BUILD_SCRIPT}" ]; then
     exit 1
 fi
 
+mkdir -p "${EXTERNAL_DIR}/board/risc5_eval/rootfs-overlay/etc/init.d"
+install -m 0755 "${INIT_SCRIPT_OVERLAY_SOURCE}" "${INIT_SCRIPT_SOURCE}"
+install -m 0644 "${INITTAB_SOURCE}" "${EXTERNAL_DIR}/board/risc5_eval/rootfs-overlay/etc/inittab"
 install -m 0755 "${APP_BUILDROOT_DIR}/post-build.sh" "${POST_BUILD_SCRIPT}"
 
 echo "[INFO] Fast Linux app/rootfs rebuild using existing Buildroot output"
@@ -160,39 +166,19 @@ USE_HALO="${USE_HALO}" \
 "${POST_BUILD_SCRIPT}" "${TARGET_DIR}"
 
 echo "[INFO] Repacking rootfs.cpio with Buildroot (preserves device files)"
-AMP_HART4_APP_SRC="${APP_SRC}" \
-USE_HALO="${USE_HALO}" 
-
-if [ ! -f "${ARTIFACT_ROOTFS_BASE}" ]; then
-    echo "[INFO] Base rootfs missing, generating with Buildroot"
-    make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" rootfs-cpio
-    mkdir -p "${ARTIFACT_DIR}"
-    cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_ROOTFS_BASE}"
-    cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_ROOTFS}"
-else
-    echo "[INFO] Base rootfs present, generating final rootfs from overlay"
-    # build linux_app
-    # copy init script
-    # create overlay cpio
-    TMP_DIR2="$(mktemp -d)"
-    trap 'rm -rf "${TMP_DIR2}"' EXIT
-    OVERLAY_DIR2="${TMP_DIR2}/overlay"
-    mkdir -p "${OVERLAY_DIR2}/etc"
-    cp "${ROOT_DIR}/apps/linux-hart4/rootfs-overlay/etc/inittab" "${OVERLAY_DIR2}/etc/inittab"
-    chmod 0644 "${OVERLAY_DIR2}/etc/inittab"
-    (cd "${OVERLAY_DIR2}" && find . -mindepth 1 -printf '%P\n' | LC_ALL=C sort | cpio -o -H newc --quiet > "${TMP_DIR2}/inittab-overlay.cpio")
-    cat "${ARTIFACT_ROOTFS_BASE}" "${OVERLAY_CPIO}" "${TMP_DIR2}/inittab-overlay.cpio" > "${ARTIFACT_ROOTFS}.tmp"
-    mv "${ARTIFACT_ROOTFS}.tmp" "${ARTIFACT_ROOTFS}"
-    cat "${ARTIFACT_ROOTFS_BASE}" "${OVERLAY_CPIO}" > "${ARTIFACT_ROOTFS}.tmp"
-    mv "${ARTIFACT_ROOTFS}.tmp" "${ARTIFACT_ROOTFS}"
-fi
+make -C "${BUILDROOT_DIR}" BR2_EXTERNAL="${EXTERNAL_DIR}" O="${OUTPUT_DIR}" rootfs-cpio
 
 mkdir -p "${ARTIFACT_DIR}"
-cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_DIR}/rootfs.cpio"
-cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_DIR}/rootfs.base.cpio"
+if [ ! -f "${ARTIFACT_ROOTFS_BASE}" ]; then
+    cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_ROOTFS_BASE}"
+    echo "[INFO] Saved base rootfs artifact: ${ARTIFACT_ROOTFS_BASE}"
+fi
+cp "${OUTPUT_DIR}/images/rootfs.cpio" "${ARTIFACT_ROOTFS}"
 
-echo "[INFO] Updated artifact: ${ARTIFACT_DIR}/rootfs.cpio"
-echo "[INFO] Updated base artifact: ${ARTIFACT_DIR}/rootfs.base.cpio"
+echo "[INFO] Updated artifact: ${ARTIFACT_ROOTFS}"
+if [ -f "${ARTIFACT_ROOTFS_BASE}" ]; then
+    echo "[INFO] Preserved base artifact: ${ARTIFACT_ROOTFS_BASE}"
+fi
 
 echo "[OK] Expected artifacts:"
 echo "     ${OUTPUT_DIR}/images/rootfs.cpio"

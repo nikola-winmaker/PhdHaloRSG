@@ -306,6 +306,9 @@ EOF
     install -m 0755 \
         "${app_rootfs_overlay_dir}/etc/init.d/S90amp-hart0-app" \
         "${overlay_dir}/S90amp-hart0-app"
+    install -m 0644 \
+        "${app_rootfs_overlay_dir}/etc/inittab" \
+        "${board_dir}/rootfs-overlay/etc/inittab"
 
     cat > "${defconfig_path}" <<'EOF'
 BR2_riscv=y
