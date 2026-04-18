@@ -1,6 +1,7 @@
 #include "bms.h"
 #include <string.h>
 #include "config_bms.h"
+#include <stdbool.h>
 
 static bms_state_t bms_state = {0};
 
@@ -10,7 +11,7 @@ void bms_init(void) {
     bms_state.battery_voltage_mv = BATTERY_VOLTAGE_MIN;
     bms_state.charge_current_ma = 0.0f;
     bms_state.battery_temp_c = 25.0f;
-    bms_state.breaker_closed = 1;
+    bms_state.breaker_closed = 0;
     bms_state.fault_flags = 0;
     bms_state.soc_percent = 0.0f;
 }
