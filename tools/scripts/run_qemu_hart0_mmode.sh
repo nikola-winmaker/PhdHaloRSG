@@ -118,7 +118,6 @@ if [ "${OUT_SELECT}" = "pty" ]; then
     "${QEMU_CMD[@]}" 2>&1 | tee "$QEMU_LOG" &
     QEMU_PID=$!
 
-    start_pts_logger || true
     # Wait for QEMU process to finish
     wait $QEMU_PID
 else
