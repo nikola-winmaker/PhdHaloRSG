@@ -4,6 +4,15 @@
 
 static volatile uint8_t* uart = (volatile uint8_t*)UART0_BASE;
 static int uart_initialized = 0;
+static const uint32_t uart_pow10_table[] = {
+    1U,
+    10U,
+    100U,
+    1000U,
+    10000U,
+    100000U,
+    1000000U
+};
 
 static void uart_buffer_append_char(char *buffer, size_t *length, char c) {
     if (*length + 1U >= UART_LOG_BUFFER_SIZE) {
@@ -53,6 +62,80 @@ static void uart_buffer_append_int(char *buffer, size_t *length, int value) {
     }
 
     uart_buffer_append_string(buffer, length, &digits[pos]);
+}
+
+static void uart_buffer_append_uint_width(
+    char *buffer,
+    size_t *length,
+    uint32_t value,
+    unsigned int width
+) {
+    char digits[10];
+    unsigned int pos = 0U;
+
+    do {
+        digits[pos++] = (char)('0' + (value % 10U));
+        value /= 10U;
+    } while (value != 0U && pos < sizeof(digits));
+
+    while (pos < width) {
+        uart_buffer_append_char(buffer, length, '0');
+        --width;
+    }
+
+    while (pos > 0U) {
+        uart_buffer_append_char(buffer, length, digits[--pos]);
+    }
+}
+
+static void uart_buffer_append_float(
+    char *buffer,
+    size_t *length,
+    double value,
+    unsigned int precision
+) {
+    uint32_t scale;
+    uint32_t integer_part;
+    uint32_t fractional_part;
+    double scaled_fraction;
+
+    if (precision > 6U) {
+        precision = 6U;
+    }
+
+    if (value != value) {
+        uart_buffer_append_string(buffer, length, "nan");
+        return;
+    }
+
+    if (value < 0.0) {
+        uart_buffer_append_char(buffer, length, '-');
+        value = -value;
+    }
+
+    if (value > 4294967295.0) {
+        uart_buffer_append_string(buffer, length, "ovf");
+        return;
+    }
+
+    integer_part = (uint32_t)value;
+    scale = uart_pow10_table[precision];
+    scaled_fraction = (value - (double)integer_part) * (double)scale + 0.5;
+    fractional_part = (uint32_t)scaled_fraction;
+
+    if (fractional_part >= scale) {
+        ++integer_part;
+        fractional_part -= scale;
+    }
+
+    uart_buffer_append_int(buffer, length, (int)integer_part);
+
+    if (precision == 0U) {
+        return;
+    }
+
+    uart_buffer_append_char(buffer, length, '.');
+    uart_buffer_append_uint_width(buffer, length, fractional_part, precision);
 }
 
 void uart_init(void) {
@@ -109,6 +192,8 @@ void uart_log(const char *format, ...) {
     va_start(args, format);
 
     while (*format != '\0') {
+        unsigned int float_precision = 6U;
+
         if (*format != '%') {
             uart_buffer_append_char(buffer, &length, *format++);
             continue;
@@ -117,6 +202,21 @@ void uart_log(const char *format, ...) {
         ++format;
         if (*format == '\0') {
             break;
+        }
+
+        if (*format == '.') {
+            unsigned int parsed_precision = 0U;
+
+            ++format;
+            while (*format >= '0' && *format <= '9') {
+                parsed_precision = (parsed_precision * 10U) + (unsigned int)(*format - '0');
+                ++format;
+            }
+            float_precision = parsed_precision;
+
+            if (*format == '\0') {
+                break;
+            }
         }
 
         switch (*format) {
@@ -134,6 +234,9 @@ void uart_log(const char *format, ...) {
             }
             case 'c':
                 uart_buffer_append_char(buffer, &length, (char)va_arg(args, int));
+                break;
+            case 'f':
+                uart_buffer_append_float(buffer, &length, va_arg(args, double), float_precision);
                 break;
             case 'p': {
                 void *ptr = va_arg(args, void *);
