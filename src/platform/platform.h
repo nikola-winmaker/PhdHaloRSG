@@ -38,7 +38,6 @@
 /* Platform Peripherals */
 #define CLINT_BASE       0x02000000UL
 #define PLIC_BASE        0x0C000000UL
-#define UART0_BASE       0x10010000UL
 
 /* CLINT Register Offsets (MTIME, MTIMECMP) */
 #define CLINT_MTIME      (CLINT_BASE + 0xBFF8)
@@ -61,6 +60,20 @@ static inline uint64_t read_mtime(void) {
 
 static inline void wfi(void) {
     __asm__ volatile ("wfi");
+}
+
+
+// Delay loop: Uses a busy-wait loop based on the machine timer.
+static inline void bm_delay_loop( uint32_t delay_ms )
+{
+    /* QEMU virt exposes a 10 MHz machine timer, so each millisecond is 10,000 ticks. */
+    const uint64_t ticks_per_ms = 10000ULL;
+    const uint64_t deadline = read_mtime() + ( ( uint64_t ) delay_ms * ticks_per_ms );
+
+    while( read_mtime() < deadline )
+    {
+        __asm__ volatile ( "nop" );
+    }
 }
 
 #endif /* __PLATFORM_H__ */

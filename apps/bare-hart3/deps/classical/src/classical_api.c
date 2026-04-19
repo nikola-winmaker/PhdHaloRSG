@@ -1,5 +1,7 @@
 #include "classical_api.h"
+#include "platform/platform.h"
 
+// Simple function to print a greeting message to the console.
 void classical_hello(void) {
     uart_write_string("\n╔════════════════════════════════════════════════════════════════╗\n");
     uart_write_string("║               Hart 3 - Classical Application 3                   ║\n");
