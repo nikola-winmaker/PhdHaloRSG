@@ -8,9 +8,11 @@
 #define SHMEM_BASE HALO_IPC_BASE
 #define SHMEM_SIZE HALO_IPC_SIZE
 #define CHARGING_STATUS_OFFSET 0x2000UL
+#define CHARGING_STATUS_SIZE 64U
 #define SAFETY_REPORT_OFFSET 0x3000UL
-#define OPERATOR_CONTROL_OFFSET 0x4000UL
-#define BLACKBOARD_SIZE 64U
+#define SAFETY_REPORT_SIZE 64U
+#define OPERATOR_COMMAND_OFFSET 0x4000UL
+#define OPERATOR_COMMAND_SIZE 16U
 #define EVENTCHANNEL_PAGE_SIZE 0x1000UL
 
 extern unsigned char * g_shmem_region;
@@ -21,6 +23,7 @@ int parse_operator_command( const char * line, void * command );
 int maybe_send_operator_command( const char * line, void * command );
 int service_console_input( int input_fd, void * command );
 int map_shared_region( void );
+void set_memory_regions(void);
 void * get_external_buffer( uint32_t offset );
 
 #endif /* CONSOLE_MISC_H */
