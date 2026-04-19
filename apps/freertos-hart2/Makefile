@@ -41,7 +41,7 @@ ifeq ($(OPEN_SBI_SMODE),1)
 APP_SOURCES := src/main_smode.c src/start_smode.S $(DEPS_SRCS) $(COMMON_SRCS)
 KERNEL_SOURCES :=
 else
-APP_SOURCES := src/main.c src/libc.c src/start.S $(DEPS_SRCS) $(COMMON_SRCS)
+APP_SOURCES := src/main.c src/faults.c src/libc.c src/start.S $(DEPS_SRCS) $(COMMON_SRCS)
 KERNEL_SOURCES := \
   $(FREERTOS_KERNEL_DIR)/tasks.c \
   $(FREERTOS_KERNEL_DIR)/list.c \

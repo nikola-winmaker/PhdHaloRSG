@@ -76,4 +76,9 @@ static inline void bm_delay_loop( uint32_t delay_ms )
     }
 }
 
+static inline int32_t temp_to_centic( float temp_c )
+{
+    return ( int32_t ) ( temp_c * 100.0f );
+}
+
 #endif /* __PLATFORM_H__ */
