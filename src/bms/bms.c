@@ -5,6 +5,13 @@
 
 static bms_state_t bms_state = {0};
 
+typedef struct ChargeStat {
+    char charger_state[5];
+    uint32_t requested_current_ma;
+    uint32_t requested_voltage_mv;
+    uint32_t fault_state;
+} ChargeStat;
+
 void bms_init(void) {
     breaker_init();
     memset(&bms_state, 0, sizeof(bms_state));
@@ -215,4 +222,21 @@ void command_bms(uint32_t command_id, uint32_t command_param){
             // Unknown command
             break;
     }
+}
+
+const char * bms_charge_state( void * status )
+{
+    ChargeStat * status_casted = (ChargeStat *) status;
+
+    if( status_casted->fault_state != 0U )
+    {
+        return "fault";
+    }
+
+    if( status_casted->requested_current_ma != 0U && status_casted->requested_voltage_mv != 0U )
+    {
+        return "charging";
+    }
+
+    return "idle";
 }

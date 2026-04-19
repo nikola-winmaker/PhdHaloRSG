@@ -29,7 +29,8 @@ void bms_init(void);
 void bms_tick(int charging_enabled);
 // Get current BMS state
 void bms_get_state(bms_state_t *state);
-
+// Convert failt flags to human-readable charge state
+const char * bms_charge_state( void * status );
 // Write operator command to shared memory for BMS
 void write_to_bms_command(unsigned char * g_halo_region, uint32_t command_id, uint32_t command_param);
 // Send a command to the BMS
