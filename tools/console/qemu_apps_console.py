@@ -128,6 +128,10 @@ APP_PATTERNS = {
 MAX_LINES = 200
 SCROLL_STEP = 1
 PAGE_STEP = 10
+COMMAND_TEXT = (
+    "Commands: start | stop | reset | mode normal | mode fast | "
+    "set_current <mA> | set_voltage <mV>"
+)
 
 
 class PaneBuffer:
@@ -324,8 +328,9 @@ def ui_main(stdscr):
             time.sleep(0.1)
             continue
 
-        top_h = max(3, (h - 3) // 2)
-        bottom_h = h - top_h - 3
+        input_h = 4
+        top_h = max(3, (h - input_h) // 2)
+        bottom_h = h - top_h - input_h
         left_w = w // 2
         right_w = w - left_w
 
@@ -333,7 +338,7 @@ def ui_main(stdscr):
         app2_win = curses.newwin(top_h, right_w, 0, left_w)
         app3_win = curses.newwin(bottom_h, left_w, top_h, 0)
         app4_win = curses.newwin(bottom_h, right_w, top_h, left_w)
-        input_win = curses.newwin(3, w, h - 3, 0)
+        input_win = curses.newwin(input_h, w, h - input_h, 0)
 
         lines, scroll = buffers["APP1"].snapshot()
         render_pane(app1_win, "APP1", lines, scroll, active=(active_pane == "APP1"))
@@ -354,12 +359,16 @@ def ui_main(stdscr):
             input_win.addnstr(0, max(1, w - len(help_text) - 2), help_text, max(0, w - 4))
         except curses.error:
             pass
+        try:
+            input_win.addnstr(1, 1, COMMAND_TEXT, max(0, w - 2))
+        except curses.error:
+            pass
 
         with input_lock:
             shown = input_buffer[-max(0, (w - 4)):]
         try:
-            input_win.addnstr(1, 1, shown, max(0, w - 2))
-            input_win.move(1, min(w - 2, 1 + len(shown)))
+            input_win.addnstr(2, 1, shown, max(0, w - 2))
+            input_win.move(2, min(w - 2, 1 + len(shown)))
         except curses.error:
             pass
         input_win.noutrefresh()
