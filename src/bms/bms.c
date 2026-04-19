@@ -114,7 +114,7 @@ void bms_inject_fault(unsigned int fault_mask) {
 
 void bms_reset_faults(void) {
     bms_state.fault_flags = 0;
-    bms_state.breaker_closed = 1;
+    bms_state.breaker_closed = 0;
 }
 
 void bms_set_state(const bms_state_t *state) {
@@ -195,6 +195,8 @@ void command_bms(uint32_t command_id, uint32_t command_param){
             break;
         case WORKSHOP_CMD_RESET:
             bms_reset_faults();
+            bms_state.charging_enabled = false;
+            bms_tick(bms_state.charging_enabled);
             bms_state.battery_voltage_mv = BATTERY_VOLTAGE_MIN;
             bms_state.current_limit_ma = BMS_DEFAULT_CURRENT_LIMIT_MA;
             break;
