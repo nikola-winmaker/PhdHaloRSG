@@ -21,7 +21,7 @@ else
 	DEPS_OBJDIR := classical
 endif
 
-DEPS_INC += -Isrc -I$(ROOT_DIR)/src/common
+DEPS_INC += -Isrc -I$(ROOT_DIR)/src -I$(ROOT_DIR)/src/common
 COMMON_SRCS := $(wildcard $(ROOT_DIR)/src/common/*.c)
 
 CFLAGS = -march=rv64imafdc -mabi=lp64d -mcmodel=medany -nostdlib -nostartfiles -ffreestanding -Wall -g $(DEPS_INC) -DUSE_HALO=$(USE_HALO)
