@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 APT_GET="${APT_GET:-apt-get}"
-SUDO=""
+SUDO="sudo"
 PIPX_BIN_DIR="${HOME}/.local/bin"
 
 INSTALL_HOST_TOOLS=1
@@ -250,7 +250,7 @@ install_host_tools() {
         exit 1
     fi
     if ! command -v halo >/dev/null 2>&1; then
-        ${SUDO} pipx install "${halo_wheel}"
+        ${SUDO} python3 -m pip install --break-system-packages "${halo_wheel}"
     fi
 
     if [ -f "${halo_build_script}" ]; then
@@ -268,9 +268,9 @@ install_host_tools() {
         )
 
         if [ "${#halo_extra_wheels[@]}" -gt 0 ]; then
-            info "Installing Halo protocol/platform wheels into Halo pipx env"
+            info "Installing Halo protocol/platform wheels with pip"
             for wheel_path in "${halo_extra_wheels[@]}"; do
-                ${SUDO} pipx runpip halo install --force-reinstall "${wheel_path}"
+                ${SUDO} python3 -m pip install --break-system-packages --force-reinstall "${wheel_path}"
             done
         else
             info "No protocol/platform wheels found under ${halo_dist_dir}"

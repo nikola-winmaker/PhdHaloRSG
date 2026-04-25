@@ -186,37 +186,26 @@ if [ "$BUILD_WHEELS" = true ]; then
     run_for_all "Building wheels" "wheel built successfully" "wheel build failed"
 fi
 
-if [ "$INSTALL_EDITABLE" = true ]; then
-    if [ -n "${CORE_WHEEL}" ]; then
-        echo "Installing core HALO wheel: $(basename "${CORE_WHEEL}")"
-        echo "-----------------------------------"
-        if ${SUDO} "${PYTHON_BIN}" -m pip install "${PIP_COMMON_FLAGS[@]}" --force-reinstall "${CORE_WHEEL}"; then
-            echo "[OK] core HALO wheel installed successfully"
-            SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-        else
-            echo "[FAIL] core HALO wheel install failed"
-            FAIL_COUNT=$((FAIL_COUNT + 1))
-        fi
-        echo ""
-    fi
 
+# Always install the core HALO wheel first
+if [ -n "${CORE_WHEEL}" ]; then
+    echo "Installing core HALO wheel: $(basename "${CORE_WHEEL}")"
+    echo "-----------------------------------"
+    if ${SUDO} "${PYTHON_BIN}" -m pip install "${PIP_COMMON_FLAGS[@]}" --force-reinstall "${CORE_WHEEL}"; then
+        echo "[OK] core HALO wheel installed successfully"
+        SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+    else
+        echo "[FAIL] core HALO wheel install failed"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+    fi
+    echo ""
+fi
+
+if [ "$INSTALL_EDITABLE" = true ]; then
     run_for_all "Installing editable" "installed successfully" "installation failed"
 fi
 
 if [ "$INSTALL_WHEELS" = true ]; then
-    if [ -n "${CORE_WHEEL}" ]; then
-        echo "Installing core HALO wheel: $(basename "${CORE_WHEEL}")"
-        echo "-----------------------------------"
-        if ${SUDO} "${PYTHON_BIN}" -m pip install "${PIP_COMMON_FLAGS[@]}" --force-reinstall "${CORE_WHEEL}"; then
-            echo "[OK] core HALO wheel installed successfully"
-            SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-        else
-            echo "[FAIL] core HALO wheel install failed"
-            FAIL_COUNT=$((FAIL_COUNT + 1))
-        fi
-        echo ""
-    fi
-
     run_for_all "Installing wheels" "wheel installed successfully" "wheel install failed"
 fi
 
