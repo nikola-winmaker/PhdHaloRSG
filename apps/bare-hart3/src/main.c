@@ -1,84 +1,309 @@
+/**
+ *                                                                                                      
+ *      ▄▄▄▄           ▄▀▀           ▄                  ▄    ▄                 ▀      ▄                 
+ *     █▀   ▀  ▄▄▄   ▄▄█▄▄   ▄▄▄   ▄▄█▄▄  ▄   ▄         ██  ██  ▄▄▄   ▄ ▄▄   ▄▄▄    ▄▄█▄▄   ▄▄▄    ▄ ▄▄ 
+ *     ▀█▄▄▄  ▀   █    █    █▀  █    █    ▀▄ ▄▀         █ ██ █ █▀ ▀█  █▀  █    █      █    █▀ ▀█   █▀  ▀
+ *         ▀█ ▄▀▀▀█    █    █▀▀▀▀    █     █▄█          █ ▀▀ █ █   █  █   █    █      █    █   █   █    
+ *     ▀▄▄▄█▀ ▀▄▄▀█    █    ▀█▄▄▀    ▀▄▄   ▀█           █    █ ▀█▄█▀  █   █  ▄▄█▄▄    ▀▄▄  ▀█▄█▀   █    
+ *                                         ▄▀                                                           
+ *                                        ▀▀                                                            
+ */
+
+/************************* INCLUDE SECTION *************************/
 #include "uart.h"
-#include "../../../src/shared_memory.h"
+#include "safety_eval.h"
+#include "workshop_protocol.h"
+#include "platform/platform.h"
+#include "memory_layout.h"
+
 #if !defined(USE_HALO) || (USE_HALO == 0)
-#include "classical_api.h"
+    #include "classical_api.h"
 #else
-#include "halo_api.h"
+    #include "halo_api.h"
 #endif
 
-static void delay_loop(void)
+/************************* GLOBAL SECTION *************************/
+#if !defined( USE_HALO ) || ( USE_HALO == 0 )
+    typedef struct
+    {
+        uint32_t enable_charging;
+        uint32_t current_limit_ma;
+        uint32_t voltage_limit_mv;
+        char charging_mode[7];
+    } ChargeCommand;
+
+    typedef struct
+    {
+        uint8_t safe_mode;
+        uint8_t breaker_open;
+        uint8_t charging_allowed;
+        uint32_t heartbeat_counter;
+    } SafetyState;
+#endif
+
+/************************* FUNCTION SECTION *************************/
+void _start_c( void )
 {
-    for (volatile uint64_t i = 0; i < 250000000ULL; ++i) {
-        __asm__ volatile ("nop");
-    }
-}
-
-static void uart_write_uint(uint32_t value)
-{
-    char buf[11];
-    int i = 0;
-
-    if (value == 0U) {
-        uart_write_char('0');
-        return;
-    }
-
-    while (value > 0U) {
-        buf[i++] = (char)('0' + (value % 10U));
-        value /= 10U;
-    }
-
-    while (i > 0) {
-        uart_write_char(buf[--i]);
-    }
-}
-
-void _start_c(void) {
-    uint32_t heartbeat = 0U;
-    uint32_t seen[HALO_MAX_HARTS] = {0};
-
     uart_init();
+
 #if !defined(USE_HALO) || (USE_HALO == 0)
-    classical_hello();
-#else
-    uart_write_string("\n╔════════════════════════════════════════════════════════════════╗\n");
-    uart_write_string("║               Hart 3 - HALO Application 3                       ║\n");
-    uart_write_string("╚════════════════════════════════════════════════════════════════╝\n\n");
-#endif
+    /*
+    * Workshop steps for implementing the safety monitor loop:
+    ______________________________________________________________________________________________________________________________
+    !!!!!!!!Shared Memory Note!!!!!!!
+    In this bare-metal application, we are using shared memory to communicate between the safety monitor and the peer. 
+    This means that both the safety monitor and the peer will read and write to the same address in memory to exchange messages.
 
-    halo_shared_publish(3U, "bare3", 0U);
-#if defined(USE_HALO) && (USE_HALO == 1)
-    halo_baremetal_h3_init_riscv64_h3_baremetal();
-#endif
+    MEM Adress Map:
+    *   ChargeCommand: Written by peer, read by Safety Monitor
+        Address: CHARGE_COMMAND_BASE
+        Size: CHARGE_COMMAND_SIZE (512 bytes) - ring buffer protocol
+
+    *   SafetyState: Written by Safety Monitor, read by peer
+        Address: SAFETY_STATE_BASE
+        Size: SAFETY_STATE_SIZE (64 bytes) - blackboard like protocol
+    ______________________________________________________________________________________________________________________________
+
+    * 1. Define ChargeCommand struct from Workshop specification -> ChargeCommandIf and declare a variable of this type
+        enable charging (unsigned int enable_charging = False)
+        current limit (unsigned int current_limit_ma = 0)
+        voltage limit (unsigned int voltage_limit_mv = 0)
+        charging mode (string charging_mode = "normal" / char charging_mode[7])
+
+
+    * 2. Define a SafetyState struct from Workshop specification -> SafetyStateIf and declare a variable of this type
+        safe mode (uint8_t safe_mode = False)
+        breaker open (uint8_t breaker_open = False)
+        charging allowed (uint8_t charging_allowed = False)
+        heartbeat (uint32_t heartbeat_counter = 0)
+
+    * 3. Define heartbeat_counter as a uint32_t that increments on each loop iteration.
+
+    * 4. Create a while loop in which the safety monitor will run continuously with below steps:
+        - Receive ChargeCommand message from peer using shared memory access (read from defined memory address for ChargeCommand)
+            -- It's up to you how you want to implement the shared memory protocol, but you can use pointer dereferencing to read from 
+            the specific memory address where the ChargeCommand is written by the peer. Synchronization is important here, so make sure to implement a simple 
+            protocol to check if new data is available before reading.
     
-    /* Main loop - Hart 3 monitoring */
-    while (1) {
-        halo_shared_publish(3U, "bare3", heartbeat);
-        uart_write_string("[APP3] heartbeat ");
-        uart_write_uint(heartbeat++);
-        uart_write_string("\n");
+        - Call evaluate_safety( &ChargeCommand, &SafetyState, heartbeat_counter++ ).
 
-        for (uint32_t hart = 1U; hart < HALO_MAX_HARTS; ++hart) {
-            volatile halo_shared_slot_t *slot;
+        - Publish/log/send the SafetyState state to the peer using Blackboard protocol (write to defined memory address for SafetyState)
+             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read. 
+        
+        - Log the Info to the console using uart_log("[APP3] ") which is behaving similar to printf
+            -- [APP3] needs to be included in the log message to differentiate logs from other applications running on different harts
+            -- Use logging on change to avoid flooding the console with repeated messages. 
+            -- For example, only log when safe_mode, breaker_open, or charging_allowed changes, or every N cycles.
 
-            if (hart == 3U) {
-                continue;
-            }
+            -- Example log messages:
+                Received command if mode changes:
+                    uart_log( "[APP3] Charging mode=%s\n",
+                            command.charging_mode );
 
-            slot = halo_shared_slot(hart);
+                Send state if any value changes or every N cycles:
+                    uart_log( "[APP3] safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
+                        ( uint32_t ) state.safe_mode,
+                        ( uint32_t ) state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                        ( uint32_t ) state.charging_allowed,
+                        ( uint32_t ) state.heartbeat_counter );
 
-            if (slot->magic == HALO_SLOT_MAGIC && slot->heartbeat != seen[hart]) {
-                seen[hart] = slot->heartbeat;
-                uart_write_string("[APP3] a saw Hart");
-                uart_write_uint(hart);
-                uart_write_string(" (");
-                uart_write_string((const char *)slot->name);
-                uart_write_string(") heartbeat ");
-                uart_write_uint(slot->heartbeat);
-                uart_write_string("\n");
+        - Use bm_delay_loop( ms ) to create a delay in the loop of 200ms.
+    */
+
+
+
+
+    /* 1. Declare ChargeCommand */
+    ChargeCommand command = {0};
+
+    /* 2. Declare SafetyState */
+    SafetyState state = {0};
+    SafetyState prev_state = {0};
+
+    /* 3. Define heartbeat_counter as a uint32_t that increments on each loop iteration. */
+    uint32_t heartbeat_counter = 0;
+
+    while( 1 )
+    {
+
+        /* This is a demo loop to showcase the application running */
+        //uart_log( "[APP3] classical demo loop\n" );
+
+        /* Receive ChargeCommand message from peer using shared memory access (read from defined memory address for ChargeCommand)
+            -- It's up to you how you want to implement the shared memory protocol, but you can use pointer dereferencing to read from 
+            the specific memory address where the ChargeCommand is written by the peer. Synchronization is important here, so make sure to implement a simple 
+            protocol to check if new data is available before reading.
+        */
+        command = *( ( ChargeCommand * ) CHARGE_COMMAND_BASE );
+
+        /* Call function evaluate_safety( &ChargeCommand, &SafetyState, heartbeat_counter). */
+        evaluate_safety( &command, &state, heartbeat_counter );
+
+        /* Publish/log/send the SafetyState state to the peer using Blackboard protocol (write to defined memory address for SafetyState)
+             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
+        */
+        *( ( SafetyState * ) SAFETY_STATE_BASE ) = state;
+        prev_state = state;
+
+        /* Log the Info to the console using uart_log("[APP3] ") which is behaving similar to printf
+            -- [APP3] needs to be included in the log message to differentiate logs from other applications running on different harts
+            -- Use logging on change to avoid flooding the console with repeated messages. 
+            -- For example, only log when safe_mode, breaker_open, or charging_allowed changes, or every N cycles.
+         */
+        if( ( heartbeat_counter % 10U ) == 0U || 
+            state.safe_mode != prev_state.safe_mode ||
+            state.breaker_open != prev_state.breaker_open ||
+            state.charging_allowed != prev_state.charging_allowed )
+         {
+            uart_log( "[APP3] CC safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
+                            ( uint32_t ) state.safe_mode,
+                            ( uint32_t ) state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                            ( uint32_t ) state.charging_allowed,
+                            ( uint32_t ) state.heartbeat_counter );
+        }
+
+        heartbeat_counter++;
+        bm_delay_loop( WORKSHOP_SAFETY_PERIOD_MS );
+    }
+
+#else
+    /*
+    * Workshop steps for implementing the safety monitor loop:
+    * 1. Declare a variable of type ChargeCommand to hold the last received command
+        - ChargeCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h3_baremetal/include/halo_structs.h 
+
+    * 2. Declare a variable of type SafetyState to hold the last evaluated state
+        - SafetyState struct is available from HALO generated code from deps/halo/codegen/riscv64_h3_baremetal/include/halo_structs.h 
+
+    * 3. Define heartbeat_counter as a uint32_t that increments on each loop iteration.
+
+    * 4. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
+         - This will set up the necessary channels for sending and receiving messages with the peer
+            -- Full path to init function is in .deps/halo/codegen/riscv64_h3_baremetal/src/halo_api.c
+
+    * 5. Create a while loop in which the safety monitor will run continuously with below steps:
+        - Receive ChargeCommand message for peer in the loop using halo_recv_ API functions defined in halo_api.h
+            -- Read all values while they are available in the channel using while loop and checking the return value of halo_recv_ function to check if new data is available
+            -- Full path is in .deps/halo/codegen/riscv64_h3_baremetal/include/halo_api.h and deps/halo/codegen/riscv64_h3_baremetal/src/halo_channels.c
+            Example:
+                while( ( recv_rc = halo_recv_XXXX ) > 0 )
+                {
+                    // Process the received command
+                }
+
+        - Call evaluate_safety( &ChargeCommand, &SafetyState, heartbeat_counter++ )
+
+        - Send the SafetyState state to the peer every using halo_send_ API functions defined in halo_api.h
+            -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
+                uart_log( "[APP3] SafetyState send failed\n" );
+            -- Full path is in .deps/halo/codegen/riscv64_h3_baremetal/include/halo_api.h and deps/halo/codegen/riscv64_h3_baremetal/src/halo_channels.c
+
+        - Log the Info to the console using uart_log("[APP3] ") which is behaving similar to printf
+            -- [APP3] needs to be included in the log message to differentiate logs from other applications running on different harts
+            -- Use logging on change to avoid flooding the console with repeated messages. 
+            -- For example, only log when safe_mode, breaker_open, or charging_allowed changes, or every N cycles.
+
+            -- Example log messages:
+                Received command if mode changes:
+                    uart_log( "[APP3] Charging mode=%s\n",
+                            command.charging_mode );
+
+                Send state if any value changes or every N cycles:
+                    uart_log( "[APP3] safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
+                        ( uint32_t ) state.safe_mode,
+                        ( uint32_t ) state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                        ( uint32_t ) state.charging_allowed,
+                        ( uint32_t ) state.heartbeat_counter );
+
+            
+
+        - Use bm_delay_loop( ms ) to create a delay in the loop of 100ms.
+    */
+
+    /* Declare a variable of type ChargeCommand to hold the last received command
+      - ChargeCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h3_baremetal/include/halo_structs.h 
+
+    *  Declare a variable of type SafetyState to hold the last evaluated state
+      - SafetyState struct is available from HALO generated code from deps/halo/codegen/riscv64_h3_baremetal/include/halo_structs.h 
+
+    *  Define heartbeat_counter as a uint32_t that increments on each loop iteration.
+    */
+
+    ChargeCommand last_command = { 0 };
+    SafetyState last_state = { 0 };
+    uint32_t heartbeat_counter = 0U;
+    char prev_charging_mode = '\0';
+
+    /* Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
+         - This will set up the necessary channels for sending and receiving messages with the peer
+            -- Full path to init function is in .deps/halo/codegen/riscv64_h3_baremetal/src/halo_api.c
+    */
+    halo_baremetal_h3_init_riscv64_h3_baremetal();
+
+    while( 1 )
+    {
+        ChargeCommand command;
+        SafetyState state;
+        int recv_rc;
+
+        /* Receive ChargeCommand message for peer in the loop using halo_recv_ API functions defined in halo_api.h
+            -- Read all values while they are available in the channel using while loop and checking the return value of halo_recv_ function to check if new data is available
+            -- Full path is in .deps/halo/codegen/riscv64_h3_baremetal/include/halo_api.h and deps/halo/codegen/riscv64_h3_baremetal/src/halo_channels.c
+            Example:
+                while( ( recv_rc = halo_recv_XXXX ) > 0 )
+                {
+                    // Process the received command
+
+                    uart_log( "[APP3] xxxxx");
+                }
+            */
+
+        while( ( recv_rc = halo_recv_ChargeCommandIf_ChargeCommand( &command ) ) > 0 )
+        {
+            last_command = command;
+            if(command.charging_mode[0] != prev_charging_mode){
+                prev_charging_mode = command.charging_mode[0];
+
+                uart_log( "[APP3] Charging mode=%s\n",
+                    command.charging_mode );
             }
         }
 
-        delay_loop();
+        /* Call evaluate_safety( &ChargeCommand, &SafetyState, heartbeat_counter++ ) */
+        evaluate_safety( &last_command, &state, heartbeat_counter++ );
+
+
+        /* Send the SafetyState state to the peer every using halo_send_ API functions defined in halo_api.h
+            -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
+                uart_log( "[APP3] SafetyState send failed\n" );
+            -- Full path is in .deps/halo/codegen/riscv64_h3_baremetal/include/halo_api.h and deps/halo/codegen/riscv64_h3_baremetal/src/halo_channels.c
+            */
+        if( halo_send_SafetyStateIf_SafetyState( &state ) < 0 )
+        {
+            uart_log( "[APP3] SafetyState send failed\n" );
+        }
+
+        /* Log the Info to the console using uart_log("[APP3] ") which is behaving similar to printf
+            -- [APP3] needs to be included in the log message to differentiate logs from other applications running on different harts
+            -- Use logging on change to avoid flooding the console with repeated messages. 
+            -- For example, only log when safe_mode, breaker_open, or charging_allowed changes, or every N cycles.
+         */
+        if( state.safe_mode != last_state.safe_mode ||
+            state.breaker_open != last_state.breaker_open ||
+            state.charging_allowed != last_state.charging_allowed 
+             || ( state.heartbeat_counter % 20U ) == 0U 
+        )
+        {
+            uart_log( "[APP3] safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
+                ( uint32_t ) state.safe_mode,
+                ( uint32_t ) state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                ( uint32_t ) state.charging_allowed,
+                ( uint32_t ) state.heartbeat_counter );
+        }
+
+        last_state = state;
+
+        bm_delay_loop( WORKSHOP_SAFETY_PERIOD_MS );
     }
+#endif
 }

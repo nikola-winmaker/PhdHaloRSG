@@ -1,0 +1,45 @@
+include battery_charging_system.iddl
+
+// SensorFusion
+interface SensorFrameIf {
+    access {
+        write {  SensorFrame }
+    }
+}
+
+// ChargeController
+interface ChargeCommandIf {
+    access {
+        write {  ChargeCommand }
+    }
+
+    integrity {
+    }
+}
+
+// ChargeController
+interface ChargeStatusIf {
+    access {
+        write {  ChargeStatus }
+    }
+}
+
+// SafetyMonitor
+interface SafetyStateIf {
+    access {
+        write {  SafetyState }
+    }
+}
+
+// LinuxSupervisor
+interface OperatorCommandIf {
+    access {
+        write {  OperatorCommand }
+    }
+
+    integrity {
+        crc32 {
+            OperatorCommand
+        }
+    }
+}

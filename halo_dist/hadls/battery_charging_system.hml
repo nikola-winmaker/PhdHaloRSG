@@ -1,0 +1,34 @@
+Profiles {
+
+    SharedMemory HaloShMemSensorTelemetry {
+        memSize: 512B
+        syncBlocking: True
+        baseAddress: 0x80340000
+        
+    }
+
+    SharedMemory HaloShMemChargingCommand {
+        memSize: 512B
+        syncBlocking: True
+        baseAddress: 0x80341000
+    }
+
+    BlackBoard HaloBBChargingStatus {
+        maxPayload: 64
+        bufferSize: 64
+        baseAddress: 0x80342000
+    }
+
+    BlackBoard HaloBBSafetyReport {
+        maxPayload: 64
+        bufferSize: 64
+        baseAddress: 0x80343000
+    }
+
+    EventChannel HaloEvtOperatorControl {
+        eventQueueSize: 16
+        maxChannels: 1
+        blocking: True
+        baseAddress: 0x80344000
+    }
+}

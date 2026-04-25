@@ -1,0 +1,45 @@
+BatteryChargingSystem {
+
+    components {
+        // SensorFusion
+        zephyr_h1   : Component { Type: Application,  Platform: riscv64_h1_zephyr,    Function: RealTimeProcessing }
+        // ChargeController
+        freertos_h2 : Component { Type: Application,  Platform: riscv64_h2_freertos,  Function: RealTimeProcessing }
+        // SafetyMonitor
+        baremetal_h3: Component { Type: Application,  Platform: riscv64_h3_baremetal, Function: RealTimeProcessing }
+        // LinuxSupervisor
+        linux_h4    : Component { Type: Application,  Platform: riscv64_h4_linux,     Function: GeneralProcessing  }
+    }
+
+    connections {
+        connection SensorTelemetry {
+            from zephyr_h1 to freertos_h2
+            interface: SensorFrameIf
+            profile: HaloShMemSensorTelemetry
+        }
+
+        connection ChargingCommand {
+            from freertos_h2 to baremetal_h3
+            interface: ChargeCommandIf
+            profile: HaloShMemChargingCommand
+        }
+
+        connection ChargingStatus {
+            from freertos_h2 to linux_h4
+            interface: ChargeStatusIf
+            profile: HaloBBChargingStatus
+        }
+
+        connection SafetyReport {
+            from baremetal_h3 to linux_h4
+            interface: SafetyStateIf
+            profile: HaloBBSafetyReport
+        }
+
+        connection OperatorControl {
+            from linux_h4 to freertos_h2
+            interface: OperatorCommandIf
+            profile: HaloEvtOperatorControl
+        }
+    }
+}
