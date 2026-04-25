@@ -22,6 +22,7 @@ DEPS_DIR="${ROOT_DIR}/apps/linux-hart4/deps/classical"
 DEPS_COMMON_DIR="${ROOT_DIR}/src/common"
 DEPS_BMS_DIR="${ROOT_DIR}/src/bms"
 DEPS_BATT_DIR="${ROOT_DIR}/src/battery"
+DEPS_SRC_DIR="${ROOT_DIR}/src"
 TARGET_DIR="${OUTPUT_DIR}/target"
 HOST_DIR="${OUTPUT_DIR}/host"
 ARTIFACT_DIR="${ROOT_DIR}/artifacts/buildroot/images"
@@ -40,6 +41,7 @@ DEPS_INC="${DEPS_DIR}/include"
 DEPS_COMMON="${ROOT_DIR}/src/common"
 DEPS_BMS="${ROOT_DIR}/src/bms"
 DEPS_BATT="${ROOT_DIR}/src/battery"
+DEPS_SRC="${ROOT_DIR}/src"
 SAFE_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 if [ -d "${HOME}/.local/bin" ]; then
     SAFE_PATH="${HOME}/.local/bin:${SAFE_PATH}"
@@ -96,6 +98,7 @@ if [ ! -f "${OUTPUT_DIR}/.config" ]; then
         -I"${DEPS_COMMON}" \
         -I"${DEPS_BMS_DIR}" \
         -I"${DEPS_BATT_DIR}" \
+        -I"${DEPS_SRC}" \
         -Wl,--dynamic-linker=/lib/ld-linux-riscv64-lp64d.so.1 \
         ${APP_SRC} \
         "${DEPS_DIR}"/src/*.c \

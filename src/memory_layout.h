@@ -106,13 +106,6 @@
 #define BMS_CTRL_OFFSET     0x5000
 #define BMS_CTRL_SIZE       0x8
 
-/* ============================================================
-   Alternate Linux AMP Region
-   ============================================================ */
-#define LINUX_AMP_LINUX_BASE  0x80400000
-#define LINUX_AMP_LINUX_SIZE  0x07C00000  /* 124 MB */
-#define LINUX_AMP_LINUX_END   (LINUX_AMP_LINUX_BASE + LINUX_AMP_LINUX_SIZE)
-
 
 /* CLINT offsets */
 #define CLINT_MSIP_BASE     (CLINT_BASE + 0x0000)

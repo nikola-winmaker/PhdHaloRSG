@@ -239,6 +239,14 @@ apps-zephyr: zephyr-hart1
 		(cd $$d && make clean && make); \
 	done
 
+apps-freertos:
+	make -C apps/freertos-hart2 clean
+	make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=$(CURDIR)/deps/freertos/FreeRTOS-Kernel USE_HALO=$(USE_HALO)
+
+apps-bare:
+	make -C apps/bare-hart3 clean
+	make -C apps/bare-hart3 app3 USE_HALO=$(USE_HALO)
+
 apps-zephyr-fast: zephyr-hart1-fast
 	for d in apps/freertos-hart2 apps/bare-hart3; do \
 		(cd $$d && make clean && make); \

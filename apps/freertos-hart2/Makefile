@@ -13,7 +13,7 @@ else
 	DEPS_SRCS := $(wildcard $(DEPS_DIR)/src/*.c)
 endif
 
-DEPS_INC += -Isrc -I$(ROOT_DIR)/src/common -I$(ROOT_DIR)/src/battery -I$(ROOT_DIR)/src/bms
+DEPS_INC += -Isrc -I$(ROOT_DIR)/src -I$(ROOT_DIR)/src/common -I$(ROOT_DIR)/src/battery -I$(ROOT_DIR)/src/bms
 COMMON_SRCS := $(wildcard $(ROOT_DIR)/src/common/*.c) \
 	$(wildcard $(ROOT_DIR)/src/battery/*.c) \
 	$(wildcard $(ROOT_DIR)/src/bms/*.c)

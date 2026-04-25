@@ -12,71 +12,90 @@ This project scaffolds a heterogeneous multi-hart firmware stack for the **SiFiv
 
 ## Directory Structure
 
+
 ```
-risc5_eval/
-├── boot/
-│   └── hart0/               # Hart 0 boot coordinator (S7 core)
-│       ├── bootstrap.S      # RISC-V assembly entry point
-│       ├── main.c           # Boot coordinator main loop
-│       ├── linker.ld        # Memory layout for Hart 0
-│       └── CMakeLists.txt
+PhdHaloRSG/
+├── boot/                  # Hart 0 boot coordinator (S7 core)
+│   └── hart0/             # Boot code, linker, and startup for Hart 0
 │
 ├── apps/
-│   ├── zephyr-hart1/        # Hart 1 Zephyr RTOS
-│   │   ├── src/
-│   │   ├── prj.conf         # Zephyr configuration
-│   │   └── CMakeLists.txt   # Zephyr build integration
-│   │
-│   ├── freertos-hart2/      # Hart 2 FreeRTOS
-│   │   ├── src/
-│   │   └── CMakeLists.txt   # FreeRTOS build integration
-│   │
-│   ├── bare-hart3/          # Hart 3 bare-metal app 1
-│       ├── bootstrap.S
-│       ├── main.c
-│       ├── linker.ld
-│       └── CMakeLists.txt
+│   ├── zephyr-hart1/      # Hart 1 Zephyr RTOS app (Zephyr build integration)
+│   ├── freertos-hart2/    # Hart 2 FreeRTOS app (standalone Makefile)
+│   ├── bare-hart3/        # Hart 3 bare-metal app
+│   └── linux-hart4/       # Hart 4 Linux app (Buildroot integration)
 │
-├── src/
-│   ├── common/              # Shared utilities
-│   ├── device-tree/         # Platform device tree definition
-│   │   └── hifive-unmatched.dts
-│   └── platform/            # Platform headers & constants
-│       └── platform.h
+├── src/                   # Common platform code, device tree, and shared logic
+│   ├── common/            # Shared C sources
+│   ├── device-tree/       # Platform device tree(s)
+│   └── platform/          # Platform headers & constants
 │
-├── configs/
-│   ├── riscv-toolchain.cmake # CMake RISC-V toolchain
-│   └── build.cmake           # Build configuration
-│
+├── configs/               # Toolchain and build configuration
 ├── tools/
-│   ├── scripts/             # Utility scripts (build, flash, debug)
-│   │   ├── build.sh
-│   │   └── flash.sh
-│   └── toolchain/           # Toolchain files
-│
-├── build/                   # Build artifacts (generated)
-├── docs/                    # Documentation
-│   ├── architecture.md      # Design overview
-│   └── hart-allocation.md   # Memory and hart management
-│
-├── CMakeLists.txt           # Root CMake configuration
-├── Makefile                 # Convenience build targets
-├── .gitignore
-└── README.md
+│   ├── scripts/           # Build, flash, and setup scripts
+│   └── toolchain/         # Toolchain helper files
+├── halo_dist/             # HALO models, protocols, and generated code
+├── deps/                  # External dependencies (Zephyr, FreeRTOS, Buildroot, OpenSBI)
+├── artifacts/             # Build artifacts (e.g., Linux images)
+├── docs/                  # Documentation and diagrams
+├── build/                 # Build output (generated)
+├── Makefile               # Top-level build orchestration
+├── CMakeLists.txt         # Root CMake configuration
+└── README.md              # This file
 ```
 
-## Memory Layout
 
-HiFive Unmatched provides 256MB of RAM (0x80000000–0x8FFFFFFF). Default allocation:
+## Memory Layout (from src/memory_layout.h)
 
-| Hart | Core | Start Address | Size    | Purpose                       |
-|------|------|---------------|---------|-------------------------------|
-| 0    | S7   | 0x8000_0000   | 256K    | Boot coordinator              |
-| 1    | U74  | 0x8004_0000   | 256K    | Zephyr RTOS                   |
-| 2    | U74  | 0x8008_0000   | 256K    | FreeRTOS                      |
-| 3    | U74  | 0x800C_0000   | 256K    | Bare-metal app 1              |
-| 4    | U74  | 0x8010_0000   | 256K    | Bare-metal app 2              |
+HiFive Unmatched provides 2GB of RAM (0x80000000–0xFFFFFFFF). This project uses a compact multi-hart layout:
 
+| Hart | Core | Start Address | Size    | Purpose           |
+|------|------|---------------|---------|-------------------|
+| 0    | S7   | 0x80000000    | 1MB     | Boot coordinator  |
+| 1    | U74  | 0x80240000    | 256KB   | Zephyr RTOS       |
+| 2    | U74  | 0x80280000    | 256KB   | FreeRTOS          |
+| 3    | U74  | 0x802C0000    | 256KB   | Bare-metal app 1  |
+| 4    | U74  | 0x80300000    | 256KB   | Bare-metal app 2  |
+| -    | -    | 0x80340000    | 768KB   | Shared IPC region |
+
+**Alternate Linux AMP region:**
+| Region | Start Address | Size    | Purpose         |
+|--------|--------------|---------|-----------------|
+| Linux  | 0x80400000   | 124MB   | Linux AMP image |
+
+**IPC subregions and protocol buffers** are defined for inter-hart communication (see src/memory_layout.h for details).
+
+---
+
+## VS Code Tasks & CLI Equivalents
+
+The project provides VS Code tasks (see .vscode/tasks.json) for all major build and utility flows:
+
+| Task Label              | Command (CLI Equivalent) |
+|-------------------------|--------------------------|
+| Setup environment       | sudo bash tools/scripts/bootstrap_env.sh |
+| Clean build all & Run   | make qemu-hart0-mmode    |
+| Hart1 Zephyr build      | make zephyr-hart1-fast   |
+| Hart2 FreeRTOS build    | make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=... |
+| Hart3 BM build          | make -C apps/bare-hart3 app3 |
+| Hart4 Linux build       | make buildroot-linux-fast|
+| OpenSBI Build           | make qemu-hart0-mmode    |
+| QEMU Sys Run            | make qemu-hart0-mmode-run|
+| Halo: Compose           | halo compose ...          |
+| Halo: Generate          | sudo bash tools/scripts/halo_generate_all.sh |
+
+Inputs for build mode (HALO/Classical) and output selection are supported in the VS Code UI.
+
+---
+
+## Tools & Scripts
+
+- **tools/scripts/bootstrap_env.sh**: Main environment bootstrapper. Installs host packages, initializes dependencies (Zephyr, FreeRTOS, Buildroot, OpenSBI), verifies toolchain, and can run smoke builds. Supports options to skip steps (see --help).
+- **tools/scripts/halo_generate_all.sh**: Runs `halo generate` for all platforms, populating each app's deps/halo directory.
+- **tools/scripts/build.sh**: Checks prerequisites, configures CMake, builds targets (hart0, hart3, hart4), and provides a flash helper (manual OpenOCD usage).
+
+Other scripts are available for building individual harts, setting up dependencies, and running QEMU (see tools/scripts/ for details).
+
+---
 
 ### Dockerized Dev Environment
 
@@ -114,13 +133,21 @@ That script:
 | VS Code task label | Command |
 |--------------------|---------|
 | `Setup environment` | `bash tools/scripts/bootstrap_env.sh` |
-| `Clean build all & Run` | `make qemu-hart0-mmode` |
-| `Hart1 Zephyr build` | `make zephyr-hart1-fast` |
-| `Hart2 FreeRTOS build` | `make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=${workspaceFolder}/deps/freertos/FreeRTOS-Kernel` |
-| `Hart3 BM build` | `make -C apps/bare-hart3 app3` |
-| `Hart4 Linux build` | `make buildroot-linux-fast` |
-| `OpenSBI Build` | `make qemu-hart0-mmode` |
-| `QEMU Sys Run` | `make qemu-hart0-mmode-run` |
+| `Clean build all & Run` | `make qemu-hart0-mmode USE_HALO=0 or USE_HALO=1` |
+| `Hart1 Zephyr build` | `make zephyr-hart1-fast USE_HALO=0  or USE_HALO=1` |
+| `Hart2 FreeRTOS build` | `make apps-freertos USE_HALO=0 or USE_HALO=1` |
+| `Hart3 BM build` | `make apps-freertos USE_HALO=0  or USE_HALO=1` |
+| `Hart4 Linux build` | `make buildroot-linux-fast USE_HALO=0  or USE_HALO=1` |
+| `OpenSBI Build` | `make qemu-hart0-mmode USE_HALO=0 or USE_HALO=1` |
+| `QEMU Sys Run` | To run manually:
+	- PTY mode:
+		1. `python3 tools/console/qemu_apps_console.py`
+		2. `echo pty > .out_select`
+		3. `make qemu-hart0-mmode-run OUT_SELECT=pty`
+	- STDIO mode:
+		1. `python3 tools/console/qemu_apps_console.py`
+		2. `echo stdio > .out_select`
+		3. `make qemu-hart0-mmode-run OUT_SELECT=stdio` |
 
 ### CLI Equivalents
 
