@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 APT_GET="${APT_GET:-apt-get}"
-SUDO="sudo"
+SUDO=""
 PIPX_BIN_DIR="${HOME}/.local/bin"
 
 INSTALL_HOST_TOOLS=1
