@@ -4,6 +4,7 @@
 #include "breaker.h"
 #include "../battery/battery.h" // Battery model parameters shared with BMS
 #include "workshop_protocol.h" // For command/fault definitions
+#include "../memory_layout.h" // For shared memory addresses
 
 #ifdef __cplusplus
 extern "C" {

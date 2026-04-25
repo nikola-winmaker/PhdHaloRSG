@@ -189,13 +189,13 @@ int service_console_input( int input_fd, void * command )
     return 0;
 }
 
-#if defined( USE_HALO ) || ( USE_HALO == 1 )
+#if defined( USE_HALO ) && ( USE_HALO == 1 )
     #include "eventchannel_common.h"
     #include "blackboard_common.h"
 
     void* eventchannel_get_external_buffer(eventchannel_channel_t *channel){
         (void) channel;
-        return get_external_buffer( OPERATOR_COMMAND_OFFSET );
+        return get_external_buffer( VIRTUAL_OPERATOR_COMMAND );
     }
 #endif
 
@@ -234,16 +234,16 @@ int map_shared_region( void )
         g_shmem_region = NULL;
         return -1;
     }
-    memset( g_shmem_region + OPERATOR_COMMAND_OFFSET, 0, OPERATOR_COMMAND_SIZE );
+    memset( g_shmem_region + VIRTUAL_OPERATOR_COMMAND, 0, OPERATOR_COMMAND_SIZE );
 
     return 0;
 }
 
 void set_memory_regions(void){
-    #if defined( USE_HALO ) || ( USE_HALO == 1 )
-        blackboard_ChargingStatus_external_buffer = get_external_buffer(CHARGING_STATUS_OFFSET );
-        blackboard_ChargingStatus_external_size = CHARGING_STATUS_SIZE;
-        blackboard_SafetyReport_external_buffer = get_external_buffer(SAFETY_REPORT_OFFSET );
-        blackboard_SafetyReport_external_size = SAFETY_REPORT_SIZE;
+    #if defined( USE_HALO ) && ( USE_HALO == 1 )
+        blackboard_ChargingStatus_external_buffer = get_external_buffer(VIRTUAL_CHARGE_STATUS );
+        blackboard_ChargingStatus_external_size = CHARGE_STATUS_SIZE;
+        blackboard_SafetyReport_external_buffer = get_external_buffer(VIRTUAL_SAFETY_STATE );
+        blackboard_SafetyReport_external_size = SAFETY_STATE_SIZE;
     #endif
 }

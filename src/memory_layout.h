@@ -102,6 +102,10 @@
 
 #define HALO_IPC_CHANNEL_SIZE 0x1000   /* 4 KB per mailbox */
 
+#define BMS_CTRL_BASE       0x80340000
+#define BMS_CTRL_OFFSET     0x5000
+#define BMS_CTRL_SIZE       0x8
+
 /* ============================================================
    Alternate Linux AMP Region
    ============================================================ */
@@ -114,5 +118,36 @@
 #define CLINT_MSIP_BASE     (CLINT_BASE + 0x0000)
 #define CLINT_MTIMECMP_BASE (CLINT_BASE + 0x4000)
 #define CLINT_MTIME_BASE    (CLINT_BASE + 0xBFF8)
+
+/* ====================================================================================
+   Memory layout for IPC buffers and data structures used in the workshop applications
+   ==================================================================================== */
+// ChargeCommand Address: 0x80341000 - 0x80341200 (512 bytes) ring buffer protocol
+#define CHARGE_COMMAND_BASE 0x80341000
+#define CHARGE_COMMAND_SIZE 0x200       /* 512 bytes */
+
+// SafetyState Address: 0x80343000 - 0x80343040 (64 bytes) blackboard protocol
+#define SAFETY_STATE_BASE   0x80343000
+#define SAFETY_STATE_SIZE   0x40        /* 64 bytes */
+
+// SensorFrame Address: 0x80340000 - 0x80340200 (512 bytes) ring buffer protocol
+#define SENSOR_FRAME_BASE   0x80340000
+#define SENSOR_FRAME_SIZE   0x200       /* 512 bytes */
+
+// ChargeStatus Address: 0x80342000 - 0x80342040 (64 bytes) blackboard protocol
+#define CHARGE_STATUS_BASE  0x80342000
+#define CHARGE_STATUS_SIZE  0x40        /* 64 bytes */
+
+// OperatorCommand Address: 0x80344000 - 0x80344200 (512 bytes) ring buffer protocol
+#define OPERATOR_COMMAND_BASE 0x80344000
+#define OPERATOR_COMMAND_SIZE 0x10      /* 512 bytes */
+
+// Virtual addresses for access in user space 
+// (these would be set up with mmap or similar to point to the physical addresses above)
+#define VIRTUAL_CHARGE_STATUS 0x2000UL
+#define VIRTUAL_SAFETY_STATE 0x3000UL
+#define VIRTUAL_OPERATOR_COMMAND 0x4000UL
+#define VIRTUAL_OPERATOR_COMMAND_SIZE 16U
+
 
 #endif /* MEMORY_LAYOUT_H */

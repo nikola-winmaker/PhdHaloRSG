@@ -162,14 +162,14 @@ float bms_soc_to_voltage(float soc_percent) {
 
 void write_to_bms_command(unsigned char * g_halo_region, uint32_t command_id, uint32_t command_param){
     // Address the command to the BMS command handler
-    *(uint32_t *)(g_halo_region + 0x5000) = command_id;
-    *(uint32_t *)(g_halo_region + 0x5004) = command_param;
+    *(uint32_t *)(g_halo_region + BMS_CTRL_OFFSET) = command_id;
+    *(uint32_t *)(g_halo_region + BMS_CTRL_OFFSET + 0x4) = command_param;
 }
 
 void bms_get_operator_command(uint32_t *command_id, uint32_t *command_param){
     // Read the latest command from the shared memory
-    *command_id = *(uint32_t *)0x80345000;
-    *command_param = *(uint32_t *)0x80345004;
+    *command_id = *(uint32_t *)(BMS_CTRL_BASE + BMS_CTRL_OFFSET);
+    *command_param = *(uint32_t *)(BMS_CTRL_BASE + BMS_CTRL_OFFSET + 0x4);
 }
 
 void command_bms(uint32_t command_id, uint32_t command_param){
