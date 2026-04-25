@@ -16,6 +16,7 @@
 
 
 char line_buffer[ INPUT_BUFFER_SIZE ];
+unsigned char * g_shmem_region = NULL;
 
 int configure_input_fd( void )
 {
