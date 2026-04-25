@@ -21,7 +21,7 @@
     {
       "label": "Clean build all",
       "type": "shell",
-      "command": "echo ${input:out_select} > .out_select && make qemu-hart0-mmode USE_HALO=${input:useHalo} OUT_SELECT=${input:out_select}",
+      "command": "echo ${input:out_select} > .out_select && sudo make qemu-hart0-mmode USE_HALO=${input:useHalo} OUT_SELECT=${input:out_select}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -88,7 +88,7 @@
     {
       "label": "Hart4 Linux build",
       "type": "shell",
-      "command": "make buildroot-linux-fast USE_HALO=${input:useHalo}",
+      "command": "sudo make buildroot-linux-fast USE_HALO=${input:useHalo}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -116,7 +116,7 @@
     {
       "label": "QEMU",
       "type": "shell",
-      "command": "echo ${input:out_select} > .out_select && make qemu-hart0-mmode-run OUT_SELECT=${input:out_select}",
+      "command": "echo ${input:out_select} > .out_select && sudo make qemu-hart0-mmode-run OUT_SELECT=${input:out_select}",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -132,7 +132,7 @@
     "label": "Apps QEMU Console",
     "type": "shell",
     "hide": true,
-    "command": "python3 tools/console/qemu_apps_console.py",
+    "command": "sudo python3 tools/console/qemu_apps_console.py",
     "options": { "cwd": "${workspaceFolder}" },
     "presentation": {
       "reveal": "always",
