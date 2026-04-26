@@ -1,3 +1,16 @@
+/**
+ *                                                                          
+ *      ▄▄▄▄                                       ▀                        
+ *     █▀   ▀ ▄   ▄  ▄▄▄▄    ▄▄▄    ▄ ▄▄  ▄   ▄  ▄▄▄     ▄▄▄    ▄▄▄    ▄ ▄▄ 
+ *     ▀█▄▄▄  █   █  █▀ ▀█  █▀  █   █▀  ▀ ▀▄ ▄▀    █    █   ▀  █▀ ▀█   █▀  ▀
+ *         ▀█ █   █  █   █  █▀▀▀▀   █      █▄█     █     ▀▀▀▄  █   █   █    
+ *     ▀▄▄▄█▀ ▀▄▄▀█  ██▄█▀  ▀█▄▄▀   █       █    ▄▄█▄▄  ▀▄▄▄▀  ▀█▄█▀   █    
+ *                   █                                                      
+ *                   ▀                                                      
+ */
+
+ /************************* INCLUDE SECTION *************************/
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -8,130 +21,327 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <unistd.h>
-
+#include "console_lock.h"
+#include "workshop_protocol.h"
+#include "bms.h"
+#include "console_misc.h"
 #if !defined( USE_HALO ) || ( USE_HALO == 0 )
     #include "classical_api.h"
 #else
     #include "halo_api.h"
 #endif
 
-#define SHARED_MEM_BASE 0x80340000UL
-#define SHARED_MEM_SIZE 0x1000UL
-#define SHARED_MAGIC 0x48414c4fUL
-#define SLOT_MAGIC 0x534c4f54UL
-#define MAX_HARTS 5U
+/************************* GLOBAL SECTION *************************/
 
-typedef struct
-{
-    uint32_t magic;
-    uint32_t hart_id;
-    uint32_t heartbeat;
-    uint32_t flags;
-    char name[ 16 ];
-} shared_slot_t;
-
-typedef struct
-{
-    uint32_t magic;
-    uint32_t version;
-    uint32_t ready_mask;
-    uint32_t reserved;
-    shared_slot_t slots[ MAX_HARTS ];
-} shared_state_t;
-
+// Flag to control the main loop execution
 static volatile sig_atomic_t keep_running = 1;
 
+//TODO Classical: Define ChargeStatus, SafetyState, and OperatorCommand structures 
+// based on the workshop specification only for the classical implementation!.
+
+/************************* FUNCTION SECTION *************************/
+static void on_signal( int sig );
+
+int main( void )
+{
+    signal( SIGINT, on_signal );
+    signal( SIGTERM, on_signal );
+    setvbuf( stdout, NULL, _IONBF, 0 );
+    setvbuf( stderr, NULL, _IONBF, 0 );
+    int command_rcv = 0;
+    int input_fd;
+
+    // Configure input file descriptor for non-blocking reads
+    input_fd = configure_input_fd();
+    // Map shared memory region in user space
+    if( map_shared_region() != 0 )
+    {   
+        printf( "[APP4] failed to map shared memory region\n" );
+        while( keep_running )
+        {
+            __asm__ volatile ( "wfi" );
+        }
+    }
+    // Set user space memory regions for buffers
+    set_memory_regions();
+
+// CLASSICAL Implementation
+#if !defined( USE_HALO ) || ( USE_HALO == 0 )
+
+
+/*
+    * Workshop steps for implementing the Supervision loop:
+    ______________________________________________________________________________________________________________________________
+    !!!!!!!!Shared Memory Note!!!!!!!
+    In this application, we are using shared memory to communicate between the supervisor and the peer. 
+    This means that both the supervisor and the peer will read and write to the same address in memory to exchange messages.
+
+    MEM Adress Map in User Space:
+    *   OperatorCommand: Written by Supervisor, read by Charging Controller
+        Address: get_external_buffer( VIRTUAL_OPERATOR_COMMAND ) returns pointer to this buffer
+        Size: VIRTUAL_OPERATOR_COMMAND_SIZE (16 bytes) - event like protocol
+
+    *   ChargeStatus:  Written by Charging Controller, read by Supervisor
+        Address: get_external_buffer( VIRTUAL_CHARGE_STATUS ) returns pointer to this buffer
+        Size: VIRTUAL_CHARGE_STATUS_SIZE (64 bytes) - blackboard like protocol
+
+    *  SafetyState: Written by Safety Monitor, read by Supervisor
+        Address: get_external_buffer( VIRTUAL_SAFETY_STATE ) returns pointer to this buffer
+        Size: VIRTUAL_SAFETY_STATE_SIZE (64 bytes) - blackboard like protocol
+
+    ______________________________________________________________________________________________________________________________
+
+    * 1. Define OperatorCommand struct from Workshop specification -> OperatorCommandIf and declare a variable of this type
+        command id (uint32_t command_id = 0)
+        parameter (int32_t command_param = 0)
+
+    * 2. Define ChargeStatus struct from Workshop specification -> ChargeStatusIf and declare a variable of this type
+        charger state (char charger_state[5], default "idle")
+        requested current (uint32_t requested_current_ma = 0)
+        requested voltage (uint32_t requested_voltage_mv = 0)
+        fault state (uint32_t fault_state = 0)
+
+    * 3. Define SafetyState struct from Workshop specification -> SafetyStateIf and declare a variable of this type
+        safe mode (uint8_t safe_mode = 0)
+        breaker open (uint8_t breaker_open = 0)
+        charging allowed (uint8_t charging_allowed = 0)
+        heartbeat (uint32_t heartbeat_counter = 0)
+
+    * 4. Declare heartbeat_counter as a uint32_t that increments on each loop iteration.
+
+    * 5. In a while loop in which the Supervisor will run continuously:
+        - Get input commands from console by calling
+            command_rcv = service_console_input( input_fd, &OperatorCommand );
+            if( command_rcv < 0 )
+            {
+                printf( "[APP4] unknown command %s\n", line_buffer );
+            }
+
+        - If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
+            -- Publish/log/send the OperatorCommand command to the peer using shared memory access (write to defined memory address for OperatorCommand)
+             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
+
+        - Receive ChargeStatus message from peer using shared memory access (read from defined memory address for ChargeStatus)
+            -- It's up to you how you want to implement the shared memory protocol, you can use pointer dereferencing to read from the specific memory address where the ChargeStatus is written by the peer. 
+            Synchronization is important here, so make sure to implement a simple protocol to check if new data is available before reading.
+
+        - Receive SafetyState message from peer using shared memory access (read from defined memory address for SafetyState)
+            -- Similar to ChargeStatus, use pointer dereferencing to read the SafetyState from the defined memory address. Synchronization is important here as well.
+
+        - Use logging has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
+            For example, only log when data changes or every N iterations.
+*/
+
+    /*TODO Classical: 1. Declare a variable of type OperatorCommand */
+
+    /*TODO Classical: 2. Declare a variable of type ChargeStatus to hold the last evaluated state */
+
+    /*TODO Classical: 3. Declare a variable of type SafetyState to hold the last evaluated state */
+
+    /* 4. Define heartbeat_counter as a uint32_t that increments on each loop iteration */
+    uint32_t heartbeat_counter = 0U;
+
+    while( keep_running )
+    {
+        /* This is a demo loop to showcase the application running */
+        /*TODO Classical: Delete the following line once you implement the actual logic */
+        if( ( heartbeat_counter % 10U ) == 0U )
+        {
+            printf( "[APP4] classical demo loop\n" );
+        }
+
+        //TODO Classical: 5. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
+        // command_rcv = service_console_input( input_fd, &operator_command );
+        // if( command_rcv < 0 )
+        // {
+        //     printf( "[APP4] unknown command %s\n", line_buffer );
+        // }
+
+        /*TODO Classical: 6. If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
+            -- Publish/log/send the OperatorCommand command to the peer using shared memory access (write to defined memory address for OperatorCommand)
+            get_external_buffer( VIRTUAL_OPERATOR_COMMAND ) is the defined memory address for OperatorCommand buffer in shared memory
+             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
+        */
+
+        /*TODO Classical: 7. Receive ChargeStatus message from peer using shared memory access (read from defined memory address for ChargeStatus)
+            get_external_buffer( VIRTUAL_CHARGE_STATUS ) is the defined memory address for ChargeStatus buffer in shared memory
+            -- It's up to you how you want to implement the shared memory protocol, you can use pointer dereferencing to read from the specific memory address where the ChargeStatus is written by the peer. 
+            Synchronization is important here, so make sure to implement a simple protocol to check if new data is available before reading.
+        */
+
+        /*TODO Classical: 8. Receive SafetyState message from peer using shared memory access (read from defined memory address for SafetyState)
+            get_external_buffer( VIRTUAL_SAFETY_STATE ) is the defined memory address for SafetyState buffer in shared memory
+            -- Similar to ChargeStatus, synchronization is important here as well.
+        */
+
+         /*TODO Classical: 9. Use logging, printf has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
+            For example, only log when data changes or every N iterations.
+            Variables are placeholders for the actual variables you will define based on the workshop specification
+        */
+        // if( (heartbeat_counter % 20U) == 0U ) {
+        //     console_lock_acquire();
+        //     printf( "[APP4] CC safe_mode=%u breaker_closed=%u charging_allowed=%u heartbeat=%u\n",
+        //             safety_state.safe_mode,
+        //             safety_state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+        //             safety_state.charging_allowed,
+        //             safety_state.heartbeat_counter );
+        //     console_lock_release();
+        // }
+
+        heartbeat_counter++;
+        usleep( WORKSHOP_COMMAND_PERIOD_MS * 1000U );
+    }
+#else
+
+/*
+    * Workshop steps for implementing the Supervision loop:
+
+    * 1. Declare a variable of type OperatorCommand to hold the last received command 
+        - OperatorCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h
+
+    * 2. Declare a variable of type ChargeStatus to hold the last received status
+        - ChargeStatus struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h
+
+    * 3. Declare a variable of type SafetyState to hold the last received status
+        - SafetyState struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h
+
+    * 4. Define heartbeat_counter as a uint32_t that increments on each loop iteration.
+
+    * 5. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
+         - This will set up the necessary channels for sending and receiving messages with the peer
+            -- Full path to init function is in .deps/halo/codegen/riscv64_h4_linux/src/halo_api.c
+
+    * 6. In a while loop in which the Supervisor will run continuously:
+        - Get input commands from console by calling
+            command_rcv = service_console_input( input_fd, &OperatorCommand );
+            if( command_rcv < 0 )
+            {
+                printf( "[APP4] unknown command %s\n", line_buffer );
+            }
+
+        - If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
+            -- Use halo_send_ API functions defined in halo_api.h to send the OperatorCommand to the peer
+            -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
+                printf( "[APP4] failed to send %s", line_buffer );
+            -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
+
+        - Receive ChargeStatus message from peer using halo_recv_ API functions defined in halo_api.h
+            -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
+            -- Check the return value of halo_recv_ function to ensure the message was received successfully
+
+        - Receive SafetyState message from peer using halo_recv_ API functions defined in halo_api.h
+            -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
+            -- Check the return value of halo_recv_ function to ensure the message was received successfully
+
+        - Use logging has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
+            For example, only log when data changes or every N iterations.
+    */
+
+
+    /*TODO HALO: 1. Declare a variable of type OperatorCommand to hold the last received command 
+        - OperatorCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
+
+    /*TODO HALO: 2. Declare a variable of type ChargeStatus to hold the last evaluated state
+        - ChargeStatus struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
+
+    /*TODO HALO: 3. Declare a variable of type SafetyState to hold the last received status
+        - SafetyState struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
+
+    /*4. Define heartbeat_counter as a uint32_t that increments on each loop iteration.*/
+    uint32_t heartbeat_counter = 0U;
+
+    /*TODO HALO: 5. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
+         - This will set up the necessary channels for sending and receiving messages with the peer
+            -- Full path to init function is in .deps/halo/codegen/riscv64_h4_linux/src/halo_api.c
+    */
+
+    while( keep_running )
+    {
+
+        /* This is a demo loop to showcase the application running */
+        /*TODO HALO: Delete the following line once you implement the actual logic */
+        if( ( heartbeat_counter % 10U ) == 0U )
+        {
+            printf( "[APP4] HALO demo loop\n" );
+        }
+
+        //TODO HALO: 5. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
+        // command_rcv = service_console_input( input_fd, &command );
+        // if( command_rcv < 0 )
+        // {
+        //     printf( "[APP4] unknown command %s\n", line_buffer );
+        // }
+
+        /*TODO HALO: 6. If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
+            -- Use halo_send_ API functions defined in halo_api.h to send the OperatorCommand to the peer
+            -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
+                printf( "[APP4] failed to send %s", line_buffer );
+            -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
+        */
+
+
+        /*TODO HALO: 7. Receive ChargeStatus message from peer using halo_recv_ API functions defined in halo_api.h
+            -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
+            -- Check the return value of halo_recv_ function to ensure the message was received successfully
+        */
+
+
+        /*TODO HALO: 8. Receive SafetyState message from peer using halo_recv_ API functions defined in halo_api.h
+            -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
+            -- Check the return value of halo_recv_ function to ensure the message was received successfully
+        */
+
+
+        /*TODO HALO: 9. Use logging has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
+            For example, only log when data changes or every N iterations.
+            Variables are placeholders for the actual variables you will define based on the workshop specification
+        */
+        // if(status.requested_current_ma != last_status.requested_current_ma ||
+        //     status.requested_voltage_mv != last_status.requested_voltage_mv ||
+        //     status.fault_state != last_status.fault_state )
+        // {
+        //     console_lock_acquire();
+        //     printf( "[APP4] status state=%s current=%u voltage=%u faults=0x%x\n",
+        //             bms_charge_state( &status ),
+        //             status.requested_current_ma,
+        //             status.requested_voltage_mv,
+        //             status.fault_state );
+        //     console_lock_release();
+        //     last_status = status;
+        // }
+        // if( (heartbeat_counter % 10U) == 0U ) {
+        //     console_lock_acquire();
+        //     printf( "[APP4] safe_mode=%u breaker_closed=%u charging_allowed=%u heartbeat=%u\n",
+        //             safety.safe_mode,
+        //             safety.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+        //             safety.charging_allowed,
+        //             safety.heartbeat_counter );
+        //     console_lock_release();
+        // }
+
+
+        heartbeat_counter++;
+        usleep( WORKSHOP_COMMAND_PERIOD_MS * 1000U );
+    }
+
+#endif
+
+    if( input_fd > STDERR_FILENO )
+    {
+        close( input_fd );
+    }
+
+    if( g_shmem_region != NULL )
+    {
+        munmap( g_shmem_region, SHMEM_SIZE );
+    }
+
+    return 0;
+}
+
+// Signal handler to gracefully exit the main loop
 static void on_signal( int sig )
 {
     ( void ) sig;
     keep_running = 0;
-}
-
-static void set_name( volatile shared_slot_t * slot, const char * name )
-{
-    size_t i = 0U;
-
-    while( i < sizeof( slot->name ) - 1U && name[ i ] != '\0' )
-    {
-        slot->name[ i ] = name[ i ];
-        i++;
-    }
-
-    while( i < sizeof( slot->name ) )
-    {
-        slot->name[ i++ ] = '\0';
-    }
-}
-
-int main( void )
-{
-    int fd;
-    void * map;
-    volatile shared_state_t * state;
-    uint32_t seen[ MAX_HARTS ] = { 0U };
-    uint32_t heartbeat = 0U;
-
-    signal( SIGINT, on_signal );
-    signal( SIGTERM, on_signal );
-
-    fd = open( "/dev/mem", O_RDWR | O_SYNC );
-    if( fd < 0 )
-    {
-        fprintf( stderr, "[APP4] open(/dev/mem) failed: %s\n", strerror( errno ) );
-        return 1;
-    }
-
-    map = mmap( NULL, SHARED_MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, SHARED_MEM_BASE );
-    if( map == MAP_FAILED )
-    {
-        fprintf( stderr, "[APP4] mmap failed: %s\n", strerror( errno ) );
-        close( fd );
-        return 1;
-    }
-
-    state = ( volatile shared_state_t * ) map;
-
-#if !defined( USE_HALO ) || ( USE_HALO == 0 )
-    classical_hello();
-#else
-    printf( "\n[APP4] Starting Appl HALO\n" );
-
-    halo_linux_h4_init_riscv64_h4_linux();
-#endif
-
-    fflush( stdout );
-
-    while( keep_running )
-    {
-        volatile shared_slot_t * slot = &state->slots[ 0 ];
-
-        state->magic = SHARED_MAGIC;
-        state->version = 1U;
-        slot->magic = SLOT_MAGIC;
-        slot->hart_id = 0U;
-        slot->heartbeat = heartbeat;
-        set_name( slot, "APP4" );
-        state->ready_mask |= 1U; 
-
-        printf( "[APP4] heartbeat %u\n", heartbeat++ );
-
-        for( uint32_t hart = 1U; hart < MAX_HARTS; ++hart )
-        {
-            volatile shared_slot_t * peer = &state->slots[ hart ];
-
-            if( peer->magic == SLOT_MAGIC && peer->heartbeat != seen[ hart ] )
-            {
-                seen[ hart ] = peer->heartbeat;
-                printf( "[APP4] saw hart%u (%s) heartbeat %u\n",
-                        hart, peer->name, peer->heartbeat );
-            }
-        }
-
-        fflush( stdout );
-        sleep( 1 );
-    }
-
-    munmap( map, SHARED_MEM_SIZE );
-    close( fd );
-    return 0;
 }
