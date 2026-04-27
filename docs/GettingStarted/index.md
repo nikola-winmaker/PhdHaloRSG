@@ -107,20 +107,21 @@ One of the simplest paths in that sample is:
 
 Interfaces define the data contract. The IDL grammar requires:
 
-- **interface name**: unique identifier  
-- **access block**: specifies read and write access to data types
   - **read**: list of type names that can be read (or `*` for all)
   - **write**: list of type names that can be written (or `*` for all)
-- **integrity block** (optional): specifies integrity checks
   - **crc16**, **crc32**, etc.: list of types protected by the corresponding check
+
+**Note:**
+
+- The `read` block is optional. If omitted, the interface will allow reading all data referenced by the connection's `from` and `to` components in the ADL. To restrict reads, specify the types explicitly.
+- The `write` block must always be specified in the interface to define what data can be written.
+- The `integrity` block is optional and only needed if you want to enforce integrity checks (like CRC).
 
 ```idl
 interface TstIf_1 {
     access {
         read {
-            SharedData
-            SharedData2 
-            SharedData3
+
         } 
         write {
             SharedData 
@@ -131,7 +132,6 @@ interface TstIf_1 {
 
     integrity {
         crc16 {
-            SharedData2
         }
 
         crc32 {
@@ -145,9 +145,14 @@ Data types are defined in IDDL (Interface Data Definition Language) files. IDDL 
 
 - **dataStructures** block: contains all data type definitions
 - **StructDef**: named structure with typed fields
-  - **Field types**: `byte`, `int`, `integer`, `unsigned int`
-  - **Arrays**: `fieldName[size]` with optional initializers
-  - **Initializers**: `fieldName = value`
+
+**IDDL Supported Types**
+
+- **Primitive types:** `bool`, `byte`, `int`, `float`, `double`, `unsigned int`, `string`
+- **Array types:** Add an array suffix to the field name, e.g., `fieldName[128]`
+    - Example: `byte buffer[256]`
+- **Initializers:** Arrays and fields can have default values, e.g., `byte data[16] = 0`
+- **Note:** `string` fields represent char array in generated code with size of initial init of the value.
 
 A generic IDDL file follows this structure:
 
