@@ -255,9 +255,30 @@ Profiles {
 Built-in profiles (via `--include-stdlib-profiles`) come preconfigured and ready to use. HALO provides three standard protocol generators with the following platform support:
 
 
-| **SharedMemory** - Direct shared-memory access with configurable caching, coherence, and synchronization 
-| **Blackboard**   - Sampled-data port pattern: one writer updates the latest value, readers always see the newest snapshot 
-| **EventChannel** - Event-driven pattern: components communicate by sending/receiving timestamped events 
+### Built-in Profile Attributes
+
+| Profile        | Attribute         | Meaning                                                                 |
+|---------------|-------------------|-------------------------------------------------------------------------|
+| **SharedMemory** | `memSize`         | Size of the shared memory region (e.g., 64MB)                           |
+|               | `baseAddress`     | Base address of the shared memory region                                |
+|               | `cacheable`       | Whether the region is cacheable (`True`/`False`)                        |
+|               | `policy`          | Cache policy: `WriteBack`, `WriteThrough`, or `NonCacheable`            |
+|               | `cacheLine`       | Cache line size for software maintenance (e.g., 64B)                    |
+|               | `coherence`       | Coherence management: `Software` or `Hardware`                          |
+|               | `syncType`        | Synchronization type: `AcquireRelease`, `FullFence`, or `None`          |
+|               | `permissions`     | Access permissions: `RW` (read/write), etc.                             |
+|               | `priority`        | Access priority: `Critical`, `High`, `Medium`, `Low`                    |
+|               | `syncBlocking`    | Whether synchronization is blocking (`True`/`False`)                    |
+|               | `syncPrimitive`   | Synchronization primitive used (e.g., `mutex`)                          |
+| **Blackboard**   | `maxPayload`       | Maximum payload size for a single sample                                |
+|               | `bufferSize`      | Total buffer size for the blackboard                                    |
+|               | `baseAddress`     | Base address of the blackboard memory region                            |
+| **EventChannel** | `eventQueueSize`   | Number of events that can be queued                                     |
+|               | `maxChannels`     | Maximum number of event channels                                        |
+|               | `baseAddress`     | Base address of the event channel region                                |
+|               | `eventType`       | Type of event (e.g., `signal`)                                         |
+|               | `timeout`         | Timeout for event operations (e.g., in ms)                              |
+|               | `blocking`        | Whether event operations are blocking (`True`/`False`)                  |
 
 Select the appropriate profile based on your communication semantics needs and target platform availability.
 
