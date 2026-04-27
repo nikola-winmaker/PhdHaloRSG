@@ -257,9 +257,9 @@ Built-in profiles (via `--include-stdlib-profiles`) come preconfigured and ready
 
 ### Built-in Profile Attributes
 
-| Profile        | Attribute         | Meaning                                                                 |
+| Profile        | Attribute         | Meaning                                                                |
 |---------------|-------------------|-------------------------------------------------------------------------|
-| **SharedMemory** | `memSize`         | Size of the shared memory region (e.g., 64MB)                           |
+| **SharedMemory** | `memSize`         | Size of the shared memory region (e.g., 64MB)                        |
 |               | `baseAddress`     | Base address of the shared memory region                                |
 |               | `cacheable`       | Whether the region is cacheable (`True`/`False`)                        |
 |               | `policy`          | Cache policy: `WriteBack`, `WriteThrough`, or `NonCacheable`            |
@@ -270,13 +270,13 @@ Built-in profiles (via `--include-stdlib-profiles`) come preconfigured and ready
 |               | `priority`        | Access priority: `Critical`, `High`, `Medium`, `Low`                    |
 |               | `syncBlocking`    | Whether synchronization is blocking (`True`/`False`)                    |
 |               | `syncPrimitive`   | Synchronization primitive used (e.g., `mutex`)                          |
-| **Blackboard**   | `maxPayload`       | Maximum payload size for a single sample                                |
+| **Blackboard**   | `maxPayload`       | Maximum payload size for a single sample                            |
 |               | `bufferSize`      | Total buffer size for the blackboard                                    |
 |               | `baseAddress`     | Base address of the blackboard memory region                            |
-| **EventChannel** | `eventQueueSize`   | Number of events that can be queued                                     |
-|               | `maxChannels`     | Maximum number of event channels                                        |
+| **EventChannel** | `eventQueueSize`   | Size of an event that will be be queued                             |
+|               | `maxChannels`     | Maximum number of event channels - 1 for one event                      |
 |               | `baseAddress`     | Base address of the event channel region                                |
-|               | `eventType`       | Type of event (e.g., `signal`)                                         |
+|               | `eventType`       | Type of event (e.g., `signal`)                                          |
 |               | `timeout`         | Timeout for event operations (e.g., in ms)                              |
 |               | `blocking`        | Whether event operations are blocking (`True`/`False`)                  |
 
