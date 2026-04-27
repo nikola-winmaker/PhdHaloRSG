@@ -1,0 +1,17 @@
+// Define BatteryChargingSystem with components that will be of platform:
+
+//When defining components, use the following platform names:
+//  Platform: riscv64_h1_zephyr
+//  Platform: riscv64_h2_freertos
+//  Platform: riscv64_h3_baremetal
+//  Platform: riscv64_h4_linux
+
+//Connections and Profile Mapping
+//  SensorTelemetry: SharedMemory
+//  ChargingCommand: SharedMemory
+//  ChargingStatus: BlackBoard
+//  SafetyReport: BlackBoard
+//  OperatorControl: EventChannel
+
+
+// USE code snippets by typing ADL

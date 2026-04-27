@@ -1,0 +1,10 @@
+// Profiles built-in
+
+//| Profile       | Required Attributes                        | Notes                      |
+//|---------------|--------------------------------------------|----------------------------|
+//| SharedMemory  | memSize, baseAddress                       | Set values per task sheet. |
+//| BlackBoard    | maxPayload, bufferSize, baseAddress        | Set values per task sheet. |
+//| EventChannel  | eventQueueSize, maxChannels, baseAddress   | Set values per task sheet. |
+
+
+// USE code snippets by typing HML
