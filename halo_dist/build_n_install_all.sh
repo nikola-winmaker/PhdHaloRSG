@@ -46,7 +46,8 @@ if [ "${EUID}" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
     SUDO="sudo"
 fi
 
-PIP_COMMON_FLAGS=(--break-system-packages --ignore-installed)
+PIP_COMMON_FLAGS=(--break-system-packages)
+PIP_REINSTALL_FLAGS=(--break-system-packages --ignore-installed)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -113,12 +114,47 @@ echo ""
 
 if [ "$BUILD_WHEELS" = true ]; then
     echo "Ensuring wheel build backend is available..."
-    "${PYTHON_BIN}" -m pip install "${PIP_COMMON_FLAGS[@]}" --upgrade build
+    "${PYTHON_BIN}" -m pip install "${PIP_REINSTALL_FLAGS[@]}" --upgrade build
     echo ""
 fi
 
 SUCCESS_COUNT=0
 FAIL_COUNT=0
+
+clean_editable_import_shadows() {
+    local pkg="$1"
+
+    if [ ! -d "${pkg}/src" ]; then
+        return 0
+    fi
+
+    local -a module_names=()
+    mapfile -t module_names < <(
+        find "${pkg}/src" -mindepth 1 -maxdepth 1 -type d \
+            -exec test -f "{}/__init__.py" \; -print |
+            sed 's#.*/##' |
+            sort
+    )
+
+    if [ ${#module_names[@]} -eq 0 ]; then
+        return 0
+    fi
+
+    local -a site_dirs=()
+    mapfile -t site_dirs < <("${PYTHON_BIN}" -c 'import site; print("\n".join(site.getsitepackages()))')
+
+    local site_dir
+    local module_name
+    for site_dir in "${site_dirs[@]}"; do
+        for module_name in "${module_names[@]}"; do
+            local shadow_dir="${site_dir}/${module_name}"
+            if [ -d "${shadow_dir}" ]; then
+                echo "Removing stale import shadow: ${shadow_dir}"
+                ${SUDO} rm -rf "${shadow_dir}"
+            fi
+        done
+    done
+}
 
 run_for_all() {
     local mode="$1"
@@ -137,6 +173,8 @@ run_for_all() {
         if [ "${mode}" = "Building wheels" ]; then
             cmd=("${PYTHON_BIN}" -m build --wheel)
         elif [ "${mode}" = "Installing editable" ]; then
+            ${SUDO} "${PYTHON_BIN}" -m pip uninstall -y "${pkg_name}" >/dev/null 2>&1 || true
+            clean_editable_import_shadows "${pkg}"
             cmd=(${SUDO} "${PYTHON_BIN}" -m pip install "${PIP_COMMON_FLAGS[@]}" -e .)
         else
             local wheel_target=""
@@ -166,7 +204,7 @@ run_for_all() {
                 continue
             fi
 
-            cmd=(${SUDO} "${PYTHON_BIN}" -m pip install "${PIP_COMMON_FLAGS[@]}" --force-reinstall ${wheel_target})
+            cmd=(${SUDO} "${PYTHON_BIN}" -m pip install "${PIP_REINSTALL_FLAGS[@]}" --force-reinstall ${wheel_target})
         fi
 
         if "${cmd[@]}"; then
@@ -191,7 +229,7 @@ fi
 if [ -n "${CORE_WHEEL}" ]; then
     echo "Installing core HALO wheel: $(basename "${CORE_WHEEL}")"
     echo "-----------------------------------"
-    if ${SUDO} "${PYTHON_BIN}" -m pip install "${PIP_COMMON_FLAGS[@]}" --force-reinstall "${CORE_WHEEL}"; then
+    if ${SUDO} "${PYTHON_BIN}" -m pip install "${PIP_REINSTALL_FLAGS[@]}" --force-reinstall "${CORE_WHEEL}"; then
         echo "[OK] core HALO wheel installed successfully"
         SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
     else
