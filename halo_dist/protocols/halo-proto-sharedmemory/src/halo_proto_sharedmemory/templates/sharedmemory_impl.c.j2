@@ -204,7 +204,7 @@ int sharedmemory_recv(const sharedmemory_channel_t *chan, void *dst, halo_size_t
         sharedmemory_unlock(chan);
         return 0; /* Data not yet available */
     }
-    
+
     /* Verify CRC if enabled */
     if (SHAREDMEMORY_CRC_TYPE != SHAREDMEMORY_CRC_NONE) {
         halo_u8_t *payload = (halo_u8_t *)(header + 1);
@@ -214,7 +214,19 @@ int sharedmemory_recv(const sharedmemory_channel_t *chan, void *dst, halo_size_t
             return -1; /* CRC mismatch */
         }
     }
-    
+
+    /* HALO USER CODE BEGIN: freshness */
+
+    /* TODO: Implement freshness:
+    Strict freshness policy:
+     * Track the last accepted sequence internally per channel and reject
+     * duplicate messages or index < prev_index. Current sequence of message is read from header->sequence
+     You can implement the logic in this generated file or directly from template:
+     halo_dist/protocols/halo-proto-sharedmemory/src/halo_proto_sharedmemory/templates/sharedmemory_impl.c.j2
+     .*/
+
+    /* HALO USER CODE END: freshness */
+
     /* Copy payload to destination */
     halo_size_t copy_len = (header->size < len) ? header->size : len;
     halo_u8_t *payload = (halo_u8_t *)(header + 1);
