@@ -156,6 +156,37 @@ clean_editable_import_shadows() {
     done
 }
 
+clean_sitepackage_shadows() {
+    # Remove stale module directories and dist-info/egg-info for a package name
+    # usage: clean_sitepackage_shadows <module_basename>
+    local base="$1"
+    if [ -z "${base}" ]; then
+        return 0
+    fi
+
+    local -a site_dirs=()
+    mapfile -t site_dirs < <("${PYTHON_BIN}" -c 'import site, json; print("\n".join(site.getsitepackages()))')
+
+    local site_dir
+    for site_dir in "${site_dirs[@]}"; do
+        # module directory (halo)
+        local mod_dir="${site_dir}/${base}"
+        if [ -d "${mod_dir}" ]; then
+            echo "Removing stale module dir: ${mod_dir}"
+            ${SUDO} rm -rf "${mod_dir}"
+        fi
+
+        # dist-info and egg-info
+        local di
+        for di in "${site_dir}/${base}-"*".dist-info" "${site_dir}/${base}-"*".egg-info"; do
+            if [ -e "${di}" ]; then
+                echo "Removing stale packaging metadata: ${di}"
+                ${SUDO} rm -rf "${di}"
+            fi
+        done
+    done
+}
+
 run_for_all() {
     local mode="$1"
     local ok_suffix="$2"
@@ -204,6 +235,16 @@ run_for_all() {
                 continue
             fi
 
+            # Ensure any previously installed package artifacts are removed
+            ${SUDO} "${PYTHON_BIN}" -m pip uninstall -y "${pkg_name}" >/dev/null 2>&1 || true
+            # also remove common module-name shadows (hyphens -> underscores)
+            local normalized_pkg
+            normalized_pkg="${pkg_name//-/_}"
+            clean_sitepackage_shadows "${pkg_name}" || true
+            if [ "${normalized_pkg}" != "${pkg_name}" ]; then
+                clean_sitepackage_shadows "${normalized_pkg}" || true
+            fi
+
             cmd=(${SUDO} "${PYTHON_BIN}" -m pip install "${PIP_REINSTALL_FLAGS[@]}" --force-reinstall ${wheel_target})
         fi
 
@@ -229,6 +270,10 @@ fi
 if [ -n "${CORE_WHEEL}" ]; then
     echo "Installing core HALO wheel: $(basename "${CORE_WHEEL}")"
     echo "-----------------------------------"
+    # Ensure previous halo installs are removed to avoid stale versions
+    ${SUDO} "${PYTHON_BIN}" -m pip uninstall -y halo >/dev/null 2>&1 || true
+    clean_sitepackage_shadows "halo" || true
+
     if ${SUDO} "${PYTHON_BIN}" -m pip install "${PIP_REINSTALL_FLAGS[@]}" --force-reinstall "${CORE_WHEEL}"; then
         echo "[OK] core HALO wheel installed successfully"
         SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
