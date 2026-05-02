@@ -1,7 +1,7 @@
 {
-  "HADL ADL - HALOFramework skeleton": {
+  "HADL ADL - System": {
     "scope": "hadl,plaintext",
-    "prefix": "addl",
+    "prefix": "adl_all",
     "description": "Create a full HALOFramework ADL skeleton",
     "body": [
       "${1:SystemName} {",
@@ -22,7 +22,7 @@
   },
   "HADL ADL - Component": {
     "scope": "hadl,plaintext",
-    "prefix": "addl_comp",
+    "prefix": "adl_comp",
     "description": "Insert a Component definition",
     "body": [
       "${1:Name} : Component { Type: ${2|Application,Acceleration|}, Platform: ${3:Linux}, Function: ${4|GeneralProcessing,RealTimeProcessing,OffloadProcessing|} }"
@@ -30,7 +30,7 @@
   },
   "HADL ADL - Connection": {
     "scope": "hadl,plaintext",
-    "prefix": "addl_conn",
+    "prefix": "adl_conn",
     "description": "Insert a connection block",
     "body": [
       "connection ${1:ConnectionName} {",
