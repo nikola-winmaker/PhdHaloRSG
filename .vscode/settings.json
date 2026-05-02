@@ -14,5 +14,12 @@
       "strings": true
     },
     "editor.suggestOnTriggerCharacters": true
-  }
+  },
+  "todo-tree.filtering.excludeGlobs": [
+    "SETUP.md",
+    "**/halo_dist/platforms/**",
+    "**/deps/opensbi/**",
+    "**/deps/**",
+    "**/boot/**"
+  ]
 }
