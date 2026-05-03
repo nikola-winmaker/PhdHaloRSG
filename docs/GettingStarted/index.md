@@ -7,7 +7,7 @@ Start here if you want to install HALO, compose a model, generate code, and exte
 To install HALO directly from the wheel hosted in GitHub:
 
 ```bash
-python -m pip install "https://github.com/nikola-winmaker/PhdHaloRSG/blob/main/halo/halo-0.1.1-py3-none-any.whl?raw=1"
+python -m pip install "https://github.com/nikola-winmaker/PhdHaloRSG/blob/main/halo_dist/halo-0.1.2-py3-none-any.whl?raw=1"
 ```
 
 After installation, verify the CLI:
