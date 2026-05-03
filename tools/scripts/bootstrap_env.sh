@@ -179,10 +179,13 @@ gitlink_commit() {
 }
 
 install_host_tools() {
-    local halo_wheel="${ROOT_DIR}/halo_dist/halo-0.1.1-py3-none-any.whl"
     local halo_dist_dir="${ROOT_DIR}/halo_dist"
     local halo_build_script="${halo_dist_dir}/build_n_install_all.sh"
+    local halo_wheel=""
     local -a halo_extra_wheels=()
+    
+    # Find halo wheel file (supports any version)
+    halo_wheel=$(find "${halo_dist_dir}" -maxdepth 1 -type f -name 'halo-*.whl' | head -n 1)
 
     if ! command -v "${APT_GET}" >/dev/null 2>&1; then
         err "${APT_GET} not found. This bootstrap currently supports Debian/Ubuntu-style systems."
@@ -245,10 +248,11 @@ install_host_tools() {
     fi
 
     info "Ensuring Halo CLI is installed"
-    if [ ! -f "${halo_wheel}" ]; then
-        err "Halo wheel not found: ${halo_wheel}"
+    if [ -z "${halo_wheel}" ] || [ ! -f "${halo_wheel}" ]; then
+        err "Halo wheel not found in ${halo_dist_dir} (looking for halo-*.whl)"
         exit 1
     fi
+    info "Using Halo wheel: ${halo_wheel}"
     if ! command -v halo >/dev/null 2>&1; then
         ${SUDO} python3 -m pip install --break-system-packages "${halo_wheel}"
     fi
