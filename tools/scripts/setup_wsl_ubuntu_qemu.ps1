@@ -35,11 +35,97 @@ function Convert-ToWslPath {
     return "/mnt/$drive$rest"
 }
 
+function Get-WslDistroNames {
+    $names = @()
+    $rawNames = & wsl.exe --list --quiet 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        return $names
+    }
+
+    foreach ($rawName in $rawNames) {
+        $name = ($rawName -replace "`0", "").Trim()
+        if (-not [string]::IsNullOrWhiteSpace($name)) {
+            $names += $name
+        }
+    }
+
+    return $names
+}
+
+function Test-WslDistroInstalled {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    return (Get-WslDistroNames) -contains $Name
+}
+
+function Test-WslBashReady {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    $output = & wsl.exe -d $Name -- bash -lc "printf ready" 2>$null
+    return ($LASTEXITCODE -eq 0 -and ($output -join "") -eq "ready")
+}
+
+function Install-WslDistroIfMissing {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    if (Test-WslDistroInstalled -Name $Name) {
+        Write-Info "WSL distro '$Name' is already installed"
+        return
+    }
+
+    Write-Step "Installing WSL distro '$Name'"
+    & wsl.exe --install -d $Name --no-launch
+    if ($LASTEXITCODE -ne 0) {
+        Write-Info "Retrying without --no-launch for older WSL versions"
+        & wsl.exe --install -d $Name
+        if ($LASTEXITCODE -ne 0) {
+            throw "wsl --install failed. Run 'wsl --list --online' to confirm the distro name, then rerun with -Distro <name>."
+        }
+    }
+
+    if (-not (Test-WslDistroInstalled -Name $Name)) {
+        throw @"
+WSL accepted the install request, but distro '$Name' is not registered yet.
+
+This usually means Windows needs a reboot or the Ubuntu first-run setup has not completed.
+After reboot, run:
+  wsl -d $Name
+
+Create the Ubuntu user when prompted, then rerun:
+  powershell -ExecutionPolicy Bypass -File tools/scripts/setup_wsl_ubuntu_qemu.ps1 -Distro $Name
+"@
+    }
+}
+
+function Assert-WslBashReady {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    if (Test-WslBashReady -Name $Name) {
+        return
+    }
+
+    throw @"
+WSL distro '$Name' is installed, but Ubuntu is not ready to run bash commands yet.
+
+Open it once and finish the Ubuntu first-run setup:
+  wsl -d $Name
+
+Create the Ubuntu user when prompted, exit Ubuntu, then rerun:
+  powershell -ExecutionPolicy Bypass -File tools/scripts/setup_wsl_ubuntu_qemu.ps1 -Distro $Name
+"@
+}
+
 function Invoke-WslBash {
     param(
         [Parameter(Mandatory = $true)][string]$Command,
         [string]$TargetDistro = $Distro
     )
+
+    if (-not (Test-WslDistroInstalled -Name $TargetDistro)) {
+        throw "WSL distro '$TargetDistro' is not installed. Run 'wsl --list --online' and rerun this script with a valid -Distro value."
+    }
+
+    Assert-WslBashReady -Name $TargetDistro
 
     & wsl.exe -d $TargetDistro -- bash -lc $Command
     if ($LASTEXITCODE -ne 0) {
@@ -444,16 +530,18 @@ Write-Step "Enabling WSL and Virtual Machine Platform features"
 dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart | Out-Host
 dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart | Out-Host
 
-Write-Step "Installing WSL with distro '$Distro'"
-wsl.exe --install -d $Distro
-if ($LASTEXITCODE -ne 0) {
-    throw "wsl --install failed."
-}
-
 Write-Step "Ensuring WSL 2 is the default"
 wsl.exe --set-default-version 2
 if ($LASTEXITCODE -ne 0) {
     throw "wsl --set-default-version 2 failed."
+}
+
+Install-WslDistroIfMissing -Name $Distro
+
+Write-Step "Ensuring distro '$Distro' uses WSL 2"
+wsl.exe --set-version $Distro 2
+if ($LASTEXITCODE -ne 0) {
+    throw "wsl --set-version $Distro 2 failed. If Windows just enabled WSL, reboot and rerun this script."
 }
 
 Write-Step "Checking distro status"
