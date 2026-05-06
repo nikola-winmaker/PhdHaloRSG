@@ -18,6 +18,7 @@
   "todo-tree.filtering.excludeGlobs": [
     "SETUP.md",
     "**/halo_dist/platforms/**",
+    "**/halo_dist/protocols/halo-proto-sharedmemory/build/**",
     "**/deps/opensbi/**",
     "**/deps/**",
     "**/boot/**"

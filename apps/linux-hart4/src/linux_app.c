@@ -36,7 +36,7 @@
 // Flag to control the main loop execution
 static volatile sig_atomic_t keep_running = 1;
 
-//TODO Classical: Define ChargeStatus, SafetyState, and OperatorCommand structures 
+//TODO Classical: 0. Define ChargeStatus, SafetyState, and OperatorCommand structures 
 // based on the workshop specification only for the classical implementation!.
 
 /************************* FUNCTION SECTION *************************/
@@ -144,7 +144,7 @@ int main( void )
     while( keep_running )
     {
         /* This is a demo loop to showcase the application running */
-        /*TODO Classical: Delete the following line once you implement the actual logic */
+        /*TODO Classical: 4. Delete the following line once you implement the actual logic */
         if( ( heartbeat_counter % 10U ) == 0U )
         {
             printf( "[APP4] classical demo loop\n" );
@@ -250,7 +250,7 @@ int main( void )
     /*4. Define heartbeat_counter as a uint32_t that increments on each loop iteration.*/
     uint32_t heartbeat_counter = 0U;
 
-    /*TODO HALO: 5. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
+    /*TODO HALO: 4. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h4_linux/src/halo_api.c
     */
@@ -259,13 +259,13 @@ int main( void )
     {
 
         /* This is a demo loop to showcase the application running */
-        /*TODO HALO: Delete the following line once you implement the actual logic */
+        /*TODO HALO: 5a. Delete the following line once you implement the actual logic */
         if( ( heartbeat_counter % 10U ) == 0U )
         {
             printf( "[APP4] HALO demo loop\n" );
         }
 
-        //TODO HALO: 5. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
+        //TODO HALO: 5b. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
         // command_rcv = service_console_input( input_fd, &command );
         // if( command_rcv < 0 )
         // {

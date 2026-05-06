@@ -68,6 +68,20 @@
       "}"
     ]
   },
+  "HADL IDL - Interface basic": {
+    "scope": "hadl,plaintext",
+    "prefix": "idl_basic",
+    "description": "Insert an IDL interface with only write block",
+    "body": [
+      "interface ${2:InterfaceName} {",
+      "    access {",
+      "        write {",
+      "            ${4:DataStructureName}",
+      "        }",
+      "    }",
+      "}"
+    ]
+  },
   "HADL IDL - include": {
     "scope": "hadl,plaintext",
     "prefix": "idl_include",
@@ -89,7 +103,7 @@
 
   "HADL IDDL - dataStructures skeleton": {
     "scope": "hadl,plaintext",
-    "prefix": "iddl_dts",
+    "prefix": "iddl_all_dataStructures",
     "description": "Insert an IDDL dataStructures block",
     "body": [
       "dataStructures {",
@@ -164,11 +178,9 @@
     "body": [
         "// override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles",
       "EventChannel ${1:eventChannelProfile} {",
-      "    eventQueueSize: ${2:256}",
-      "    maxChannels: ${3:5}",
-      "    eventType: \"${4:signal}\"",
-      "    timeout: ${5:5000}",
-      "    blocking: ${6|True,False|}",
+      "    eventQueueSize: ${2:16B}",
+      "    maxChannels: ${3:1}",
+      "    baseAddress: ${4:0x80000000}",
       "}"
     ]
   },
@@ -179,8 +191,9 @@
     "body": [
       "// override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles",
       "BlackBoard ${1:blackBoardProfile} {",
-      "    maxPayload: ${2:64}",
-      "    bufferSize: ${3:512}",
+      "    maxPayload: ${2:64B}",
+      "    bufferSize: ${3:64B}",
+      "    baseAddress: ${4:0x80000000}",
       "}"
     ]
   },
@@ -191,17 +204,9 @@
     "body": [
       "// override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles",
       "SharedMemory ${1:sharedMemoryProfile1} {",
-      "    memSize: ${2:64MB}",
+      "    memSize: ${2:512B}",
+      "    syncBlocking: True",
       "    baseAddress: ${3:0x80000000}",
-      "    cacheable: ${4|True,False|}",
-      "    policy: ${5|WriteBack,WriteThrough,NonCacheable|}",
-      "    cacheLine: ${6:64B}",
-      "    coherence: ${7|Software,Hardware|}",
-      "    syncType: ${8|AcquireRelease,FullFence,None|}",
-      "    permissions: ${9|RW,RO,WO|}",
-      "    priority: ${10|Critical,High,Medium,Low|}",
-      "    syncBlocking: ${11|True,False|}",
-      "    syncPrimitive: ${12|mutex,semaphore,spinlock|}",
       "}"
     ]
   },
@@ -215,30 +220,21 @@
       "// If you are referencing built-in profiles don't forgert to use --include-stdlib-profiles when composing your system.",
       "Profiles {",
       "    EventChannel ${1:eventChannelProfile} {",
-      "        eventQueueSize: ${2:256}",
-      "        maxChannels: ${3:5}",
-      "        eventType: \"${4:signal}\"",
-      "        timeout: ${5:5000}",
-      "        blocking: ${6|True,False|}",
+      "        eventQueueSize: ${2:16B}",
+      "        maxChannels: ${3:1}",
+      "        baseAddress: ${4:0x80000000}",
       "    }",
       "",
       "    BlackBoard ${7:blackBoardProfile} {",
-      "        maxPayload: ${8:64}",
-      "        bufferSize: ${9:512}",
+      "        maxPayload: ${8:64B}",
+      "        bufferSize: ${9:64B}",
+      "        baseAddress: ${10:0x80000000}",
       "    }",
       "",
       "    SharedMemory ${10:sharedMemoryProfile1} {",
-      "        memSize: ${11:64MB}",
+      "        memSize: ${11:512B}",
+      "        syncBlocking: True",
       "        baseAddress: ${12:0x80000000}",
-      "        cacheable: ${13|True,False|}",
-      "        policy: ${14|WriteBack,WriteThrough,NonCacheable|}",
-      "        cacheLine: ${15:64B}",
-      "        coherence: ${16|Software,Hardware|}",
-      "        syncType: ${17|AcquireRelease,FullFence,None|}",
-      "        permissions: ${18|RW,RO,WO|}",
-      "        priority: ${19|Critical,High,Medium,Low|}",
-      "        syncBlocking: ${20|True,False|}",
-      "        syncPrimitive: ${21|mutex,semaphore,spinlock|}",
       "    }",
       "}"
     ]

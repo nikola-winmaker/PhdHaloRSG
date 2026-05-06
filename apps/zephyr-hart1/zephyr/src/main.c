@@ -22,7 +22,7 @@
 
 /************************* GLOBAL SECTION *************************/
 
-//TODO Classical: Define SensorFrame structure based on the workshop specification only for the classical implementation!. 
+//TODO Classical: 0. Define SensorFrame structure based on the workshop specification only for the classical implementation!. 
 
 
 /************************* FUNCTION SECTION *************************/
@@ -103,7 +103,7 @@ int main( void )
     while( 1 )
     {
         /* This is a demo loop to showcase the application running */
-        /* TODO Classical: This is for demonstration purposes only and should be deleted when workshop code is written */
+        /* TODO Classical: 2. This is for demonstration purposes only and should be deleted when workshop code is written */
         if( ( heartbeat_counter % 20U ) == 0U)
         {
             printk( "[APP1] classical demo loop\n" );
@@ -202,7 +202,7 @@ int main( void )
     uint32_t bms_cmd_id = 0U;
     uint32_t bms_cmd_param = 0U;
 
-    /* TODO HALO: 3. Declare a variable of type SensorFrame generated from HALO
+    /* TODO HALO: 2. Declare a variable of type SensorFrame generated from HALO
       - SensorFrame struct is available from HALO generated code from deps/halo/codegen/riscv64_h1_zephyr/include/halo_structs.h
     */
 
@@ -214,7 +214,7 @@ int main( void )
     {
 
         /* This is a demo loop to showcase the application running */
-        /* TODO HALO: This is for demonstration purposes only and should be deleted when workshop code is written */
+        /* TODO HALO: 3. This is for demonstration purposes only and should be deleted when workshop code is written */
         if( ( heartbeat_counter % 20U ) == 0U)
         {
             printk( "[APP1] HALO demo loop\n" );

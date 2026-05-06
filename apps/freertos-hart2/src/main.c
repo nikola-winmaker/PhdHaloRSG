@@ -25,7 +25,7 @@
 
 /************************* GLOBAL SECTION *************************/
 
-//TODO Classical: Structure definitions for SensorFrame, ChargeCommand, ChargeStatus, 
+//TODO Classical: 0. Structure definitions for SensorFrame, ChargeCommand, ChargeStatus, 
 // and OperatorCommand based on the workshop specification only for the classical implementation!.
 
 /************************* FUNCTION SECTION *************************/
@@ -143,7 +143,7 @@ static void charge_ctrl_task( void * parameters )
     {
         
         /* This is a demo loop to showcase the application running */
-        // TODO Classical: Delete the demo loop when writing the actual implementation
+        // TODO Classical: 5. Delete the demo loop when writing the actual implementation
         if( ( heartbeat_counter % 20U ) == 0U ){
             uart_log( "[APP2] classical demo loop\n" );
         }
@@ -293,7 +293,7 @@ static void charge_ctrl_task( void * parameters )
     // Init the charge controller state
     charge_controller_init();
 
-    /*TODO HALO: 6. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
+    /*TODO HALO: 5. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h2_freertos/src/halo_api.c
     */
@@ -304,7 +304,7 @@ static void charge_ctrl_task( void * parameters )
         int recv_rc;
 
         /* This is a demo loop to showcase the application running */
-        // TODO HALO: Delete the demo loop when writing the actual implementation
+        // TODO HALO: 6. Delete the demo loop when writing the actual implementation
         if( ( heartbeat_counter % 10 ) == 0U){
             uart_log( "[APP2] HALO demo loop\n" );
         }

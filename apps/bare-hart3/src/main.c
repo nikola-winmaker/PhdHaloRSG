@@ -22,7 +22,7 @@
 #endif
 
 /************************* GLOBAL SECTION *************************/
-//TODO Classical: Structure definitions for ChargeCommand and SafetyState 
+//TODO Classical: 0. Structure definitions for ChargeCommand and SafetyState 
 // based on the workshop specification only for the classical implementation!.
 
 
@@ -107,7 +107,7 @@ void _start_c( void )
     {
 
         /* This is a demo loop to showcase the application running 
-        TODO Classical: delete it when writing the actual implementation */
+        TODO Classical: 3. Delete it when writing the actual implementation */
         if( ( heartbeat_counter % 10U ) == 0U ){
             uart_log( "[APP3] classical demo loop\n" );
         }
@@ -211,7 +211,7 @@ void _start_c( void )
     /* 3. Define heartbeat_counter as a uint32_t that increments on each loop iteration.*/
     uint32_t heartbeat_counter = 0U;
 
-    /*TODO HALO: 4. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
+    /*TODO HALO: 3. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h3_baremetal/src/halo_api.c
     */
@@ -220,7 +220,7 @@ void _start_c( void )
     {
 
         /* This is a demo loop to showcase the application running 
-        TODO HALO:  delete it when writing the actual implementation */
+        TODO HALO: 4. delete it when writing the actual implementation */
         if( ( heartbeat_counter % 10U ) == 0U ){
             uart_log( "[APP3] HALO demo loop\n" );
         }
