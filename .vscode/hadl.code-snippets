@@ -231,10 +231,10 @@
       "        baseAddress: ${10:0x80000000}",
       "    }",
       "",
-      "    SharedMemory ${10:sharedMemoryProfile1} {",
-      "        memSize: ${11:512B}",
+      "    SharedMemory ${11:sharedMemoryProfile1} {",
+      "        memSize: ${12:512B}",
       "        syncBlocking: True",
-      "        baseAddress: ${12:0x80000000}",
+      "        baseAddress: ${13:0x80000000}",
       "    }",
       "}"
     ]
