@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -36,8 +37,33 @@
 // Flag to control the main loop execution
 static volatile sig_atomic_t keep_running = 1;
 
-//TODO Classical: 0. Define ChargeStatus, SafetyState, and OperatorCommand structures 
-// based on the workshop specification only for the classical implementation!.
+typedef struct
+{
+    char charger_state[32];
+    uint64_t requested_current_ma;
+    uint64_t requested_voltage_mv;
+    uint64_t fault_state;
+    unsigned int status;
+    unsigned int lock;
+}ChargeStatusIf;
+
+typedef struct
+{
+    bool safe_mode;
+    bool breaker_open;
+    bool charging_allowed;
+    uint64_t heartbear_counter;
+    unsigned int status;
+    unsigned int lock;
+}SafetyStateIf;
+
+typedef struct
+{
+    uint64_t command_id;
+    int64_t command_param;
+    uint64_t status;
+    uint64_t lock;
+}OperatorCommandIf;
 
 /************************* FUNCTION SECTION *************************/
 static void on_signal( int sig );
@@ -73,7 +99,7 @@ int main( void )
     * Workshop steps for implementing the Supervision loop:
     ______________________________________________________________________________________________________________________________
     !!!!!!!!Shared Memory Note!!!!!!!
-    In this application, we are using shared memory to communicate between the supervisor and the peer. 
+    In this application, we are using shared memory to communicate between the supervisor and the peer.
     This means that both the supervisor and the peer will read and write to the same address in memory to exchange messages.
 
     MEM Adress Map in User Space:
@@ -132,36 +158,30 @@ int main( void )
             For example, only log when data changes or every N iterations.
 */
 
-    /*TODO Classical: 1. Declare a variable of type OperatorCommand */
-
-    /*TODO Classical: 2. Declare a variable of type ChargeStatus to hold the last evaluated state */
-
-    /*TODO Classical: 3. Declare a variable of type SafetyState to hold the last evaluated state */
+    OperatorCommandIf* opCmd   = (OperatorCommandIf*)get_external_buffer(VIRTUAL_OPERATOR_COMMAND);
+    ChargeStatusIf*   chStatus = (ChargeStatusIf*)get_external_buffer(VIRTUAL_CHARGE_STATUS);
+    SafetyStateIf*    safState = (SafetyStateIf*)get_external_buffer(VIRTUAL_SAFETY_STATE);
 
     /* 4. Define heartbeat_counter as a uint32_t that increments on each loop iteration */
     uint32_t heartbeat_counter = 0U;
 
     while( keep_running )
     {
-        /* This is a demo loop to showcase the application running */
-        /*TODO Classical: 4. Delete the following line once you implement the actual logic */
-        if( ( heartbeat_counter % 10U ) == 0U )
+        OperatorCommandIf inputCmd;
+        int rcvCount = service_console_input(input_fd, &inputCmd);
+
+        if(rcvCount > 0)
         {
-            printf( "[APP4] classical demo loop\n" );
+            //TODO: Error handling?
+            while(opCmd->lock == 1u)
+                usleep( WORKSHOP_COMMAND_PERIOD_MS * 1000U );
+
+            opCmd->lock = 1u;
+            memcpy(opCmd, &inputCmd, sizeof(OperatorCommandIf) - (2* sizeof(uint64_t)));
+            opCmd->status = 1u;
+            opCmd->lock = 0u;
         }
 
-        //TODO Classical: 5. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
-        // command_rcv = service_console_input( input_fd, &operator_command );
-        // if( command_rcv < 0 )
-        // {
-        //     printf( "[APP4] unknown command %s\n", line_buffer );
-        // }
-
-        /*TODO Classical: 6. If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
-            -- Publish/log/send the OperatorCommand command to the peer using shared memory access (write to defined memory address for OperatorCommand)
-            get_external_buffer( VIRTUAL_OPERATOR_COMMAND ) is the defined memory address for OperatorCommand buffer in shared memory
-             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
-        */
 
         /*TODO Classical: 7. Receive ChargeStatus message from peer using shared memory access (read from defined memory address for ChargeStatus)
             get_external_buffer( VIRTUAL_CHARGE_STATUS ) is the defined memory address for ChargeStatus buffer in shared memory
@@ -169,10 +189,34 @@ int main( void )
             Synchronization is important here, so make sure to implement a simple protocol to check if new data is available before reading.
         */
 
+        if(chStatus->status == 1u && chStatus->lock == 0u)
+        {
+            chStatus->lock = 1u;
+            printf("Charge status: %s\nmA:%ld\nmV:%ld\nFault state: %ld",
+                chStatus->charger_state,
+                chStatus->requested_current_ma,
+                chStatus->requested_voltage_mv,
+                chStatus->fault_state);
+            chStatus->status = 0;
+            chStatus->lock = 0u;
+        }
+
         /*TODO Classical: 8. Receive SafetyState message from peer using shared memory access (read from defined memory address for SafetyState)
             get_external_buffer( VIRTUAL_SAFETY_STATE ) is the defined memory address for SafetyState buffer in shared memory
             -- Similar to ChargeStatus, synchronization is important here as well.
         */
+
+        if(safState->lock == 0u && safState->status == 1u)
+        {
+            safState->lock = 1u;
+            printf("[APP4] Safe mode: %d\n[APP4] Breaker Open: %d\n [APP4] Charging Allowed: %d\n Heartbeat: %ld",
+                safState->safe_mode,
+                safState->breaker_open,
+                safState->charging_allowed,
+                safState->heartbear_counter);
+            safState->status = 0u;
+            safState->lock = 0u;
+        }
 
          /*TODO Classical: 9. Use logging, printf has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
             For example, only log when data changes or every N iterations.
