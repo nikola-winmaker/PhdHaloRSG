@@ -2,12 +2,12 @@ typedef struct {
     unsigned int battery_voltage_mv;
     int charge_current_ma;
     float battery_temp_c;
-    bool breaker_closed;
+    unsigned char breaker_closed;
     unsigned int fault_flags;  
 }SensorFrame;
 
 typedef struct {
-    bool enable_charging;
+    unsigned char enable_charging;
     unsigned int current_limit_ma;
     unsigned int voltage_limit_mv;
     unsigned char charging_mode;
@@ -21,9 +21,9 @@ typedef struct {
 }ChargeStatus;
 
 typedef struct {
-    bool safe_mode;           
-    bool breaker_open;        
-    bool charging_allowed;    
+    unsigned char safe_mode;           
+    unsigned char breaker_open;        
+    unsigned char charging_allowed;    
     unsigned int heartbeat_counter;
 }SafetyState;
 
