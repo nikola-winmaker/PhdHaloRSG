@@ -203,9 +203,11 @@ void _start_c( void )
 
     /*TODO HALO: 1. Declare a variable of type ChargeCommand to hold the last received command
       - ChargeCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h3_baremetal/include/halo_structs.h */
+      ChargeCommand charge_command;
 
     /*TODO HALO: 2. Declare a variable of type SafetyState to hold the last evaluated state
       - SafetyState struct is available from HALO generated code from deps/halo/codegen/riscv64_h3_baremetal/include/halo_structs.h */
+      SafetyState safety_state;
       
 
     /* 3. Define heartbeat_counter as a uint32_t that increments on each loop iteration.*/
@@ -215,17 +217,15 @@ void _start_c( void )
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h3_baremetal/src/halo_api.c
     */
+    halo_core3_init_riscv64_h3_baremetal();
 
     while( 1 )
     {
 
         /* This is a demo loop to showcase the application running 
         TODO HALO: 4. delete it when writing the actual implementation */
-        if( ( heartbeat_counter % 10U ) == 0U ){
-            uart_log( "[APP3] HALO demo loop\n" );
-        }
 
-        int recv_rc;
+        // int recv_rc;
 
         /*TODO HALO: 5. Receive ChargeCommand message for peer in the loop using halo_recv_ API functions defined in halo_api.h
             -- Read all values while they are available in the channel using while loop and checking the return value of halo_recv_ function to check if new data is available
@@ -238,10 +238,14 @@ void _start_c( void )
                     uart_log( "[APP3] xxxxx");
                 }
             */
+           while (halo_recv_ChargeCommandIf_ChargeCommand(&charge_command) > 0) {
+            uart_log( "[APP3] ChargeCommand received");
+           }
 
 
         /*TODO HALO: 6. Call evaluate_safety( &ChargeCommand, &SafetyState, heartbeat_counter ) */
-        // evaluate_safety( &last_command, &state, heartbeat_counter );
+        SafetyState last_state = safety_state;
+        evaluate_safety(&charge_command, &safety_state, heartbeat_counter);
 
 
         /*TODO HALO: 7. Send the SafetyState state to the peer every using halo_send_ API functions defined in halo_api.h
@@ -249,6 +253,10 @@ void _start_c( void )
                 uart_log( "[APP3] SafetyState send failed\n" );
             -- Full path is in .deps/halo/codegen/riscv64_h3_baremetal/include/halo_api.h and deps/halo/codegen/riscv64_h3_baremetal/src/halo_channels.c
             */
+        int status = halo_send_SafetyStateIf_SafetyState(&safety_state);
+        if (status < 0) {
+            uart_log("[APP3] Error sending SafetyState");
+        }
 
 
         /*TODO HALO: 8. Log the Info to the console using uart_log("[APP3] ") which is behaving similar to printf
@@ -257,18 +265,18 @@ void _start_c( void )
             -- For example, only log when safe_mode, breaker_open, or charging_allowed changes, or every N cycles.
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
          */
-        // if( state.safe_mode != last_state.safe_mode ||
-        //     state.breaker_open != last_state.breaker_open ||
-        //     state.charging_allowed != last_state.charging_allowed 
-        //      || ( state.heartbeat_counter % 20U ) == 0U 
-        // )
-        // {
-        //     uart_log( "[APP3] safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
-        //         ( uint32_t ) state.safe_mode,
-        //         ( uint32_t ) state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
-        //         ( uint32_t ) state.charging_allowed,
-        //         ( uint32_t ) state.heartbeat_counter );
-        // }
+        if( safety_state.safe_mode != last_state.safe_mode ||
+            safety_state.breaker_open != last_state.breaker_open ||
+            safety_state.charger_allowed != last_state.charger_allowed 
+             || ( safety_state.heartbeat_counter % 20U ) == 0U 
+        )
+        {
+            uart_log( "[APP3] safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
+                ( uint32_t ) safety_state.safe_mode,
+                ( uint32_t ) safety_state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                ( uint32_t ) safety_state.charger_allowed,
+                ( uint32_t ) safety_state.heartbeat_counter );
+        }
 
         heartbeat_counter++;
         bm_delay_loop( WORKSHOP_SAFETY_PERIOD_MS );
