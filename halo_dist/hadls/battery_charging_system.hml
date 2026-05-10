@@ -10,27 +10,27 @@
 // If you are referencing built-in profiles don't forgert to use --include-stdlib-profiles when composing your system.
 Profiles {
     SharedMemory SensorSharedMemory {
-        memSize: 512B
+        memSize: 512
         syncBlocking: True
         baseAddress: 0x80340000
     }
     SharedMemory ChargingSharedMemory {
-        memSize: 512B
+        memSize: 512
         syncBlocking: True
         baseAddress: 0x80341000
     }
     BlackBoard ChargingBlackBoard {
-        maxPayload: 32B
-        bufferSize: 64B
+        maxPayload: 32
+        bufferSize: 64
         baseAddress: 0x80342000
     }
     BlackBoard SafetyBlackBoard {
-        maxPayload: 32B
-        bufferSize: 64B
+        maxPayload: 32
+        bufferSize: 64
         baseAddress: 0x80343000
     }
     EventChannel OperatorEventChannel {
-        eventQueueSize: 16B
+        eventQueueSize: 16
         maxChannels: 1
         baseAddress: 0x80344000
     }
