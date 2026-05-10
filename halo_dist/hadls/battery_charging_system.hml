@@ -5,6 +5,33 @@
 //| SharedMemory  | memSize, baseAddress                       | Set values per task sheet. |
 //| BlackBoard    | maxPayload, bufferSize, baseAddress        | Set values per task sheet. |
 //| EventChannel  | eventQueueSize, maxChannels, baseAddress   | Set values per task sheet. |
-
-
-// USE code snippets by typing HML
+// Insert built-in profiles for common communication patterns.
+// if you don't need to override the default values, you can just reference these profiles without attributes EventChannel eventChannelProfile { }
+// If you are referencing built-in profiles don't forgert to use --include-stdlib-profiles when composing your system.
+Profiles {
+    SharedMemory SensorSharedMemory {
+        memSize: 512B
+        syncBlocking: True
+        baseAddress: 0x80340000
+    }
+    SharedMemory ChargingSharedMemory {
+        memSize: 512B
+        syncBlocking: True
+        baseAddress: 0x80341000
+    }
+    BlackBoard ChargingBlackBoard {
+        maxPayload: 64B
+        bufferSize: 64B
+        baseAddress: 0x80342000
+    }
+    BlackBoard SafetyBlackBoard {
+        maxPayload: 64B
+        bufferSize: 64B
+        baseAddress: 0x80343000
+    }
+    EventChannel OperatorEventChannel {
+        eventQueueSize: 16B
+        maxChannels: 1
+        baseAddress: 0x80344000
+    }
+}

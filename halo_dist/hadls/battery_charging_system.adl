@@ -1,5 +1,42 @@
 // Define BatteryChargingSystem with components that will be of platform:
 
+HaloFramework {
+    components {
+        Core1 : Component { Type: Application, Platform: riscv64_h1_zephyr, Function: RealTimeProcessing }
+        Core2 : Component { Type: Application, Platform: riscv64_h2_freertos, Function: RealTimeProcessing }
+        Core3 : Component { Type: Application, Platform: riscv64_h3_baremetal, Function: RealTimeProcessing }
+        Core4 : Component { Type: Application, Platform: riscv64_h4_linux, Function: GeneralProcessing }
+    }
+
+    connections {
+        connection Core1ToCore2 {
+            from Core1 to Core2
+            interface: SensorFrameIf
+            profile: SensorSharedMemory
+        }
+        connection Core2ToCore4 {
+            from Core2 to Core4
+            interface: ChargingStatusIf
+            profile: ChargingBlackBoard
+        }
+        connection Core2ToCore3 {
+            from Core2 to Core3
+            interface: ChargeCommandIf
+            profile: ChargingSharedMemory
+        }
+        connection Core4ToCore2 {
+            from Core4 to Core2
+            interface: OperatorControlIf
+            profile: OperatorEventChannel
+        }
+        connection Core3ToCore4 {
+            from Core3 to Core4
+            interface: SafetyStateIf
+            profile: SafetyBlackBoard
+        }
+    }
+}
+
 //When defining components, use the following platform names:
 //  Platform: riscv64_h1_zephyr
 //  Platform: riscv64_h2_freertos
