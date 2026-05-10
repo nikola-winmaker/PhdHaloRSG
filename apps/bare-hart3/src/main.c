@@ -21,10 +21,38 @@
     #include "halo_api.h"
 #endif
 
+typedef enum
+{
+    IPC_IDLE = 0,
+    IPC_WRITING = 1,
+    IPC_READING = 2
+} IpcStatus;
+
+
 /************************* GLOBAL SECTION *************************/
-//TODO Classical: Structure definitions for ChargeCommand and SafetyState 
+//Classical: Structure definitions for ChargeCommand and SafetyState 
 // based on the workshop specification only for the classical implementation!.
 
+typedef struct
+{
+    bool enable_charging;
+    unsigned int current_limit_ma;
+    unsigned int voltage_limit_mv;
+    char charging_mode[7];
+} ChargeCommand_t;
+
+typedef struct
+{
+    bool safe_mode;
+    bool breaker_open;         
+    bool charging_allowed;     
+    unsigned int heartbeat_counter;
+} SafetyState_t;
+
+typedef struct
+{
+    volatile uint32_t status;
+} ShmHeader_t;
 
 /************************* FUNCTION SECTION *************************/
 void _start_c( void )
@@ -96,9 +124,16 @@ void _start_c( void )
     */
 
 
-    /* TODO Classical: 1. Declare ChargeCommand variable */
+    /* Classical: 1. Declare ChargeCommand variable */
+    ChargeCommand_t command;
 
-    /* TODO Classical: 2. Declare SafetyState variable */
+    ShmHeader_t * p_shm_header;
+
+    /* Classical: 2. Declare SafetyState variable */
+    SafetyState_t state;
+    static SafetyState_t prev_state;
+    
+    SafetyState_t * p_state = ( SafetyState_t * ) (SAFETY_STATE_BASE + sizeof( ShmHeader_t )); 
 
     /* 3. Define heartbeat_counter as a uint32_t that increments on each loop iteration. */
     uint32_t heartbeat_counter = 0;
@@ -107,43 +142,69 @@ void _start_c( void )
     {
 
         /* This is a demo loop to showcase the application running 
-        TODO Classical: delete it when writing the actual implementation */
-        if( ( heartbeat_counter % 10U ) == 0U ){
-            uart_log( "[APP3] classical demo loop\n" );
-        }
+        Classical: delete it when writing the actual implementation */
+        // if( ( heartbeat_counter % 10U ) == 0U ){
+        //     uart_log( "[APP3] classical demo loop\n" );
+        // }
 
-        /*TODO Classical: 4. Receive ChargeCommand message from peer using shared memory access (read from defined memory address for ChargeCommand)
+        /*Classical: 4. Receive ChargeCommand message from peer using shared memory access (read from defined memory address for ChargeCommand)
             -- It's up to you how you want to implement the shared memory protocol, but you can use pointer dereferencing to read from 
             the specific memory address where the ChargeCommand is written by the peer. Synchronization is important here, so make sure to implement a simple 
             protocol to check if new data is available before reading.
         */
+       p_shm_header = ( ShmHeader_t * ) CHARGE_COMMAND_BASE;
 
-        /*TODO Classical: 5. Call function evaluate_safety( &ChargeCommand, &SafetyState, heartbeat_counter). */
-        // evaluate_safety( &command, &state, heartbeat_counter );
+       while (p_shm_header->status != IPC_IDLE)
+       {
+        // block until idle
+       }
 
-        /*TODO Classical: 6. Publish/log/send the SafetyState state to the peer using Blackboard protocol (write to defined memory address for SafetyState)
+       p_shm_header->status = IPC_WRITING;
+       command = *((ChargeCommand_t *) (CHARGE_COMMAND_BASE + sizeof( ShmHeader_t )));
+       p_shm_header->status = IPC_IDLE;
+
+
+        /* Classical: 5. Call function evaluate_safety( &ChargeCommand, &SafetyState, heartbeat_counter). */
+        evaluate_safety( &command, &state, heartbeat_counter );
+
+        /* Classical: 6. Publish/log/send the SafetyState state to the peer using Blackboard protocol (write to defined memory address for SafetyState)
              -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
+       p_shm_header = ( ShmHeader_t * ) SAFETY_STATE_BASE;
 
-        /*TODO Classical: 7. Log the Info to the console using uart_log("[APP3] ") which is behaving similar to printf
+       while (p_shm_header->status != IPC_IDLE)
+       {
+        // block until idle
+       }
+
+       p_shm_header->status = IPC_READING;
+       *p_state = state;
+       p_shm_header->status = IPC_IDLE;
+
+        /* Classical: 7. Log the Info to the console using uart_log("[APP3] ") which is behaving similar to printf
             -- [APP3] needs to be included in the log message to differentiate logs from other applications running on different harts
             -- Use logging on change to avoid flooding the console with repeated messages. 
             -- For example, only log when safe_mode, breaker_open, or charging_allowed changes, or every N cycles.
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
          */
-        // if( ( heartbeat_counter % 10U ) == 0U || 
-        //     state.safe_mode != prev_state.safe_mode ||
-        //     state.breaker_open != prev_state.breaker_open ||
-        //     state.charging_allowed != prev_state.charging_allowed )
-        //  {
-        //     uart_log( "[APP3] CC safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
-        //                     ( uint32_t ) state.safe_mode,
-        //                     ( uint32_t ) state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
-        //                     ( uint32_t ) state.charging_allowed,
-        //                     ( uint32_t ) state.heartbeat_counter );
-        // }
+        if( ( heartbeat_counter % 10U ) == 0U || 
+            state.safe_mode != prev_state.safe_mode ||
+            state.breaker_open != prev_state.breaker_open ||
+            state.charging_allowed != prev_state.charging_allowed )
+         {
+            uart_log( "[APP3] CC safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
+                            ( uint32_t ) state.safe_mode,
+                            ( uint32_t ) state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                            ( uint32_t ) state.charging_allowed,
+                            ( uint32_t ) state.heartbeat_counter );
+        }
+        else
+        {
+            // uart_log( "[APP3] The same\n" );
+        }
 
         heartbeat_counter++;
+        prev_state = state;
         bm_delay_loop( WORKSHOP_SAFETY_PERIOD_MS );
     }
 
