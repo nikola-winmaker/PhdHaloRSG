@@ -195,6 +195,10 @@ int main( void )
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h1_zephyr/src/halo_api.c
     */
+    halo_sensorfusion_init_riscv64_h1_zephyr();
+    SensorFrameData frame;
+
+    halo_u32_t battery_voltage_mv_last;
 
     // 2. Declare hearbeat_counter that increments on each loop iteration.
     uint32_t heartbeat_counter = 0U;
@@ -212,12 +216,12 @@ int main( void )
 
     while( 1 )
     {
-
+        battery_voltage_mv_last = frame.battery_voltage_mv;
         /* This is a demo loop to showcase the application running */
         /* TODO HALO: 3. This is for demonstration purposes only and should be deleted when workshop code is written */
         if( ( heartbeat_counter % 20U ) == 0U)
         {
-            printk( "[APP1] HALO demo loop\n" );
+            // printk( "[APP1] HALO demo loop\n" );
         }
     
         // Read command for BMS from console and apply it to BMS
@@ -234,25 +238,41 @@ int main( void )
         // sensor_frame.breaker_closed = bms_get_breaker_closed();
         // sensor_frame.fault_flags = bms_get_fault_flags();
  
+        frame.battery_voltage_mv = (unsigned int)(bms_get_voltage());
+        frame.charge_current_ma = (int)(bms_get_current());
+        frame.battery_temp_c = bms_get_temperature();
+        frame.breaker_closed = bms_get_breaker_closed();
+        frame.fault_flags = bms_get_fault_flags();
         /*TODO HALO: 5. Send the SensorFrame to the peer using halo_send_ API functions defined in halo_api.h
             -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
                 printk( "[APP1] SensorFrame send failed\n" );
             -- Full path is in .deps/halo/codegen/riscv64_h1_zephyr/include/halo_api.h and deps/halo/codegen/riscv64_h1_zephyr/src/halo_channels.c
         */
 
+        if (halo_send_SensorFrameIf_SensorFrameData(&frame))
+        {
+            //NOP
+        }
+        else
+        {
+            printk( "[APP1] SensorFrame send failed\n" );
+        }
 
         /*TODO HALO: 6. Log the Info to the console using printk("[APP1] ") which is behaving similar to printf */
         // sensor_frame is a placeholder variable, it is a type of SensorFrame struct that you will define based on the workshop specification
-        // if( ( heartbeat_counter % 10 ) == 0U)
-        // {
-        //     printk( "[APP1] sent mV=%u mA=%d temp=%f breaker_closed=%u faults=%d\n",
-        //                ( unsigned int ) sensor_frame.battery_voltage_mv,
-        //                sensor_frame.charge_current_ma,
-        //                sensor_frame.battery_temp_c,
-        //                ( unsigned int ) sensor_frame.breaker_closed,
-        //                ( unsigned int ) sensor_frame.fault_flags );
-        // }
+        if( ( heartbeat_counter % 10 ) == 0U)
+        {
+            printk( "[APP1] sent mV=%u mA=%d temp=%f breaker_closed=%u faults=%d {%d}\n",
+                       ( unsigned int ) frame.battery_voltage_mv,
+                       frame.charge_current_ma,
+                       frame.battery_temp_c,
+                       ( unsigned int ) frame.breaker_closed,
+                       ( unsigned int ) frame.fault_flags,
+                       ( unsigned int ) heartbeat_counter );
+        }
 
+
+        
         heartbeat_counter++;
         k_msleep( WORKSHOP_SENSOR_PERIOD_MS );
     }
