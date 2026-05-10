@@ -24,22 +24,24 @@
 /************************* GLOBAL SECTION *************************/
 //TODO Classical: 0. Structure definitions for ChargeCommand and SafetyState 
 // based on the workshop specification only for the classical implementation!.
-typedef struct{
-bool enable_charging = false;
-unsigned int current_limit_ma = 0;
-unsigned int voltage_limit_mv = 0;
-char charging_mode[7] = "normal";
+typedef struct
+{
+bool enable_charging;
+unsigned int current_limit_ma;
+unsigned int voltage_limit_mv;
+char charging_mode[7];
 unsigned int lock;
-} ChargeCommandIf;
+}ChargeCommandIf;
 
-typedef struct{
-bool safe_mode = false;
-bool breaker_open = false;
-bool charging_allowed = false;
-unsigned int heartbeat_counter = 0;
+typedef struct
+{
+bool safe_mode;
+bool breaker_open;
+bool charging_allowed;
+unsigned int heartbeat_counter;
 unsigned int status;
 unsigned int lock;   
-} SafetyStateIf;
+}SafetyStateIf;
 
 /************************* FUNCTION SECTION *************************/
 void _start_c( void )
@@ -112,10 +114,21 @@ void _start_c( void )
 
 
     /* TODO Classical: 1. Declare ChargeCommand variable */
-    static volatile ChargeCommand *cmd = CHARGE_COMMAND_BASE;
+    ChargeCommandIf chrCmd;
+    //ChargeCommand chrCmd = {0};
+    //ChargeCommand chrCmd
+    static volatile ChargeCommandIf *cmd = CHARGE_COMMAND_BASE;
+    uintptr_t chrgAddr = (uintptr_t)&chrCmd;
+    ChargeCommandIf *ptr = (ChargeCommandIf *)chrgAddr;
+
     /* TODO Classical: 2. Declare SafetyState variable */
+    SafetyStateIf safSt;
+    SafetyStateIf prevSt;
+    uintptr_t safAddr = (uintptr_t)&safSt;
+
+    
     static volatile SafetyStateIf *state = SAFETY_STATE_BASE;
-    static volatile SafetyStateIf *prev_state = SAFETY_STATE_BASE;
+    //static volatile SafetyStateIf *prev_state = SAFETY_STATE_BASE;
     /* 3. Define heartbeat_counter as a uint32_t that increments on each loop iteration. */
     uint32_t heartbeat_counter = 0;
 
@@ -133,17 +146,43 @@ void _start_c( void )
             the specific memory address where the ChargeCommand is written by the peer. Synchronization is important here, so make sure to implement a simple 
             protocol to check if new data is available before reading.
         */
-        if(state->lock==0)
+        if(cmd->lock==0)
         {
-            
+            chrCmd.enable_charging = cmd->enable_charging;
+            chrCmd.current_limit_ma = cmd->current_limit_ma;
+            chrCmd.voltage_limit_mv = cmd->voltage_limit_mv;
+            for(int i =0; i<6; i++)
+            {
+                chrCmd.charging_mode[i] = cmd->charging_mode[i];
+            }
+            cmd->lock=0;
         }
         
         /*TODO Classical: 5. Call function evaluate_safety( &ChargeCommand, &SafetyState, heartbeat_counter). */
-         evaluate_safety( &cmd, &state, heartbeat_counter );
+         evaluate_safety( &chrCmd, &safSt, heartbeat_counter );
 
         /*TODO Classical: 6. Publish/log/send the SafetyState state to the peer using Blackboard protocol (write to defined memory address for SafetyState)
              -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
+
+        prevSt.safe_mode = safSt.safe_mode;
+        prevSt.breaker_open = safSt.breaker_open;
+        prevSt.charging_allowed = safSt.charging_allowed;
+        prevSt.heartbeat_counter = safSt.heartbeat_counter;
+
+        if(state->lock==0)
+        {
+            state->lock = 1;
+            state->status = 1;
+            state->safe_mode = safSt.safe_mode;
+            state->breaker_open = safSt.breaker_open;
+            state->charging_allowed = safSt.charging_allowed;
+            state->heartbeat_counter = safSt.heartbeat_counter;
+            state->status = 0;
+            state->lock = 0;
+        }
+        
+
 
         /*TODO Classical: 7. Log the Info to the console using uart_log("[APP3] ") which is behaving similar to printf
             -- [APP3] needs to be included in the log message to differentiate logs from other applications running on different harts
@@ -152,15 +191,15 @@ void _start_c( void )
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
          */
         if( ( heartbeat_counter % 10U ) == 0U || 
-            state->safe_mode != prev_state->safe_mode ||
-            state->breaker_open != prev_state->breaker_open ||
-            state->charging_allowed != prev_state->charging_allowed )
+            safSt.safe_mode != prevSt.safe_mode ||
+            safSt.breaker_open != prevSt.breaker_open ||
+            safSt.charging_allowed != prevSt.charging_allowed )
          {
             uart_log( "[APP3] CC safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
-                            ( uint32_t ) state->safe_mode,
-                            ( uint32_t ) state->breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
-                            ( uint32_t ) state->charging_allowed,
-                            ( uint32_t ) state->heartbeat_counter );
+                            ( uint32_t ) safSt.safe_mode,
+                            ( uint32_t ) safSt.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                            ( uint32_t ) safSt.charging_allowed,
+                            ( uint32_t ) safSt.heartbeat_counter );
         }
 
         heartbeat_counter++;
