@@ -273,30 +273,37 @@ static void charge_ctrl_task( void * parameters )
 {
     ( void ) parameters;
 
-    /*TODO HALO: 1. Declare a variable of type SensorFrame to hold the last received sensor data
+    /* HALO: 1. Declare a variable of type SensorFrame to hold the last received sensor data
       - SensorFrame struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h*/
+      SensorFrameData sensorFrame;
     
-    /* TODO HALO: 2. Declare a variable of type OperatorCommand to hold the last received operator command
+    /*  HALO: 2. Declare a variable of type OperatorCommand to hold the last received operator command
       - OperatorCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h */
+      OperatorCommandData operatorCmd;
 
-    /* TODO HALO: 3. Declare a variable of type ChargeCommand to hold the charge command
+    /*  HALO: 3. Declare a variable of type ChargeCommand to hold the charge command
       - ChargeCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h*/
+      ChargeCommandData chargeCmd;
 
-    /* TODO HALO: 4. Declare a variable of type ChargeStatus to hold the charge status
+    /*  HALO: 4. Declare a variable of type ChargeStatus to hold the charge status
       - ChargeStatus struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h */
+      ChargeStatusData chargeStatus;
 
     /* 5. Declare heartbeat_counter as a uint32_t that increments on each loop iteration
     */
     uint32_t heartbeat_counter = 0U;
+    int chargeCmdRet = 0;
+    int chargeStatusRet = 0;
 
 
     // Init the charge controller state
     charge_controller_init();
 
-    /*TODO HALO: 5. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
+    /* HALO: 5. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h2_freertos/src/halo_api.c
     */
+    halo_chargecontroller_init_riscv64_h2_freertos();
 
     while( 1 )
     {
@@ -304,66 +311,70 @@ static void charge_ctrl_task( void * parameters )
         int recv_rc;
 
         /* This is a demo loop to showcase the application running */
-        // TODO HALO: 6. Delete the demo loop when writing the actual implementation
-        if( ( heartbeat_counter % 10 ) == 0U){
-            uart_log( "[APP2] HALO demo loop\n" );
+        //  HALO: 6. Delete the demo loop when writing the actual implementation
+
+        /* HALO: 7. Receive SensorFrame message for peer in the loop using halo_recv_ API functions defined in halo_api.h
+            -- Read all values while they are available in the channel using while loop and checking the return value of halo_recv_ function to check if new data is available
+            -- Full path is in .deps/halo/codegen/riscv64_h2_freertos/include/halo_api.h and deps/halo/codegen/riscv64_h2_freertos/src/halo_channels.c
+            */
+        while( ( recv_rc = halo_recv_SensorFrameIf_SensorFrameData(&sensorFrame) ) > 0 )
+        {
+            // Process the received command
         }
 
-        /*TODO HALO: 7. Receive SensorFrame message for peer in the loop using halo_recv_ API functions defined in halo_api.h
+        /* HALO: 8. Receive OperatorCommand message for peer in the loop using halo_recv_ API functions defined in halo_api.h
             -- Read all values while they are available in the channel using while loop and checking the return value of halo_recv_ function to check if new data is available
             -- Full path is in .deps/halo/codegen/riscv64_h2_freertos/include/halo_api.h and deps/halo/codegen/riscv64_h2_freertos/src/halo_channels.c
-            Example:
-                while( ( recv_rc = halo_recv_XXXX ) > 0 )
+            */
+                while( ( recv_rc = halo_recv_OperatorControlIf_OperatorCommandData(&operatorCmd) ) > 0 )
                 {
                     // Process the received command
                 }
-        */
 
-
-        /*TODO HALO: 8. Receive OperatorCommand message for peer in the loop using halo_recv_ API functions defined in halo_api.h
-            -- Read all values while they are available in the channel using while loop and checking the return value of halo_recv_ function to check if new data is available
-            -- Full path is in .deps/halo/codegen/riscv64_h2_freertos/include/halo_api.h and deps/halo/codegen/riscv64_h2_freertos/src/halo_channels.c
-            Example:
-                while( ( recv_rc = halo_recv_XXXX ) > 0 )
-                {
-                    // Process the received command
-                }
-        */
-
-
-        /*TODO HALO: 9. Call apply_operator_command(&OperatorCommand ); to apply the received operator command to the charge controller. 
+        /* HALO: 9. Call apply_operator_command(&OperatorCommand ); to apply the received operator command to the charge controller. 
             Call build_charge_outputs( &SensorFrame, &ChargeCommand, &ChargeStatus );
         */
-        // apply_operator_command(&operator_command );
-        // build_charge_outputs( &sensor_frame, &charge_command, &charge_status );
+        apply_operator_command(&operatorCmd );
+        build_charge_outputs( &sensorFrame, &chargeCmd, &chargeStatus);
 
-
-        /*TODO HALO: 10. Send the ChargeCommand to the peer using halo_send_ API functions defined in halo_api.h
+        /* HALO: 10. Send the ChargeCommand to the peer using halo_send_ API functions defined in halo_api.h
             -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
                 uart_log( "[APP2] ChargeCommand send failed\n" );
             -- Full path is in .deps/halo/codegen/riscv64_h2_freertos/include/halo_api.h and deps/halo/codegen/riscv64_h2_freertos/src/halo_channels.c
         */
+        chargeCmdRet = halo_send_ChargeCommandIf_ChargeCommandData(&chargeCmd);
 
-        /*TODO HALO: 11. Send the ChargeStatus to the peer using halo_send_ API functions defined in halo_api.h
+        if(chargeCmdRet != 0)
+        {
+            uart_log( "[APP2] ChargeCommand send failed\n" );
+        }
+
+        /* HALO: 11. Send the ChargeStatus to the peer using halo_send_ API functions defined in halo_api.h
             -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
                 uart_log( "[APP2] ChargeStatus send failed\n" );
             -- Full path is in .deps/halo/codegen/riscv64_h2_freertos/include/halo_api.h and deps/halo/codegen/riscv64_h2_freertos/src/halo_channels.c
         */
 
-        /*TODO HALO: 12. Log the Info to the console using uart_log("[APP2] ") which is behaving similar to printf
+        chargeStatusRet = halo_send_ChargingStatusIf_ChargeStatusData(&chargeStatus);
+
+        if (chargeStatusRet != 0)
+        {
+            uart_log( "[APP2] ChargeStatus sendfailed\n" );
+        }
+        /* HALO: 12. Log the Info to the console using uart_log("[APP2] ") which is behaving similar to printf
             -- [APP2] needs to be included in the log message to differentiate logs from other applications running on different harts
             -- Use logging on change to avoid flooding the console with repeated messages. 
             -- For example, only log when data changes, or every N cycles.
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
         */
-        // if( ( heartbeat_counter % 10 ) == 0U){
-        //     uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
-        //         ( uint32_t ) sensor_frame.battery_voltage_mv,
-        //         ( uint32_t ) sensor_frame.charge_current_ma,
-        //         sensor_frame.battery_temp_c,
-        //         ( uint32_t ) sensor_frame.breaker_closed,
-        //         ( uint32_t ) sensor_frame.fault_flags );
-        // }
+        if( ( heartbeat_counter % 10 ) == 0U){
+            uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
+                ( uint32_t ) sensorFrame.battery_voltage_mv,
+                ( uint32_t ) sensorFrame.charge_current_ma,
+                sensorFrame.battery_temp_c,
+                ( uint32_t ) sensorFrame.breaker_closed,
+                ( uint32_t ) sensorFrame.fault_flags );
+        }
 
 
         heartbeat_counter++;
