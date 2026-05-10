@@ -23,7 +23,15 @@
 /************************* GLOBAL SECTION *************************/
 
 //TODO Classical: 0. Define SensorFrame structure based on the workshop specification only for the classical implementation!. 
+typedef struct SensorFrame {
+    unsigned int battery_voltage_mv;
+    int charge_current_ma;
+    float battery_temp_c;
+    bool breaker_closed;
+    unsigned int fault_flags;
+} SensorFrame_t;
 
+const SensorFrame_t SFD_DEFAULT = { .battery_voltage_mv = 0, .charge_current_ma = 0, .battery_temp_c = 0.0, .breaker_closed = false, .fault_flags = 0};
 
 /************************* FUNCTION SECTION *************************/
 int main( void )
@@ -93,6 +101,7 @@ int main( void )
     uint32_t bms_cmd_param = 0U;
 
     /*TODO Classical: 1. Declare a variable of type SensorFrame */
+    SensorFrame_t SFD = SFD_DEFAULT;
 
     /*2. Declare a variable of type SensorFrame to hold the last sent sensor data for logging on change */
     uint32_t heartbeat_counter = 0U;
@@ -104,10 +113,10 @@ int main( void )
     {
         /* This is a demo loop to showcase the application running */
         /* TODO Classical: 2. This is for demonstration purposes only and should be deleted when workshop code is written */
-        if( ( heartbeat_counter % 20U ) == 0U)
+        /*if( ( heartbeat_counter % 20U ) == 0U)
         {
             printk( "[APP1] classical demo loop\n" );
-        }
+        }*/
 
 
         // Read command for BMS from console and apply it to BMS
@@ -118,29 +127,32 @@ int main( void )
         /*TODO Classical: 3. Call BMS APIs to get the sensor data and fill the SensorFrame struct with the data. 
             -- sensor_frame is a placeholder variable, it is a type of SensorFrame struct that you will define based on the workshop specification
         */
-        // sensor_frame.battery_voltage_mv = (uint32_t)(bms_get_voltage());
-        // sensor_frame.charge_current_ma = (int32_t)(bms_get_current());
-        // sensor_frame.battery_temp_c = bms_get_temperature();
-        // sensor_frame.breaker_closed = bms_get_breaker_closed();
-        // sensor_frame.fault_flags = bms_get_fault_flags();
+        SFD.battery_voltage_mv = (uint32_t)(bms_get_voltage());
+        SFD.charge_current_ma = (int32_t)(bms_get_current());
+        SFD.battery_temp_c = bms_get_temperature();
+        SFD.breaker_closed = bms_get_breaker_closed();
+        SFD.fault_flags = bms_get_fault_flags();
 
 
         /*TODO Classical: 4. Publish/log/send the SensorFrame to the peer using shared memory access (write to defined memory address for SensorFrame)
             -- SENSOR_FRAME_BASE is a memory address where the SensorFrame will be written
             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
+        //memcpy(SENSOR_FRAME_BASE, &SFD, sizeof(SFD));
+        //SensorFrame_t* pSensorFrame = SENSOR_FRAME_BASE;
+        
 
         /*TODO Classical: 5. Log the Info to the console using printk("[APP1] ") which is behaving similar to printf */
         // sensor_frame is a placeholder variable, it is a type of SensorFrame struct that you will define based on the workshop specification
-        // if( ( heartbeat_counter % 10U ) == 0U || sensor_frame.fault_flags != 0U )
-        // {
-        //     printk( "[APP1] CC sent mV=%u mA=%d temp=%f breaker_closed=%u faults=%d\n",
-        //                ( unsigned int ) sensor_frame.battery_voltage_mv,
-        //                sensor_frame.charge_current_ma,
-        //                sensor_frame.battery_temp_c,
-        //                ( unsigned int ) sensor_frame.breaker_closed,
-        //                ( unsigned int ) sensor_frame.fault_flags );
-        // }
+        if( ( heartbeat_counter % 10U ) == 0U || SFD.fault_flags != 0U )
+         {
+             printk( "[APP1] CC sent mV=%u mA=%d temp=%f breaker_closed=%u faults=%d\n",
+                        (unsigned int) SFD.battery_voltage_mv,
+                        SFD.charge_current_ma,
+                        SFD.battery_temp_c,
+                        (unsigned int) SFD.breaker_closed,
+                        (unsigned int) SFD.fault_flags );
+         }
 
         heartbeat_counter++;
         k_msleep( WORKSHOP_SENSOR_PERIOD_MS );
