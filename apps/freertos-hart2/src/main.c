@@ -33,11 +33,12 @@ typedef struct
     unsigned int battery_voltage_mv;
     int charge_current_ma;
     float battery_temp_c;
-    bool breaker_closed;
     unsigned int fault_flags;
+    bool breaker_closed;
     unsigned int lock;
 } SensorFrameIf;
      
+
 typedef struct
 {
     bool enable_charging;
@@ -151,65 +152,65 @@ static void charge_ctrl_task( void * parameters )
         }
         
 
-        // if(ui_cmdLock == 0)
-        // {
-        //     if( ( heartbeat_counter % 20U ) == 0U )
-        //     {
-        //         uart_log( "[APP2] ui_cmdLock acquired\n");
-        //     }
+        if(*ui_cmdLock == 0)
+        {
+            if( ( heartbeat_counter % 20U ) == 0U )
+            {
+                uart_log( "[APP2] ui_cmdLock acquired\n");
+            }
 
-        //     if(ui_cmdAvailable == 1)
-        //     {
-        //         if( ( heartbeat_counter % 20U ) == 0U )
-        //         {
-        //             uart_log( "[APP2] ui_cmdAvailable available\n");
-        //         }
+            if(*ui_cmdAvailable == 1)
+            {
+                if( ( heartbeat_counter % 20U ) == 0U )
+                {
+                    uart_log( "[APP2] ui_cmdAvailable available\n");
+                }
 
-        //         apply_operator_command( &s_Cmd );
+                apply_operator_command( &s_Cmd );
 
-        //         build_charge_outputs( &s_SensorFrame_cmd, &s_ChargCommand_cmd, &s_chargeStatus_cmd );
+                build_charge_outputs( &s_SensorFrame_cmd, &s_ChargCommand_cmd, &s_chargeStatus_cmd );
 
-        //         s_SensorFrame->lock = 1;
-        //         s_SensorFrame_cmd->lock = 0;
-        //         s_SensorFrame = s_SensorFrame_cmd;
+                s_SensorFrame->lock = 1;
+                p_SensorFrame_cmd->lock = 0;
+                s_SensorFrame = p_SensorFrame_cmd;
                 
-        //         s_ChargCommand->lock = 1;
-        //         s_ChargCommand_cmd->lock = 0;
-        //         s_ChargCommand = s_ChargCommand_cmd;
+                s_ChargCommand->lock = 1;
+                p_ChargCommand_cmd->lock = 0;
+                s_ChargCommand = p_ChargCommand_cmd;
 
-        //         s_chargeStatus->lock = 1;
-        //         s_chargeStatus_cmd->lock = 0;
-        //         s_chargeStatus->status = 1;
-        //         s_chargeStatus = s_chargeStatus_cmd;
+                s_chargeStatus->lock = 1;
+                p_chargeStatus_cmd->lock = 0;
+                s_chargeStatus->status = 1;
+                s_chargeStatus = p_chargeStatus_cmd;
 
-        //         s_Cmd->CmdAvailable = 0;
+                s_Cmd->CmdAvailable = 0;
     
-        //     }
-        //     else
-        //     {
-        //         if( ( heartbeat_counter % 20U ) == 0U )
-        //         {
-        //             uart_log( "[APP2] ui_cmdAvailable NOT available\n");
-        //         }
-        //     }
-        // }
-        // else
-        // {
-        //     if( ( heartbeat_counter % 20U ) == 0U )
-        //     {
-        //         uart_log( "[APP2] ui_cmdLock not acquired\n");
-        //     }
-        // }
+            }
+            else
+            {
+                if( ( heartbeat_counter % 20U ) == 0U )
+                {
+                    uart_log( "[APP2] ui_cmdAvailable NOT available\n");
+                }
+            }
+        }
+        else
+        {
+            if( ( heartbeat_counter % 20U ) == 0U )
+            {
+                uart_log( "[APP2] ui_cmdLock not acquired\n");
+            }
+        }
 
-        // if( ( heartbeat_counter % 10 ) == 0U)
-        // {
-        //     uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
-        //         ( uint32_t ) s_SensorFrame->battery_voltage_mv,
-        //         ( uint32_t ) s_SensorFrame->charge_current_ma,
-        //         s_SensorFrame->battery_temp_c,
-        //         ( uint32_t ) s_SensorFrame->breaker_closed,
-        //         ( uint32_t ) s_SensorFrame->fault_flags );
-        // }
+        if( ( heartbeat_counter % 10 ) == 0U)
+        {
+            uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
+                ( uint32_t ) s_SensorFrame->battery_voltage_mv,
+                ( uint32_t ) s_SensorFrame->charge_current_ma,
+                s_SensorFrame->battery_temp_c,
+                ( uint32_t ) s_SensorFrame->breaker_closed,
+                ( uint32_t ) s_SensorFrame->fault_flags );
+        }
 
         heartbeat_counter++;
         vTaskDelay( pdMS_TO_TICKS( WORKSHOP_CHARGE_PERIOD_MS ) );

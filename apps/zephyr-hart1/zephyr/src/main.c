@@ -85,6 +85,8 @@ int main( void )
 
     /*2. Declare a variable of type SensorFrame to hold the last sent sensor data for logging on change */
     uint32_t heartbeat_counter = 0U;
+    SensorFrameIf *sensor_frame_ptr = (SensorFrameIf *)(SENSOR_FRAME_BASE);
+
 
     // Init BMS controller
     bms_init();
@@ -110,21 +112,24 @@ int main( void )
             -- SENSOR_FRAME_BASE is a memory address where the SensorFrame will be written
             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
-        SensorFrameIf *sensor_frame_ptr = (SensorFrameIf *)(SENSOR_FRAME_BASE);
         
         sensor_frame_ptr->status_bit = 1;
         sensor_frame.status_bit = 0;
-        sensor_frame_ptr = &sensor_frame;
-        printk( "[APP1] SENDING DATA");
+        sensor_frame_ptr->battery_temp_c = sensor_frame.battery_temp_c;
+        sensor_frame_ptr->battery_voltage_mv = sensor_frame.battery_voltage_mv;
+        sensor_frame_ptr->breaker_closed = sensor_frame.breaker_closed;
+        sensor_frame_ptr->charge_current_ma =sensor_frame.charge_current_ma;
+        sensor_frame_ptr->fault_flags = sensor_frame.fault_flags;
+        sensor_frame_ptr->status_bit = sensor_frame.status_bit;
 
         if( ( heartbeat_counter % 10U ) == 0U || sensor_frame.fault_flags != 0U )
         {
             printk( "[APP1] CC sent mV=%u mA=%d temp=%f breaker_closed=%u faults=%d\n",
-                       ( unsigned int ) sensor_frame.battery_voltage_mv,
-                       sensor_frame.charge_current_ma,
-                       sensor_frame.battery_temp_c,
-                       ( unsigned int ) sensor_frame.breaker_closed,
-                       ( unsigned int ) sensor_frame.fault_flags );
+                       ( unsigned int ) sensor_frame_ptr->battery_voltage_mv,
+                       sensor_frame_ptr->charge_current_ma,
+                       sensor_frame_ptr->battery_temp_c,
+                       ( unsigned int ) sensor_frame_ptr->breaker_closed,
+                       ( unsigned int ) sensor_frame_ptr->fault_flags );
         }
 
         heartbeat_counter++;
