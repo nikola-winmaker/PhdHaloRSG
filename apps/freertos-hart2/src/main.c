@@ -24,10 +24,32 @@
 #endif
 
 /************************* GLOBAL SECTION *************************/
+struct SensorFrame{
+    unsigned int battery_voltage_mv;
+    int charge_current_ma;
+    float battery_temp_c;
+    bool breaker_closed;
+    unsigned int fault_flags;
+};
 
-//TODO Classical: Structure definitions for SensorFrame, ChargeCommand, ChargeStatus, 
-// and OperatorCommand based on the workshop specification only for the classical implementation!.
+struct ChargeCommand{
+    bool enable_charging;
+    unsigned int current_limit_ma;
+    unsigned int voltage_limit_mv;
+    char charging_mode[7];
+};
 
+struct ChargeStatus{
+    char charger_state[5];
+    unsigned int requested_current_ma;
+    unsigned int requested_voltage_mv;
+    unsigned int fault_state;
+};
+
+struct OperatorCommand{
+    unsigned int command_id;
+    int command_param;
+};
 /************************* FUNCTION SECTION *************************/
 #if !defined(USE_HALO) || (USE_HALO == 0)
 
@@ -125,13 +147,17 @@ static void charge_ctrl_task( void * parameters )
 
 
 
-    /*TODO Classical: 1. Declare a variable of type SensorFrame to hold the last received sensor data */
+    /*variable of type SensorFrame to hold the last received sensor data */
+    struct SensorFrame sensor_frame;
 
-    /*TODO Classical: 2. Declare a variable of type OperatorCommand to hold the last received operator command */
+    /*variable of type OperatorCommand to hold the last received operator command */
+    struct OperatorCommand operator_command;
 
-    /*TODO Classical: 3. Declare a variable of type ChargeCommand to hold the charge command */
+    /*variable of type ChargeCommand to hold the charge command */
+    struct ChargeCommand charge_command;
 
-    /*TODO Classical: 4. Declare a variable of type ChargeStatus to hold the charge status */
+    /*variable of type ChargeStatus to hold the charge status */
+    struct ChargeStatus charge_status;
 
     /* 5. Declare heartbeat_counter as a uint32_t that increments on each loop iteration. */
     uint32_t heartbeat_counter = 0U;
@@ -152,11 +178,77 @@ static void charge_ctrl_task( void * parameters )
             -- It's up to you how you want to implement the shared memory protocol, you can use pointer dereferencing to read from 
             the specific memory address where the SensorFrame is written by the peer. Synchronization is important here, so make sure to implement a simple 
             protocol to check if new data is available before reading.
+            sensor frame address 0x80340000 - 0x80340200 (512 bytes)
         */
+        #include <stdint.h>
+        #include <stdbool.h>
+        #include <string.h>
+
+        #define SENSOR_SHM_BASE ((volatile uint8_t*)0x80340000)
+
+        #define SHM_EMPTY      0
+        #define SHM_WRITING    1
+        #define SHM_READY      2
+        #define SHM_CONSUMED   3
+
+        typedef struct
+        {
+            volatile uint32_t sequence;
+            volatile uint32_t status;
+            volatile uint32_t length;
+            volatile uint32_t reserved;
+        } ShmHeader;
+
+        typedef struct
+        {
+            uint8_t data[496];  // 512 - 16 bytes header
+        } SensorFrame;
+
+        #define SHM_HEADER ((volatile ShmHeader*)SENSOR_SHM_BASE)
+        #define SHM_DATA   ((volatile uint8_t*)(SENSOR_SHM_BASE + sizeof(ShmHeader)))
+
+        void writeSensorFrame(const SensorFrame* frame)
+        {
+            SHM_HEADER->status = SHM_WRITING;
+
+            SHM_HEADER->sequence++;
+
+            memcpy((void*)SHM_DATA, frame, sizeof(SensorFrame));
+
+            SHM_HEADER->length = sizeof(SensorFrame);
+
+            SHM_HEADER->status = SHM_READY;
+        }
+
+        bool readSensorFrame(SensorFrame* frame)
+        {
+            uint32_t seq1;
+            uint32_t seq2;
+
+            if (SHM_HEADER->status != SHM_READY)
+            {
+                return false; // no new data
+            }
+
+            do
+            {
+                seq1 = SHM_HEADER->sequence;
+
+                memcpy(frame, (const void*)SHM_DATA, sizeof(SensorFrame));
+
+                seq2 = SHM_HEADER->sequence;
+
+            } while (seq1 != seq2);
+
+            SHM_HEADER->status = SHM_CONSUMED;
+
+            return true;
+        }
 
         /*TODO Classical: 7. Receive OperatorCommand message from peer using shared memory access (read from defined memory address for OperatorCommand)
             -- Similar to SensorFrame, use pointer dereferencing to read the OperatorCommand from the defined memory address. 
             This is an event channel, so you can implement a simple protocol to check for new events/commands.
+            operator command address 0x80344000 - 0x80344010 (16 bytes)
         */
 
         /*TODO Classical: 8. Call apply_operator_command(&OperatorCommand ); to apply the received operator command to the charge controller. 
