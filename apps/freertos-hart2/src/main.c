@@ -16,6 +16,7 @@
 #include "uart.h"
 #include "workshop_protocol.h"
 #include "charge_ctrl.h"
+#include <string.h>
 #include "memory_layout.h"
 #if !defined(USE_HALO) || (USE_HALO == 0)
     #include "classical_api.h"
@@ -72,183 +73,143 @@ static void charge_ctrl_task( void * parameters )
 {
     ( void ) parameters;
 
-/*
-    * Workshop steps for implementing the charging loop:
-    ______________________________________________________________________________________________________________________________
-    !!!!!!!!Shared Memory Note!!!!!!!
-    In this application, we are using shared memory to communicate between the charging controller and the peer. 
-    This means that both the charging controller and the peer will read and write to the same address in memory to exchange messages.
-
-    MEM Adress Map:
-    *   SensorFrame: Written by peer, read by Charging Controller
-        Address: SENSOR_FRAME_BASE - ring buffer protocol
-        Size: SENSOR_FRAME_SIZE (512 bytes)
-
-    *   ChargeCommand:  Written by Charging Controller, read by peer
-        Address: CHARGE_COMMAND_BASE - ring buffer protocol
-        Size: CHARGE_COMMAND_SIZE (512 bytes)
-
-    *   ChargeStatus: Written by Charging Controller, read by peer
-        Address: CHARGE_STATUS_BASE - blackboard protocol
-        Size: CHARGE_STATUS_SIZE (64 bytes)
-
-    *  OperatorCommand: Written by peer, read by Charging Controller
-        Address: OPERATOR_COMMAND_BASE - event like protocol
-        Size: OPERATOR_COMMAND_SIZE (16 bytes)
-    ______________________________________________________________________________________________________________________________
-
-    * 5. Define heartbeat_counter as a uint32_t that increments on each loop iteration.
-
-    * 6. Create a while loop in which the charge controller will run continuously with below steps:
-
-        - Receive SensorFrame message from peer using shared memory access (read from defined memory address for SensorFrame)
-            -- It's up to you how you want to implement the shared memory protocol, you can use pointer dereferencing to read from 
-            the specific memory address where the SensorFrame is written by the peer. Synchronization is important here, so make sure to implement a simple 
-            protocol to check if new data is available before reading.
-    
-        - Receive OperatorCommand message from peer using shared memory access (read from defined memory address for OperatorCommand)
-            -- Similar to SensorFrame, use pointer dereferencing to read the OperatorCommand from the defined memory address. 
-            This is an event channel, so you can implement a simple protocol to check for new events/commands.
-            
-        - Call apply_operator_command(&OperatorCommand ); to apply the received operator command to the charge controller. 
-
-        - Call build_charge_outputs( &SensorFrame, &ChargeCommand, &ChargeStatus );
-
-        - Publish/log/send the ChargeCommand command to the peer using shared memory access (write to defined memory address for ChargeCommand)
-             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
-
-        - Publish/log/send the ChargeStatus status to the peer using shared memory access (write to defined memory address for ChargeStatus)
-             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
-
-        - Log the Info to the console using uart_log("[APP2] ") which is behaving similar to printf
-            -- [APP2] needs to be included in the log message to differentiate logs from other applications running on different harts
-            -- Use logging on change to avoid flooding the console with repeated messages. 
-            -- For example, only log when data changes, or every N cycles.
-
-            -- Example log messages:
-                Every N cycles for SensorFrame:
-                    uart_log( "[APP2] received mV=%d mA=%d temp=%d breaker_closed=%d faults=%d\n",
-                        ( uint32_t ) sensor_frame.battery_voltage_mv,
-                        ( uint32_t ) sensor_frame.charge_current_ma,
-                        ( uint32_t ) sensor_frame.battery_temp_c,
-                        ( uint32_t ) sensor_frame.breaker_closed,
-                        ( uint32_t ) sensor_frame.fault_flags );
-
-        - Use vTaskDelay( pdMS_TO_TICKS( WORKSHOP_CHARGE_PERIOD_MS ) ); to create a delay in the loop.
-    */
-
-    /* 5. Declare heartbeat_counter as a uint32_t that increments on each loop iteration. */
     int heartbeat_counter = 0U;
 
-    SensorFrameIf *s_SensorFrame = NULL;
-    OperatorCommandIf *s_Cmd = NULL;
-    ChargeCommandIf *s_ChargCommand = NULL;
-    ChargeStatusIf *s_chargeStatus = NULL;
+    SensorFrameIf *s_SensorFrame = (SensorFrameIf *)(SENSOR_FRAME_BASE);
+    OperatorCommandIf *s_Cmd = (OperatorCommandIf *)(OPERATOR_COMMAND_BASE);
+    ChargeCommandIf *s_ChargCommand =(ChargeCommandIf *)(CHARGE_COMMAND_BASE);
+    ChargeStatusIf *s_chargeStatus = (ChargeStatusIf *)(CHARGE_STATUS_BASE);
 
-    SensorFrameIf *s_SensorFrame_cmd = NULL;
-    ChargeCommandIf *s_ChargCommand_cmd = NULL;
-    ChargeStatusIf *s_chargeStatus_cmd = NULL;
+    SensorFrameIf s_SensorFrame_cmd = {
+        .battery_temp_c = 0,
+        .battery_voltage_mv = 0,
+        .breaker_closed = 0,
+        .charge_current_ma = 0,
+        .fault_flags = 0,
+        .lock = 0
+    };
 
-    
-    unsigned int ui_cmdAvailable = 0;
-    unsigned int ui_cmdLock = 0;
-    unsigned int ui_frameLock = 0;
+    ChargeCommandIf s_ChargCommand_cmd = {
+        .charging_mode = "Idle",
+        .current_limit_ma = 0,
+        .enable_charging = 0,
+        .voltage_limit_mv = 0,
+        .lock = 0
+    };
 
-    
-    s_chargeStatus = (ChargeStatusIf *)(CHARGE_STATUS_BASE);
-    s_SensorFrame = (SensorFrameIf *)(SENSOR_FRAME_BASE);
-    // s_SensorFrame = (SensorFrameIf *)(SENSOR_FRAME_BASE);    
-    s_Cmd = (OperatorCommandIf *)(OPERATOR_COMMAND_BASE);
+    ChargeStatusIf s_chargeStatus_cmd = {
+        .charger_state = "Idle",
+        .fault_state = 0,
+        .lock = 0,
+        .requested_current_ma = 0,
+        .requested_voltage_mv = 0,
+        .status = 0
+    };
+
+    SensorFrameIf* p_SensorFrame_cmd = &s_SensorFrame_cmd;
+    ChargeCommandIf* p_ChargCommand_cmd = &s_ChargCommand_cmd;
+    ChargeStatusIf* p_chargeStatus_cmd = &s_chargeStatus_cmd;    
         
-    ui_cmdAvailable = (unsigned int)(OPERATOR_COMMAND_BASE + sizeof(OperatorCommandIf) - (2 * sizeof(unsigned int)));
-    ui_cmdLock = (unsigned int)(OPERATOR_COMMAND_BASE + sizeof(OperatorCommandIf) - sizeof(unsigned int));
-    ui_frameLock = (int)(SENSOR_FRAME_BASE + sizeof(SensorFrameIf) - sizeof(unsigned int));
+    unsigned int *ui_cmdAvailable = (unsigned int *)(OPERATOR_COMMAND_BASE + sizeof(OperatorCommandIf) - (2 * sizeof(unsigned int)));
+    unsigned int *ui_cmdLock = (unsigned int *)(OPERATOR_COMMAND_BASE + sizeof(OperatorCommandIf) - sizeof(unsigned int));
+    unsigned int *ui_frameLock = (unsigned int *)(SENSOR_FRAME_BASE + sizeof(SensorFrameIf) - sizeof(unsigned int));
 
     // Init the charge controller state
     charge_controller_init();
+    char charger_state_Idle[32] = "Idle";
+
 
     while( 1 )
     {      
-
-        if(ui_frameLock == FALSE)
+        if(*ui_frameLock == 0)
         {
             s_chargeStatus->lock = 1;
-            s_chargeStatus = s_chargeStatus_cmd;
+            s_chargeStatus = p_chargeStatus_cmd;
             s_chargeStatus->status = 1;
             s_chargeStatus->lock = 0;
-            if( ( heartbeat_counter % 20U ) == 0U )
-            {
-                uart_log( "[APP2] ui_frameLock acquired\n");
+
+            if((heartbeat_counter % 20) == 0)
+            {    
+                uart_log(
+                    "[APP2] [Zephir -> FreeRTOS]\n"
+                    "[APP2] battery_voltage_mv: %d\n"
+                    "[APP2] charge_current_ma: %d\n"
+                    "[APP2] battery_temp_c: %.2f\n"
+                    "[APP2] breaker_closed: %s\n"
+                    "[APP2] fault_flags: %d\n",
+                    s_SensorFrame->battery_voltage_mv,
+                    s_SensorFrame->charge_current_ma,
+                    s_SensorFrame->battery_temp_c,
+                    s_SensorFrame->breaker_closed ? "ON" : "OFF",
+                    s_SensorFrame->fault_flags
+                );      
             }
         }
         else
         {
-            if( ( heartbeat_counter % 20U ) == 0U )
-            {
-                uart_log( "[APP2] ui_frameLock NOT acquired\n");
-            }
+            uart_log( "[APP2] ui_frameLock NOT acquired\n");
         }
         
 
-        if(ui_cmdLock == FALSE)
-        {
-            if( ( heartbeat_counter % 20U ) == 0U )
-            {
-                uart_log( "[APP2] ui_cmdLock acquired\n");
-            }
+        // if(ui_cmdLock == 0)
+        // {
+        //     if( ( heartbeat_counter % 20U ) == 0U )
+        //     {
+        //         uart_log( "[APP2] ui_cmdLock acquired\n");
+        //     }
 
-            if(ui_cmdAvailable == TRUE)
-            {
-                if( ( heartbeat_counter % 20U ) == 0U )
-                {
-                    uart_log( "[APP2] ui_cmdAvailable available\n");
-                }
+        //     if(ui_cmdAvailable == 1)
+        //     {
+        //         if( ( heartbeat_counter % 20U ) == 0U )
+        //         {
+        //             uart_log( "[APP2] ui_cmdAvailable available\n");
+        //         }
 
-                apply_operator_command( &s_Cmd );
+        //         apply_operator_command( &s_Cmd );
 
-                build_charge_outputs( &s_SensorFrame_cmd, &s_ChargCommand_cmd, &s_chargeStatus_cmd );
+        //         build_charge_outputs( &s_SensorFrame_cmd, &s_ChargCommand_cmd, &s_chargeStatus_cmd );
 
-                s_SensorFrame->lock = 1;
-                s_SensorFrame_cmd->lock = 0;
-                s_SensorFrame = s_SensorFrame_cmd;
+        //         s_SensorFrame->lock = 1;
+        //         s_SensorFrame_cmd->lock = 0;
+        //         s_SensorFrame = s_SensorFrame_cmd;
                 
-                s_ChargCommand->lock = 1;
-                s_ChargCommand_cmd->lock = 0;
-                s_ChargCommand = s_ChargCommand_cmd;
+        //         s_ChargCommand->lock = 1;
+        //         s_ChargCommand_cmd->lock = 0;
+        //         s_ChargCommand = s_ChargCommand_cmd;
 
-                s_chargeStatus->lock = 1;
-                s_chargeStatus_cmd->lock = 0;
-                s_chargeStatus->status = 1;
-                s_chargeStatus = s_chargeStatus_cmd;
+        //         s_chargeStatus->lock = 1;
+        //         s_chargeStatus_cmd->lock = 0;
+        //         s_chargeStatus->status = 1;
+        //         s_chargeStatus = s_chargeStatus_cmd;
 
-                s_Cmd->CmdAvailable = 0;
+        //         s_Cmd->CmdAvailable = 0;
     
-            }
-            else
-            {
-                if( ( heartbeat_counter % 20U ) == 0U )
-                {
-                    uart_log( "[APP2] ui_cmdAvailable NOT available\n");
-                }
-            }
-        }
-        else
-        {
-            if( ( heartbeat_counter % 20U ) == 0U )
-            {
-                uart_log( "[APP2] ui_cmdLock not acquired\n");
-            }
-        }
+        //     }
+        //     else
+        //     {
+        //         if( ( heartbeat_counter % 20U ) == 0U )
+        //         {
+        //             uart_log( "[APP2] ui_cmdAvailable NOT available\n");
+        //         }
+        //     }
+        // }
+        // else
+        // {
+        //     if( ( heartbeat_counter % 20U ) == 0U )
+        //     {
+        //         uart_log( "[APP2] ui_cmdLock not acquired\n");
+        //     }
+        // }
 
-        if( ( heartbeat_counter % 10 ) == 0U)
-        {
-            uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
-                ( uint32_t ) s_SensorFrame->battery_voltage_mv,
-                ( uint32_t ) s_SensorFrame->charge_current_ma,
-                s_SensorFrame->battery_temp_c,
-                ( uint32_t ) s_SensorFrame->breaker_closed,
-                ( uint32_t ) s_SensorFrame->fault_flags );
-        }
+        // if( ( heartbeat_counter % 10 ) == 0U)
+        // {
+        //     uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
+        //         ( uint32_t ) s_SensorFrame->battery_voltage_mv,
+        //         ( uint32_t ) s_SensorFrame->charge_current_ma,
+        //         s_SensorFrame->battery_temp_c,
+        //         ( uint32_t ) s_SensorFrame->breaker_closed,
+        //         ( uint32_t ) s_SensorFrame->fault_flags );
+        // }
 
         heartbeat_counter++;
         vTaskDelay( pdMS_TO_TICKS( WORKSHOP_CHARGE_PERIOD_MS ) );

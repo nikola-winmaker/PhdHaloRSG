@@ -23,14 +23,6 @@
 /************************* GLOBAL SECTION *************************/
 
 //TODO Classical: 0. Define SensorFrame structure based on the workshop specification only for the classical implementation!. 
-struct SensorFrameIf {
-    unsigned int battery_voltage_mv;
-    int charge_current_ma;  
-    float battery_temp_c;
-    unsigned int fault_flags; 
-    bool breaker_closed;
-    bool status_bit; // Sync with memory
-};
 
 /************************* FUNCTION SECTION *************************/
 int main( void )
@@ -40,26 +32,6 @@ int main( void )
 #if !defined(USE_HALO) || (USE_HALO == 0)
 
 /*
-    * Workshop steps for implementing the safety monitor loop:
-    ______________________________________________________________________________________________________________________________
-    !!!!!!!!Shared Memory Note!!!!!!!
-    In this application, we are using shared memory to communicate between the safety monitor and the peer. 
-    This means that both the safety monitor and the peer will read and write to the same address in memory to exchange messages.
-
-    MEM Adress Map:
-    *   SensorFrame: Written by Sensor Fusion, read by Charging Controller
-        Address: SENSOR_FRAME_BASE - ring buffer protocol
-        Size: SENSOR_FRAME_SIZE (512 bytes) - ring buffer protocol
-    ______________________________________________________________________________________________________________________________
-
-    * 1. Define SensorFrame struct from Workshop specification -> SensorFrameIf and declare a variable of this type
-        battery voltage (uint32_t battery_voltage_mv = 0)
-        charge current (int32_t charge_current_ma = 0)
-        battery temperature (float battery_temp_c = 0.0)
-        breaker state (uint8_t breaker_closed = 0)
-        fault/status flags (uint32_t fault_flags = 0)
-
-    * 4. In a while loop in which the sensor fusion will run continuously:
 
         - Call BMS APIs to get the sensor data and fill the SensorFrame struct with the data. 
             -- Example:
@@ -99,8 +71,17 @@ int main( void )
     uint32_t bms_cmd_id = 0U;
     uint32_t bms_cmd_param = 0U;
 
+    typedef struct  {
+        unsigned int battery_voltage_mv;
+        int charge_current_ma;  
+        float battery_temp_c;
+        unsigned int fault_flags; 
+        bool breaker_closed;
+        bool status_bit; // Sync with memory
+    } SensorFrameIf;
+
     /*TODO Classical: 1. Declare a variable of type SensorFrame */
-    struct SensorFrameIf sensor_frame;
+    SensorFrameIf sensor_frame;
 
     /*2. Declare a variable of type SensorFrame to hold the last sent sensor data for logging on change */
     uint32_t heartbeat_counter = 0U;
@@ -110,14 +91,6 @@ int main( void )
 
     while( 1 )
     {
-        /* This is a demo loop to showcase the application running */
-        /* TODO Classical: 2. This is for demonstration purposes only and should be deleted when workshop code is written */
-        if( ( heartbeat_counter % 20U ) == 0U)
-        {
-            printk( "[APP1] classical demo loop\n" );
-        }
-
-
         // Read command for BMS from console and apply it to BMS
         bms_get_operator_command( &bms_cmd_id, &bms_cmd_param );
         // Apply operator command to BMS
@@ -131,23 +104,19 @@ int main( void )
         sensor_frame.battery_temp_c = bms_get_temperature();
         sensor_frame.breaker_closed = bms_get_breaker_closed();
         sensor_frame.fault_flags = bms_get_fault_flags();
-        sensor_frame.status_bit = true;
 
 
         /*TODO Classical: 4. Publish/log/send the SensorFrame to the peer using shared memory access (write to defined memory address for SensorFrame)
             -- SENSOR_FRAME_BASE is a memory address where the SensorFrame will be written
             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
-        int *sensor_frame_ptr = (int *)SENSOR_FRAME_BASE;
+        SensorFrameIf *sensor_frame_ptr = (SensorFrameIf *)(SENSOR_FRAME_BASE);
         
-        if(sensor_frame.status_bit == true)
-        {
-            sensor_frame.status_bit = false;
-            memcpy(sensor_frame_ptr, &sensor_frame, sizeof(sensor_frame)/sizeof(int));
-        }
+        sensor_frame_ptr->status_bit = 1;
+        sensor_frame.status_bit = 0;
+        sensor_frame_ptr = &sensor_frame;
+        printk( "[APP1] SENDING DATA");
 
-        /*TODO Classical: 5. Log the Info to the console using printk("[APP1] ") which is behaving similar to printf */
-        // sensor_frame is a placeholder variable, it is a type of SensorFrame struct that you will define based on the workshop specification
         if( ( heartbeat_counter % 10U ) == 0U || sensor_frame.fault_flags != 0U )
         {
             printk( "[APP1] CC sent mV=%u mA=%d temp=%f breaker_closed=%u faults=%d\n",
