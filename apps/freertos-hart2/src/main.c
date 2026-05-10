@@ -24,35 +24,202 @@
 #endif
 
 /************************* GLOBAL SECTION *************************/
-struct SensorFrame{
-    unsigned int battery_voltage_mv;
-    int charge_current_ma;
+#include <stdint.h>
+#include <stdbool.h>
+
+typedef struct
+{
+    uint32_t battery_voltage_mv;
+    int32_t charge_current_ma;
     float battery_temp_c;
     bool breaker_closed;
-    unsigned int fault_flags;
-};
+    uint32_t fault_flags;
 
-struct ChargeCommand{
+} SensorFrame;
+
+typedef struct
+{
     bool enable_charging;
-    unsigned int current_limit_ma;
-    unsigned int voltage_limit_mv;
+    uint32_t current_limit_ma;
+    uint32_t voltage_limit_mv;
     char charging_mode[7];
-};
 
-struct ChargeStatus{
+} ChargeCommand;
+
+typedef struct
+{
     char charger_state[5];
-    unsigned int requested_current_ma;
-    unsigned int requested_voltage_mv;
-    unsigned int fault_state;
-};
+    uint32_t requested_current_ma;
+    uint32_t requested_voltage_mv;
+    uint32_t fault_state;
 
-struct OperatorCommand{
-    unsigned int command_id;
-    int command_param;
-};
+} ChargeStatus;
+
+typedef struct
+{
+    uint32_t command_id;
+    int32_t command_param;
+
+} OperatorCommand;
 /************************* FUNCTION SECTION *************************/
 #if !defined(USE_HALO) || (USE_HALO == 0)
 
+typedef enum
+{
+    IPC_IDLE = 0,
+    IPC_WRITING = 1,
+    IPC_READING = 2
+
+} IpcStatus;
+
+#include <string.h>
+
+typedef struct
+{
+    volatile uint32_t status;
+
+} MailboxHeader;
+
+#define SENSOR_STATUS \
+    (*(volatile uint32_t*)SENSOR_FRAME_BASE)
+
+#define SENSOR_DATA \
+    ((volatile SensorFrame*)(SENSOR_FRAME_BASE + sizeof(uint32_t)))
+
+
+#define CHARGE_CMD_STATUS \
+    (*(volatile uint32_t*)CHARGE_COMMAND_BASE)
+
+#define CHARGE_CMD_DATA \
+    ((volatile ChargeCommand*)(CHARGE_COMMAND_BASE + sizeof(uint32_t)))
+
+
+#define CHARGE_STATUS_FLAG \
+    (*(volatile uint32_t*)CHARGE_STATUS_BASE)
+
+#define CHARGE_STATUS_DATA \
+    ((volatile ChargeStatus*)(CHARGE_STATUS_BASE + sizeof(uint32_t)))
+
+
+#define OPERATOR_STATUS \
+    (*(volatile uint32_t*)OPERATOR_COMMAND_BASE)
+
+#define OPERATOR_DATA \
+    ((volatile OperatorCommand*)(OPERATOR_COMMAND_BASE + sizeof(uint32_t)))
+
+static bool ipc_write(volatile uint32_t* status,
+                      volatile void* destination,
+                      const void* source,
+                      uint32_t size)
+{
+    if (*status != IPC_IDLE)
+    {
+        return false;
+    }
+
+    *status = IPC_WRITING;
+
+    memcpy((void*)destination,
+           source,
+           size);
+
+    *status = IPC_IDLE;
+
+    return true;
+}
+
+static bool ipc_read(volatile uint32_t* status,
+                     const volatile void* source,
+                     void* destination,
+                     uint32_t size)
+{
+    if (*status != IPC_IDLE)
+    {
+        return false;
+    }
+
+    *status = IPC_READING;
+
+    memcpy(destination,
+           (const void*)source,
+           size);
+
+    *status = IPC_IDLE;
+
+    return true;
+}
+
+bool write_sensor_frame(const SensorFrame* data)
+{
+    return ipc_write(
+        &SENSOR_STATUS,
+        SENSOR_DATA,
+        data,
+        sizeof(SensorFrame));
+}
+
+bool read_sensor_frame(SensorFrame* data)
+{
+    return ipc_read(
+        &SENSOR_STATUS,
+        SENSOR_DATA,
+        data,
+        sizeof(SensorFrame));
+}
+
+bool write_charge_command(const ChargeCommand* data)
+{
+    return ipc_write(
+        &CHARGE_CMD_STATUS,
+        CHARGE_CMD_DATA,
+        data,
+        sizeof(ChargeCommand));
+}
+
+bool read_charge_command(ChargeCommand* data)
+{
+    return ipc_read(
+        &CHARGE_CMD_STATUS,
+        CHARGE_CMD_DATA,
+        data,
+        sizeof(ChargeCommand));
+}
+
+bool write_charge_status(const ChargeStatus* data)
+{
+    return ipc_write(
+        &CHARGE_STATUS_FLAG,
+        CHARGE_STATUS_DATA,
+        data,
+        sizeof(ChargeStatus));
+}
+
+bool read_charge_status(ChargeStatus* data)
+{
+    return ipc_read(
+        &CHARGE_STATUS_FLAG,
+        CHARGE_STATUS_DATA,
+        data,
+        sizeof(ChargeStatus));
+}
+
+bool write_operator_command(const OperatorCommand* data)
+{
+    return ipc_write(
+        &OPERATOR_STATUS,
+        OPERATOR_DATA,
+        data,
+        sizeof(OperatorCommand));
+}
+
+bool read_operator_command(OperatorCommand* data)
+{
+    return ipc_read(
+        &OPERATOR_STATUS,
+        OPERATOR_DATA,
+        data,
+        sizeof(OperatorCommand));
+}
 static void charge_ctrl_task( void * parameters )
 {
     ( void ) parameters;
@@ -167,12 +334,6 @@ static void charge_ctrl_task( void * parameters )
 
     while( 1 )
     {
-        
-        /* This is a demo loop to showcase the application running */
-        // TODO Classical: Delete the demo loop when writing the actual implementation
-        if( ( heartbeat_counter % 20U ) == 0U ){
-            uart_log( "[APP2] classical demo loop\n" );
-        }
 
         /*TODO Classical: 6. Receive SensorFrame message from peer using shared memory access (read from defined memory address for SensorFrame)
             -- It's up to you how you want to implement the shared memory protocol, you can use pointer dereferencing to read from 
@@ -180,70 +341,6 @@ static void charge_ctrl_task( void * parameters )
             protocol to check if new data is available before reading.
             sensor frame address 0x80340000 - 0x80340200 (512 bytes)
         */
-        #include <stdint.h>
-        #include <stdbool.h>
-        #include <string.h>
-
-        #define SENSOR_SHM_BASE ((volatile uint8_t*)0x80340000)
-
-        #define SHM_EMPTY      0
-        #define SHM_WRITING    1
-        #define SHM_READY      2
-        #define SHM_CONSUMED   3
-
-        typedef struct
-        {
-            volatile uint32_t sequence;
-            volatile uint32_t status;
-            volatile uint32_t length;
-            volatile uint32_t reserved;
-        } ShmHeader;
-
-        typedef struct
-        {
-            uint8_t data[496];  // 512 - 16 bytes header
-        } SensorFrame;
-
-        #define SHM_HEADER ((volatile ShmHeader*)SENSOR_SHM_BASE)
-        #define SHM_DATA   ((volatile uint8_t*)(SENSOR_SHM_BASE + sizeof(ShmHeader)))
-
-        void writeSensorFrame(const SensorFrame* frame)
-        {
-            SHM_HEADER->status = SHM_WRITING;
-
-            SHM_HEADER->sequence++;
-
-            memcpy((void*)SHM_DATA, frame, sizeof(SensorFrame));
-
-            SHM_HEADER->length = sizeof(SensorFrame);
-
-            SHM_HEADER->status = SHM_READY;
-        }
-
-        bool readSensorFrame(SensorFrame* frame)
-        {
-            uint32_t seq1;
-            uint32_t seq2;
-
-            if (SHM_HEADER->status != SHM_READY)
-            {
-                return false; // no new data
-            }
-
-            do
-            {
-                seq1 = SHM_HEADER->sequence;
-
-                memcpy(frame, (const void*)SHM_DATA, sizeof(SensorFrame));
-
-                seq2 = SHM_HEADER->sequence;
-
-            } while (seq1 != seq2);
-
-            SHM_HEADER->status = SHM_CONSUMED;
-
-            return true;
-        }
 
         /*TODO Classical: 7. Receive OperatorCommand message from peer using shared memory access (read from defined memory address for OperatorCommand)
             -- Similar to SensorFrame, use pointer dereferencing to read the OperatorCommand from the defined memory address. 
