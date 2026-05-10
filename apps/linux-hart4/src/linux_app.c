@@ -333,28 +333,30 @@ int main( void )
             For example, only log when data changes or every N iterations.
             Variables are placeholders for the actual variables you will define based on the workshop specification
         */
-        // if(status.requested_current_ma != last_status.requested_current_ma ||
-        //     status.requested_voltage_mv != last_status.requested_voltage_mv ||
-        //     status.fault_state != last_status.fault_state )
-        // {
-        //     console_lock_acquire();
-        //     printf( "[APP4] status state=%s current=%u voltage=%u faults=0x%x\n",
-        //             bms_charge_state( &status ),
-        //             status.requested_current_ma,
-        //             status.requested_voltage_mv,
-        //             status.fault_state );
-        //     console_lock_release();
-        //     last_status = status;
-        // }
-        // if( (heartbeat_counter % 10U) == 0U ) {
-        //     console_lock_acquire();
-        //     printf( "[APP4] safe_mode=%u breaker_closed=%u charging_allowed=%u heartbeat=%u\n",
-        //             safety.safe_mode,
-        //             safety.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
-        //             safety.charging_allowed,
-        //             safety.heartbeat_counter );
-        //     console_lock_release();
-        // }
+        ChargeStatusData last_status;
+
+        if(csData.requested_current_ma != last_status.requested_current_ma ||
+            csData.requested_voltage_mv != last_status.requested_voltage_mv ||
+            csData.fault_state != last_status.fault_state )
+        {
+            console_lock_acquire();
+            printf( "[APP4] status state=%s current=%u voltage=%u faults=0x%x\n",
+                    bms_charge_state( &csData ),
+                    csData.requested_current_ma,
+                    csData.requested_voltage_mv,
+                    csData.fault_state );
+            console_lock_release();
+            last_status = csData;
+        }
+        if( (heartbeat_counter % 10U) == 0U ) {
+            console_lock_acquire();
+            printf( "[APP4] safe_mode=%u breaker_closed=%u charging_allowed=%u heartbeat=%u\n",
+                    ssData.safe_mode,
+                    ssData.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                    ssData.charging_allowed,
+                    ssData.heartbeat_counter );
+            console_lock_release();
+        }
 
 
         heartbeat_counter++;
