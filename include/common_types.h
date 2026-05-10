@@ -1,33 +1,33 @@
 typedef struct {
-    unsigned int battery_voltage_mv = 0;
-    int charge_current_ma = 0;
-    float battery_temp_c = 0.0;
-    bool breaker_closed = false;
-    unsigned int fault_flags = 0;  
+    unsigned int battery_voltage_mv;
+    int charge_current_ma;
+    float battery_temp_c;
+    bool breaker_closed;
+    unsigned int fault_flags;  
 }SensorFrame;
 
 typedef struct {
-    bool enable_charging = False;
-    unsigned int current_limit_ma = 0;
-    unsigned int voltage_limit_mv = 0;
-    string charging_mode = "normal";
+    bool enable_charging;
+    unsigned int current_limit_ma;
+    unsigned int voltage_limit_mv;
+    unsigned char charging_mode;
 }ChargeCommand;
 
 typedef struct {
-    string charger_state = "idle";        
-    unsigned int requested_current_ma = 0;
-    unsigned int requested_voltage_mv = 0;
-    unsigned int fault_state = 0;
+    unsigned char charger_state;        
+    unsigned int requested_current_ma;
+    unsigned int requested_voltage_mv;
+    unsigned int fault_state;
 }ChargeStatus;
 
 typedef struct {
-    bool safe_mode = False;           
-    bool breaker_open = False;        
-    bool charging_allowed = False;    
-    unsigned int heartbeat_counter = 0;
+    bool safe_mode;           
+    bool breaker_open;        
+    bool charging_allowed;    
+    unsigned int heartbeat_counter;
 }SafetyState;
 
 typedef struct {
-    unsigned int command_id = 0;
-    int command_param = 0;   
+    unsigned int command_id;
+    int command_param;   
 }OperatorCommand;

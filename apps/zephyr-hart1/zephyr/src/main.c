@@ -23,7 +23,7 @@
 /************************* GLOBAL SECTION *************************/
 
 //TODO Classical: 0. Define SensorFrame structure based on the workshop specification only for the classical implementation!. 
-
+// #include "common_types.h"
 
 /************************* FUNCTION SECTION *************************/
 int main( void )

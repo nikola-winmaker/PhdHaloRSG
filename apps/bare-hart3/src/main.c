@@ -24,10 +24,7 @@
 /************************* GLOBAL SECTION *************************/
 //TODO Classical: 0. Structure definitions for ChargeCommand and SafetyState 
 // based on the workshop specification only for the classical implementation!.
-
-ChargeCommand
-SafetyState
-
+#include "common_types.h"
 /************************* FUNCTION SECTION *************************/
 void _start_c( void )
 {

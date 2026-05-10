@@ -38,7 +38,7 @@ static volatile sig_atomic_t keep_running = 1;
 
 //TODO Classical: 0. Define ChargeStatus, SafetyState, and OperatorCommand structures 
 // based on the workshop specification only for the classical implementation!.
-
+// #include "common_types.h"
 /************************* FUNCTION SECTION *************************/
 static void on_signal( int sig );
 

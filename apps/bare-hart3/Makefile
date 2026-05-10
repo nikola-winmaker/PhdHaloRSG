@@ -16,7 +16,7 @@ ifeq ($(USE_HALO),1)
 	DEPS_OBJDIR := halo_codegen
 else
 	DEPS_DIR := deps/classical
-	DEPS_INC := -I$(DEPS_DIR)/include
+	DEPS_INC := -I$(DEPS_DIR)/include -I$(ROOT_DIR)/include
 	DEPS_SRCS := $(wildcard $(DEPS_DIR)/src/*.c)
 	DEPS_OBJDIR := classical
 endif
