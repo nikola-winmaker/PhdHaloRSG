@@ -16,6 +16,7 @@
 #include "bms.h"
 #if !defined(USE_HALO) || (USE_HALO == 0)
     #include "classical_api.h"
+    #include "icc.h"
 #else
     #include "halo_api.h"
 #endif
@@ -92,8 +93,9 @@ int main( void )
     uint32_t bms_cmd_id = 0U;
     uint32_t bms_cmd_param = 0U;
 
-    /*TODO Classical: 1. Declare a variable of type SensorFrame */
+    /*TODO  OK: 1. Declare a variable of type SensorFrame */
 
+    SensorFrameData sensor_frame;
     /*2. Declare a variable of type SensorFrame to hold the last sent sensor data for logging on change */
     uint32_t heartbeat_counter = 0U;
 
@@ -103,10 +105,10 @@ int main( void )
     while( 1 )
     {
         /* This is a demo loop to showcase the application running */
-        /* TODO Classical: 2. This is for demonstration purposes only and should be deleted when workshop code is written */
+        /* TODO Classical OK: 2. This is for demonstration purposes only and should be deleted when workshop code is written */
         if( ( heartbeat_counter % 20U ) == 0U)
         {
-            printk( "[APP1] classical demo loop\n" );
+            printk( "[APP1] gota was here\n" );
         }
 
 
@@ -115,32 +117,38 @@ int main( void )
         // Apply operator command to BMS
         command_bms( bms_cmd_id, bms_cmd_param ); 
 
-        /*TODO Classical: 3. Call BMS APIs to get the sensor data and fill the SensorFrame struct with the data. 
+        /*TODO Classical OK: 3. Call BMS APIs to get the sensor data and fill the SensorFrame struct with the data. 
             -- sensor_frame is a placeholder variable, it is a type of SensorFrame struct that you will define based on the workshop specification
         */
-        // sensor_frame.battery_voltage_mv = (uint32_t)(bms_get_voltage());
-        // sensor_frame.charge_current_ma = (int32_t)(bms_get_current());
-        // sensor_frame.battery_temp_c = bms_get_temperature();
-        // sensor_frame.breaker_closed = bms_get_breaker_closed();
-        // sensor_frame.fault_flags = bms_get_fault_flags();
+         sensor_frame.battery_voltage_mv = (uint32_t)(bms_get_voltage());
+         sensor_frame.charge_current_ma = (int32_t)(bms_get_current());
+         sensor_frame.battery_temp_c = bms_get_temperature();
+         sensor_frame.breaker_closed = bms_get_breaker_closed();
+         sensor_frame.fault_flags = bms_get_fault_flags();
 
 
-        /*TODO Classical: 4. Publish/log/send the SensorFrame to the peer using shared memory access (write to defined memory address for SensorFrame)
+        /*TODO Classical OK: 4. Publish/log/send the SensorFrame to the peer using shared memory access (write to defined memory address for SensorFrame)
             -- SENSOR_FRAME_BASE is a memory address where the SensorFrame will be written
             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
+        int returnCode = writeData(channel_sensorFrame, (void*) &sensor_frame, sizeof(sensor_frame));
+        if (returnCode == 0)
+        {
+            printk( "[APP1] send error\n");
+        }
+            
 
         /*TODO Classical: 5. Log the Info to the console using printk("[APP1] ") which is behaving similar to printf */
         // sensor_frame is a placeholder variable, it is a type of SensorFrame struct that you will define based on the workshop specification
-        // if( ( heartbeat_counter % 10U ) == 0U || sensor_frame.fault_flags != 0U )
-        // {
-        //     printk( "[APP1] CC sent mV=%u mA=%d temp=%f breaker_closed=%u faults=%d\n",
-        //                ( unsigned int ) sensor_frame.battery_voltage_mv,
-        //                sensor_frame.charge_current_ma,
-        //                sensor_frame.battery_temp_c,
-        //                ( unsigned int ) sensor_frame.breaker_closed,
-        //                ( unsigned int ) sensor_frame.fault_flags );
-        // }
+         if( ( heartbeat_counter % 10U ) == 0U || sensor_frame.fault_flags != 0U )
+            {
+                printk( "[APP1] CC sent mV=%u mA=%d temp=%f breaker_closed=%u faults=%d\n",
+                            ( unsigned int ) sensor_frame.battery_voltage_mv,
+                            sensor_frame.charge_current_ma,
+                            sensor_frame.battery_temp_c,
+                            ( unsigned int ) sensor_frame.breaker_closed,
+                            ( unsigned int ) sensor_frame.fault_flags );
+            }
 
         heartbeat_counter++;
         k_msleep( WORKSHOP_SENSOR_PERIOD_MS );
