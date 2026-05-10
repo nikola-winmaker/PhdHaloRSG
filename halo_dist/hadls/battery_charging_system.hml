@@ -10,31 +10,31 @@
 // USE code snippets by typing HML
 // override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles
 SharedMemory SensorSharedMemory {
-    memSize: 512B
+    memSize: 512
     syncBlocking: True
     baseAddress: 0x80340000
 }
 // override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles
 SharedMemory ChargingSharedMemory {
-    memSize: 512B
+    memSize: 512
     syncBlocking: True
     baseAddress: 0x80341000 
 }
 // override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles
 BlackBoard ChargingBlackBoard {
-    maxPayload: 64B
-    bufferSize: 64B
+    maxPayload: 64
+    bufferSize: 64
     baseAddress: 0x80342000 
 }
 // override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles
 BlackBoard SafetyBlackBoard {
-    maxPayload: 64B
-    bufferSize: 64B
+    maxPayload: 64
+    bufferSize: 64
     baseAddress: 0x80343000
 }
 // override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles
 EventChannel OperatorEventChannel {
-    eventQueueSize: 16B
+    eventQueueSize: 16
     maxChannels: 1
     baseAddress: 0x80344000
 }
