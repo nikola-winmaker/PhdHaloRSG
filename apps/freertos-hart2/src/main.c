@@ -315,16 +315,16 @@ static void charge_ctrl_task( void * parameters )
 
 
     /*variable of type SensorFrame to hold the last received sensor data */
-    struct SensorFrame sensor_frame;
+    SensorFrame sensor_frame;
 
     /*variable of type OperatorCommand to hold the last received operator command */
-    struct OperatorCommand operator_command;
+    OperatorCommand operator_command;
 
     /*variable of type ChargeCommand to hold the charge command */
-    struct ChargeCommand charge_command;
+    ChargeCommand charge_command;
 
     /*variable of type ChargeStatus to hold the charge status */
-    struct ChargeStatus charge_status;
+    ChargeStatus charge_status;
 
     /* 5. Declare heartbeat_counter as a uint32_t that increments on each loop iteration. */
     uint32_t heartbeat_counter = 0U;
@@ -334,34 +334,104 @@ static void charge_ctrl_task( void * parameters )
 
     while( 1 )
     {
+        volatile uint32_t* sensor_status =
+            (volatile uint32_t*)SENSOR_FRAME_BASE;
 
-        /*TODO Classical: 6. Receive SensorFrame message from peer using shared memory access (read from defined memory address for SensorFrame)
-            -- It's up to you how you want to implement the shared memory protocol, you can use pointer dereferencing to read from 
-            the specific memory address where the SensorFrame is written by the peer. Synchronization is important here, so make sure to implement a simple 
-            protocol to check if new data is available before reading.
-            sensor frame address 0x80340000 - 0x80340200 (512 bytes)
-        */
+        volatile SensorFrame* shared_sensor =
+            (volatile SensorFrame*)(SENSOR_FRAME_BASE + sizeof(uint32_t));
 
-        /*TODO Classical: 7. Receive OperatorCommand message from peer using shared memory access (read from defined memory address for OperatorCommand)
-            -- Similar to SensorFrame, use pointer dereferencing to read the OperatorCommand from the defined memory address. 
-            This is an event channel, so you can implement a simple protocol to check for new events/commands.
-            operator command address 0x80344000 - 0x80344010 (16 bytes)
-        */
+        /* Only read if writer is not currently writing */
+        if (*sensor_status == IPC_IDLE)
+        {
+            /* Claim ownership for reading */
+            *sensor_status = IPC_READING;
 
-        /*TODO Classical: 8. Call apply_operator_command(&OperatorCommand ); to apply the received operator command to the charge controller. 
-            Call build_charge_outputs( &SensorFrame, &ChargeCommand, &ChargeStatus );
-        */
-        // apply_operator_command( &operator_command );
-        // build_charge_outputs( &sensor_frame, &charge_command, &charge_status );
+            /* Copy data from shared memory */
+            sensor_frame = *shared_sensor;
 
+            /* Release mailbox */
+            *sensor_status = IPC_IDLE;
 
-        /*TODO Classical: 9. Publish/log/send the ChargeCommand command to the peer using shared memory access (write to defined memory address for ChargeCommand)
-             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
-        */
+        }
 
-        /*TODO Classical: 10. Publish/log/send the ChargeStatus status to the peer using shared memory access (write to defined memory address for ChargeStatus)
-             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
-        */
+        /*This is an event channel, so you can implement a simple protocol to check for new events/commands.*/
+
+        volatile uint32_t* operator_status =
+            (volatile uint32_t*)OPERATOR_COMMAND_BASE;
+
+        volatile OperatorCommand* shared_command =
+            (volatile OperatorCommand*)(OPERATOR_COMMAND_BASE + sizeof(uint32_t));
+
+        /* Check if peer finished writing a new command */
+        if (*operator_status == IPC_IDLE)
+        {
+            /* Claim mailbox for reading */
+            *operator_status = IPC_READING;
+
+            /* Read command from shared memory */
+            operator_command = *shared_command;
+
+            /* Release mailbox */
+            *operator_status = IPC_IDLE;
+        }
+        apply_operator_command( &operator_command );
+        build_charge_outputs( &sensor_frame, &charge_command, &charge_status );
+
+        volatile ChargeCommand* shared_charge_cmd =
+            (volatile ChargeCommand*)(CHARGE_COMMAND_BASE + sizeof(uint32_t));
+
+        /* Example command to publish */
+        charge_command.enable_charging = true;
+        charge_command.current_limit_ma = 5000;
+        charge_command.voltage_limit_mv = 42000;
+
+        strcpy(charge_command.charging_mode, "FAST");
+
+        /* Only write if mailbox is free */
+        if (*charge_status == IPC_IDLE)
+        {
+            /* Claim mailbox for writing */
+            *charge_status = IPC_WRITING;
+
+            /* Write payload to shared memory */
+            *shared_charge_cmd = charge_command;
+
+            /* Release mailbox for peer to read */
+            *charge_status = IPC_IDLE;
+        }
+        /* Classical: 10. Publish ChargeStatus to peer using shared memory */
+
+                /* Classical: 10. Publish ChargeStatus to peer using shared memory */
+
+        volatile uint32_t* charge_status_flag =
+            (volatile uint32_t*)CHARGE_STATUS_BASE;
+
+        volatile ChargeStatus* shared_status =
+            (volatile ChargeStatus*)(CHARGE_STATUS_BASE + sizeof(uint32_t));
+
+        ChargeStatus status;
+
+        /* Fill status */
+        memcpy(status.charger_state, "ON", 3);   /* includes '\0' */
+        status.requested_current_ma = 5000;
+        status.requested_voltage_mv = 42000;
+        status.fault_state = 0;
+
+        /* Only write if mailbox is free */
+        if (*charge_status_flag == IPC_IDLE)
+        {
+            /* Claim mailbox for writing */
+            *charge_status_flag = IPC_WRITING;
+
+            /* Write status to shared memory */
+            *shared_status = status;
+
+            /* Release mailbox (peer can now read) */
+            *charge_status_flag = IPC_IDLE;
+        }
+        else
+        {
+        }
 
 
         /*TODO Classical: 11. Log the Info to the console using uart_log("[APP2] ") which is behaving similar to printf
@@ -370,14 +440,14 @@ static void charge_ctrl_task( void * parameters )
             -- For example, only log when data changes, or every N cycles.
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
         */
-        // if( ( heartbeat_counter % 10 ) == 0U){
-        //     uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
-        //         ( uint32_t ) sensor_frame.battery_voltage_mv,
-        //         ( uint32_t ) sensor_frame.charge_current_ma,
-        //         sensor_frame.battery_temp_c,
-        //         ( uint32_t ) sensor_frame.breaker_closed,
-        //         ( uint32_t ) sensor_frame.fault_flags );
-        // }
+         if( ( heartbeat_counter % 10 ) == 0U){
+             uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
+                 ( uint32_t ) sensor_frame.battery_voltage_mv,
+                 ( uint32_t ) sensor_frame.charge_current_ma,
+                 sensor_frame.battery_temp_c,
+                 ( uint32_t ) sensor_frame.breaker_closed,
+                 ( uint32_t ) sensor_frame.fault_flags );
+         }
 
         heartbeat_counter++;
         vTaskDelay( pdMS_TO_TICKS( WORKSHOP_CHARGE_PERIOD_MS ) );
