@@ -195,9 +195,6 @@ int main( void )
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h1_zephyr/src/halo_api.c
     */
-    halo_sensorfusion_init_riscv64_h1_zephyr();
-    SensorFrameData frame;
-
     halo_u32_t battery_voltage_mv_last;
 
     // 2. Declare hearbeat_counter that increments on each loop iteration.
@@ -214,8 +211,16 @@ int main( void )
     // Init BMS controller
     bms_init();
 
+    bool init_done = 0;
+    SensorFrameData frame;
     while( 1 )
     {
+        if (init_done == 0)
+        {
+            halo_sensorfusion_init_riscv64_h1_zephyr();
+            printk( "[APP1] Init >>>> DONE <<<<<<\n" );
+            init_done = 1;
+        }
         battery_voltage_mv_last = frame.battery_voltage_mv;
         /* This is a demo loop to showcase the application running */
         /* TODO HALO: 3. This is for demonstration purposes only and should be deleted when workshop code is written */
@@ -248,14 +253,15 @@ int main( void )
                 printk( "[APP1] SensorFrame send failed\n" );
             -- Full path is in .deps/halo/codegen/riscv64_h1_zephyr/include/halo_api.h and deps/halo/codegen/riscv64_h1_zephyr/src/halo_channels.c
         */
-
-        if (halo_send_SensorFrameIf_SensorFrameData(&frame))
+        uint32_t ret_val;
+        ret_val = halo_send_SensorFrameIf_SensorFrameData(&frame);
+        if (ret_val != 0)
         {
-            //NOP
+            printk( "[APP1] SensorFrame send failed\n" );
         }
         else
         {
-            printk( "[APP1] SensorFrame send failed\n" );
+            //NOP
         }
 
         /*TODO HALO: 6. Log the Info to the console using printk("[APP1] ") which is behaving similar to printf */
@@ -268,7 +274,7 @@ int main( void )
                        frame.battery_temp_c,
                        ( unsigned int ) frame.breaker_closed,
                        ( unsigned int ) frame.fault_flags,
-                       ( unsigned int ) heartbeat_counter );
+                       ( unsigned int ) ret_val );
         }
 
 
