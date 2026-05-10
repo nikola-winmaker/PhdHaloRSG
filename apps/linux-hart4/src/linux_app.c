@@ -39,6 +39,26 @@ static volatile sig_atomic_t keep_running = 1;
 //TODO Classical: 0. Define ChargeStatus, SafetyState, and OperatorCommand structures 
 // based on the workshop specification only for the classical implementation!.
 
+typedef struct ChargeStatusData {
+    uint8_t charger_state[5];
+    uint32_t requested_current_ma;
+    uint32_t requested_voltage_mv;
+    uint32_t fault_state;
+} ChargeStatusData;
+
+typedef struct SafetyStateData {
+    uint8_t safe_mode;
+    uint8_t breaker_open;
+    uint8_t charging_allowed;
+    uint32_t heartbeat_counter;
+} SafetyStateData;
+
+typedef struct OperatorCommandData {
+    uint32_t command_id;
+    int32_t command_param;
+    uint32_t command_counter;
+} OperatorCommandData;
+
 /************************* FUNCTION SECTION *************************/
 static void on_signal( int sig );
 
@@ -133,46 +153,61 @@ int main( void )
 */
 
     /*TODO Classical: 1. Declare a variable of type OperatorCommand */
-
+    OperatorCommandData opCommand = {};
+    uint32_t opCounter = 0;
     /*TODO Classical: 2. Declare a variable of type ChargeStatus to hold the last evaluated state */
-
+    ChargeStatusData lastChargeStatus= {};
     /*TODO Classical: 3. Declare a variable of type SafetyState to hold the last evaluated state */
-
+    SafetyStateData lastSafetyState= {};
     /* 4. Define heartbeat_counter as a uint32_t that increments on each loop iteration */
     uint32_t heartbeat_counter = 0U;
 
+
+    
     while( keep_running )
     {
         /* This is a demo loop to showcase the application running */
         /*TODO Classical: 4. Delete the following line once you implement the actual logic */
-        if( ( heartbeat_counter % 10U ) == 0U )
-        {
-            printf( "[APP4] classical demo loop\n" );
-        }
+        // if( ( heartbeat_counter % 10U ) == 0U )
+        // {
+        //     printf( "[APP4] classical demo loop\n" );
+        // }
 
         //TODO Classical: 5. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
-        // command_rcv = service_console_input( input_fd, &operator_command );
-        // if( command_rcv < 0 )
-        // {
-        //     printf( "[APP4] unknown command %s\n", line_buffer );
-        // }
+        command_rcv = service_console_input( input_fd, &opCommand );
+        if( command_rcv < 0 )
+        {
+            printf( "[APP4] unknown command %s\n", line_buffer );
+        }
 
         /*TODO Classical: 6. If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
             -- Publish/log/send the OperatorCommand command to the peer using shared memory access (write to defined memory address for OperatorCommand)
             get_external_buffer( VIRTUAL_OPERATOR_COMMAND ) is the defined memory address for OperatorCommand buffer in shared memory
              -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
+        if(command_rcv > 0)
+        {
+            printf( "[APP4] valid command\n" );
 
+            OperatorCommandData* pOpCommand = get_external_buffer( VIRTUAL_OPERATOR_COMMAND );
+            //pOpCommand->command_id = opCommand.command_id;
+            //pOpCommand->command_param = opCommand.command_param;
+            //pOpCommand->command_counter = opCounter++;
+        }
         /*TODO Classical: 7. Receive ChargeStatus message from peer using shared memory access (read from defined memory address for ChargeStatus)
             get_external_buffer( VIRTUAL_CHARGE_STATUS ) is the defined memory address for ChargeStatus buffer in shared memory
             -- It's up to you how you want to implement the shared memory protocol, you can use pointer dereferencing to read from the specific memory address where the ChargeStatus is written by the peer. 
             Synchronization is important here, so make sure to implement a simple protocol to check if new data is available before reading.
         */
+        ChargeStatusData* pChargeStatus = get_external_buffer( VIRTUAL_CHARGE_STATUS );
+        //memcpy(pChargeStatus, &lastChargeStatus, sizeof(ChargeStatusData));
 
         /*TODO Classical: 8. Receive SafetyState message from peer using shared memory access (read from defined memory address for SafetyState)
             get_external_buffer( VIRTUAL_SAFETY_STATE ) is the defined memory address for SafetyState buffer in shared memory
             -- Similar to ChargeStatus, synchronization is important here as well.
         */
+        SafetyStateData* pSafetyState = get_external_buffer( VIRTUAL_SAFETY_STATE );
+        //memcpy(pSafetyState, &lastSafetyState, sizeof(SafetyStateData));
 
          /*TODO Classical: 9. Use logging, printf has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
             For example, only log when data changes or every N iterations.
