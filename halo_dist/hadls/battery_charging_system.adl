@@ -15,3 +15,44 @@
 
 
 // USE code snippets by typing ADL
+HALOFramework {
+    components {
+        Zephyr : Component { Type: Application, Platform: riscv64_h1_zephyr, Function: RealTimeProcessing }
+        FreeRTOS : Component { Type: Application, Platform: riscv64_h2_freertos, Function: RealTimeProcessing }
+        BareMetal : Component { Type: Application, Platform: riscv64_h3_baremetal, Function: RealTimeProcessing }
+        Linux : Component { Type: Application, Platform: riscv64_h4_linux, Function: GeneralProcessing }
+    }
+
+    connections {
+    connection SensorTelemetry {
+        from Zephyr to FreeRTOS
+        interface: SensorFrameIf
+        profile: SensorSharedMemory
+    }
+    
+    connection ChargingCommand {
+        from FreeRTOS to BareMetal
+        interface: ChargeCommandIf
+        profile: ChargingSharedMemory
+    }
+    
+    connection ChargingStatus {
+        from FreeRTOS to Linux
+        interface: ChargingStatusIf
+        profile: ChargingBlackBoard
+    }
+    
+    connection SafetyReport {
+        from BareMetal to Linux
+        interface: SafetyReportIf
+        profile: SafetyBlackBoard
+    }
+    
+    connection OperatorControl {
+        from Linux to FreeRTOS
+        interface: OperatorControlIf
+        profile: OperatorEventChannel
+    }
+}
+}
+

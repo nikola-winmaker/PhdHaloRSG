@@ -10,6 +10,7 @@
  */
 
 /************************* INCLUDE SECTION *************************/
+#define USE_HALO
 #include "uart.h"
 #include "safety_eval.h"
 #include "workshop_protocol.h"
@@ -201,30 +202,15 @@ void _start_c( void )
         - Use bm_delay_loop( ms ) to create a delay in the loop of 100ms.
     */
 
-    /*TODO HALO: 1. Declare a variable of type ChargeCommand to hold the last received command
-      - ChargeCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h3_baremetal/include/halo_structs.h */
-
-    /*TODO HALO: 2. Declare a variable of type SafetyState to hold the last evaluated state
-      - SafetyState struct is available from HALO generated code from deps/halo/codegen/riscv64_h3_baremetal/include/halo_structs.h */
-      
+    ChargeCommand   chCommand = {0};
+    SafetyState     oldStatus = {0};
+    SafetyState     safState = {0};
 
     /* 3. Define heartbeat_counter as a uint32_t that increments on each loop iteration.*/
     uint32_t heartbeat_counter = 0U;
-
-    /*TODO HALO: 3. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
-         - This will set up the necessary channels for sending and receiving messages with the peer
-            -- Full path to init function is in .deps/halo/codegen/riscv64_h3_baremetal/src/halo_api.c
-    */
-
+    halo_baremetal_init_riscv64_h3_baremetal();
     while( 1 )
     {
-
-        /* This is a demo loop to showcase the application running 
-        TODO HALO: 4. delete it when writing the actual implementation */
-        if( ( heartbeat_counter % 10U ) == 0U ){
-            uart_log( "[APP3] HALO demo loop\n" );
-        }
-
         int recv_rc;
 
         /*TODO HALO: 5. Receive ChargeCommand message for peer in the loop using halo_recv_ API functions defined in halo_api.h
@@ -238,11 +224,16 @@ void _start_c( void )
                     uart_log( "[APP3] xxxxx");
                 }
             */
+        while( halo_recv_ChargeCommandIf_ChargeCommand(&chCommand) > 0)
+        {
+            uart_log("Enabled charging: %d\n Current Limit: %d\n Voltage Limit: %d\n Charging Mode: %d",
+            chCommand.enable_charging,
+            chCommand.current_limit_ma,
+            chCommand.voltage_limit_mv,
+            chCommand.charging_mode);
+        }
 
-
-        /*TODO HALO: 6. Call evaluate_safety( &ChargeCommand, &SafetyState, heartbeat_counter ) */
-        // evaluate_safety( &last_command, &state, heartbeat_counter );
-
+        evaluate_safety(&chCommand, &safState, heartbeat_counter);
 
         /*TODO HALO: 7. Send the SafetyState state to the peer every using halo_send_ API functions defined in halo_api.h
             -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    

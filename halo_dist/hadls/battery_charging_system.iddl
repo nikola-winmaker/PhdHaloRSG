@@ -1,3 +1,39 @@
 // Define datastructures per workshop sheet
 
 // USE code snippets by typing IDDL
+dataStructures {
+    SensorFrame {
+        integer battery_voltage_mv
+        integer charge_current_ma
+        float battery_temp_c
+        bool breaker_closed
+        integer fault_flags
+    }
+
+    ChargeCommand {
+        bool enable_charging
+        integer current_limit_ma
+        integer voltage_limit_mv
+        string charging_mode
+    }
+
+    ChargeStatus {
+        string charger_state
+        integer requested_current_ma
+        integer requested_voltage_mv
+        integer fault_state
+    }
+
+    SafetyState
+    {
+        bool safe_mode
+        bool breaker_open
+        bool charging_allowed
+        integer heartbeat_counter
+    }
+
+    OperatorCommand {
+        integer command_id
+        integer command_param
+    }
+}

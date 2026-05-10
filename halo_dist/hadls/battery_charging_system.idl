@@ -1,5 +1,45 @@
-
+include battery_charging_system.iddl
 // Include needed IDDL
 // Define interfaces needed by ADL 
 
 // USE code snippets by typing IDL
+
+interface SensorFrameIf {
+    access {
+        write {
+            SensorFrame
+        }
+    }
+}
+
+interface ChargeCommandIf {
+    access {
+        write {
+            ChargeCommand
+        }
+    }
+}
+
+interface ChargingStatusIf {
+    access {
+        write {
+            ChargeStatus
+        }
+    }
+}
+
+interface SafetyReportIf {
+    access {
+        write {
+            SafetyState
+        }
+    }
+}
+
+interface OperatorControlIf {
+    access {
+        write {
+            OperatorCommand
+        }
+    }
+}
