@@ -1,3 +1,42 @@
 // Define datastructures per workshop sheet
 
 // USE code snippets by typing IDDL
+dataStructures {
+    SensorFrameData {
+        unsigned int battery_voltage_mv = 0
+        int charge_current_ma = 0
+        float battery_temp_c = 0.0
+        bool breaker_closed = false
+        unsigned int fault_flags = 0
+    }
+    ChargeCommandData {
+        // IDDL primitive types: bool, byte, int, float, double, unsigned int, "string"
+        // array types are formed by adding an array suffix to the field name (e.g., fieldName[128])
+        bool enable_charging = False
+        unsigned int current_limit_ma = 0
+        unsigned int voltage_limit_mv = 0
+        string charging_mode = "normal"
+    }
+    ChargeStatusData {
+        // IDDL primitive types: bool, byte, int, float, double, unsigned int, "string"
+        // array types are formed by adding an array suffix to the field name (e.g., fieldName[128])
+        string charger_state = "idle"        
+        unsigned int requested_current_ma = 0
+        unsigned int requested_voltage_mv = 0
+        unsigned int fault_state = 0    
+    }
+    SafetyStateData {
+        // IDDL primitive types: bool, byte, int, float, double, unsigned int, "string"
+        // array types are formed by adding an array suffix to the field name (e.g., fieldName[128])
+        bool safe_mode = False            
+        bool breaker_open = False         
+        bool charging_allowed = False     
+        unsigned int heartbeat_counter = 0
+    }
+    OperatorCommandData {
+        // IDDL primitive types: bool, byte, int, float, double, unsigned int, "string"
+        // array types are formed by adding an array suffix to the field name (e.g., fieldName[128])
+        unsigned int command_id = 0
+        int command_param = 0  
+    }
+}

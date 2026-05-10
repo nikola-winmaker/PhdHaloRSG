@@ -15,3 +15,39 @@
 
 
 // USE code snippets by typing ADL
+BatteryChargingSystem {
+    components {
+        SensorFusion : Component { Type: Application, Platform: riscv64_h1_zephyr, Function: RealTimeProcessing }
+        ChargeController : Component { Type: Application, Platform: riscv64_h2_freertos, Function: RealTimeProcessing }
+        SafetyMonitor : Component { Type: Application, Platform: riscv64_h3_baremetal, Function: RealTimeProcessing }
+        LinuxSupervisor : Component { Type: Application, Platform: riscv64_h4_linux, Function: GeneralProcessing }
+    }
+
+    connections {
+        connection SensorTelemetry {
+            from SensorFusion to ChargeController
+            interface: SensorFrameIf
+            profile: SensorSharedMemory
+        }
+        connection ChargingCommand {
+            from ChargeController to SafetyMonitor
+            interface: ChargeCommandIf
+            profile: ChargingSharedMemory
+        }
+        connection ChargingStatus {
+            from ChargeController to LinuxSupervisor
+            interface: ChargingStatusIf
+            profile: ChargingBlackBoard
+        }
+        connection SafetyReport {
+            from SafetyMonitor to LinuxSupervisor
+            interface: SafetyReportIf
+            profile: SafetyBlackBoard
+        }
+        connection OperatorControl {
+            from LinuxSupervisor to ChargeController
+            interface: OperatorControlIf
+            profile: OperatorEventChannel
+        }
+    }
+}
