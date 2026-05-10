@@ -273,18 +273,18 @@ static void charge_ctrl_task( void * parameters )
 {
     ( void ) parameters;
 
-    /*TODO HALO: 1. Declare a variable of type SensorFrame to hold the last received sensor data
+    /* HALO: 1. Declare a variable of type SensorFrame to hold the last received sensor data
       - SensorFrame struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h*/
-    
-    /* TODO HALO: 2. Declare a variable of type OperatorCommand to hold the last received operator command
+    SensorFrameData SensFrm;
+    /*  HALO: 2. Declare a variable of type OperatorCommand to hold the last received operator command
       - OperatorCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h */
-
-    /* TODO HALO: 3. Declare a variable of type ChargeCommand to hold the charge command
+    OperatorCommandData OpCmd;
+    /*  HALO: 3. Declare a variable of type ChargeCommand to hold the charge command
       - ChargeCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h*/
-
-    /* TODO HALO: 4. Declare a variable of type ChargeStatus to hold the charge status
+    ChargeCommandData ChgCmd;
+    /*  HALO: 4. Declare a variable of type ChargeStatus to hold the charge status
       - ChargeStatus struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h */
-
+    ChargeStatusData ChgSts;
     /* 5. Declare heartbeat_counter as a uint32_t that increments on each loop iteration
     */
     uint32_t heartbeat_counter = 0U;
@@ -297,6 +297,7 @@ static void charge_ctrl_task( void * parameters )
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h2_freertos/src/halo_api.c
     */
+    halo_chargecontroller_freertos_init_riscv64_h2_freertos();
 
     while( 1 )
     {
@@ -304,9 +305,8 @@ static void charge_ctrl_task( void * parameters )
         int recv_rc;
 
         /* This is a demo loop to showcase the application running */
-        // TODO HALO: 6. Delete the demo loop when writing the actual implementation
         if( ( heartbeat_counter % 10 ) == 0U){
-            uart_log( "[APP2] HALO demo loop\n" );
+            uart_log( "[APP2] DJORDJE\n" );
         }
 
         /*TODO HALO: 7. Receive SensorFrame message for peer in the loop using halo_recv_ API functions defined in halo_api.h
@@ -318,6 +318,12 @@ static void charge_ctrl_task( void * parameters )
                     // Process the received command
                 }
         */
+                while( ( recv_rc = halo_recv_SensorFrameIf_SensorFrameData(&SensFrm) ) > 0 )
+                {
+                    // Process the received command
+                    uart_log( "[APP2] WHILE SensFra\n" );
+                }
+
 
 
         /*TODO HALO: 8. Receive OperatorCommand message for peer in the loop using halo_recv_ API functions defined in halo_api.h
@@ -329,26 +335,32 @@ static void charge_ctrl_task( void * parameters )
                     // Process the received command
                 }
         */
-
+                while( ( recv_rc = halo_recv_OperatorControlIf_OperatorCommandData(&OpCmd) ) > 0 )
+                {
+                    // Process the received command
+                    uart_log( "[APP2] DJORDJE\n" );
+                }
 
         /*TODO HALO: 9. Call apply_operator_command(&OperatorCommand ); to apply the received operator command to the charge controller. 
             Call build_charge_outputs( &SensorFrame, &ChargeCommand, &ChargeStatus );
         */
-        // apply_operator_command(&operator_command );
-        // build_charge_outputs( &sensor_frame, &charge_command, &charge_status );
-
+        apply_operator_command(&OpCmd );
+         build_charge_outputs( &SensFrm, &ChgCmd, &ChgSts);
+        
 
         /*TODO HALO: 10. Send the ChargeCommand to the peer using halo_send_ API functions defined in halo_api.h
             -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
                 uart_log( "[APP2] ChargeCommand send failed\n" );
             -- Full path is in .deps/halo/codegen/riscv64_h2_freertos/include/halo_api.h and deps/halo/codegen/riscv64_h2_freertos/src/halo_channels.c
         */
+        halo_send_ChargeCommandIf_ChargeCommandData(&ChgCmd);
 
         /*TODO HALO: 11. Send the ChargeStatus to the peer using halo_send_ API functions defined in halo_api.h
             -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
                 uart_log( "[APP2] ChargeStatus send failed\n" );
             -- Full path is in .deps/halo/codegen/riscv64_h2_freertos/include/halo_api.h and deps/halo/codegen/riscv64_h2_freertos/src/halo_channels.c
         */
+        halo_send_ChargingStatusIf_ChargeStatusData(&ChgSts);
 
         /*TODO HALO: 12. Log the Info to the console using uart_log("[APP2] ") which is behaving similar to printf
             -- [APP2] needs to be included in the log message to differentiate logs from other applications running on different harts
@@ -356,14 +368,14 @@ static void charge_ctrl_task( void * parameters )
             -- For example, only log when data changes, or every N cycles.
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
         */
-        // if( ( heartbeat_counter % 10 ) == 0U){
-        //     uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
-        //         ( uint32_t ) sensor_frame.battery_voltage_mv,
-        //         ( uint32_t ) sensor_frame.charge_current_ma,
-        //         sensor_frame.battery_temp_c,
-        //         ( uint32_t ) sensor_frame.breaker_closed,
-        //         ( uint32_t ) sensor_frame.fault_flags );
-        // }
+        if( ( heartbeat_counter % 10 ) == 0U){
+            uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
+                ( uint32_t ) SensFrm.battery_voltage_mv,
+                ( uint32_t ) SensFrm.charge_current_ma,
+                SensFrm.battery_temp_c,
+                ( uint32_t ) SensFrm.breaker_closed,
+                ( uint32_t ) SensFrm.fault_flags );
+        }
 
 
         heartbeat_counter++;
