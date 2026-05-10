@@ -20,12 +20,12 @@ Profiles {
         baseAddress: 0x80341000
     }
     BlackBoard ChargingBlackBoard {
-        maxPayload: 64B
+        maxPayload: 32B
         bufferSize: 64B
         baseAddress: 0x80342000
     }
     BlackBoard SafetyBlackBoard {
-        maxPayload: 64B
+        maxPayload: 32B
         bufferSize: 64B
         baseAddress: 0x80343000
     }
