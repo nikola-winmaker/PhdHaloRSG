@@ -269,22 +269,24 @@ static void charge_ctrl_task( void * parameters )
     */
 
 
+
 static void charge_ctrl_task( void * parameters )
 {
     ( void ) parameters;
 
     /*TODO HALO: 1. Declare a variable of type SensorFrame to hold the last received sensor data
       - SensorFrame struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h*/
+      SensorFrameData SensorFrameApp;
     
     /* TODO HALO: 2. Declare a variable of type OperatorCommand to hold the last received operator command
       - OperatorCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h */
-
+        OperatorCommandData OperatorCommandApp;
     /* TODO HALO: 3. Declare a variable of type ChargeCommand to hold the charge command
       - ChargeCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h*/
-
+    ChargeCommandData ChargeCommandApp;
     /* TODO HALO: 4. Declare a variable of type ChargeStatus to hold the charge status
       - ChargeStatus struct is available from HALO generated code from deps/halo/codegen/riscv64_h2_freertos/include/halo_structs.h */
-
+    ChargeStatusData ChargeStatusApp;
     /* 5. Declare heartbeat_counter as a uint32_t that increments on each loop iteration
     */
     uint32_t heartbeat_counter = 0U;
@@ -297,6 +299,7 @@ static void charge_ctrl_task( void * parameters )
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h2_freertos/src/halo_api.c
     */
+    halo_chargecontroller_init_riscv64_h2_freertos();
 
     while( 1 )
     {
@@ -307,6 +310,7 @@ static void charge_ctrl_task( void * parameters )
         // TODO HALO: 6. Delete the demo loop when writing the actual implementation
         if( ( heartbeat_counter % 10 ) == 0U){
             uart_log( "[APP2] HALO demo loop\n" );
+
         }
 
         /*TODO HALO: 7. Receive SensorFrame message for peer in the loop using halo_recv_ API functions defined in halo_api.h
@@ -318,6 +322,7 @@ static void charge_ctrl_task( void * parameters )
                     // Process the received command
                 }
         */
+        halo_recv_SensorFrameIf_SensorFrameData (&SensorFrameApp);
 
 
         /*TODO HALO: 8. Receive OperatorCommand message for peer in the loop using halo_recv_ API functions defined in halo_api.h
@@ -329,13 +334,14 @@ static void charge_ctrl_task( void * parameters )
                     // Process the received command
                 }
         */
+        halo_recv_OperatorCommandIf_OperatorCommandData(&OperatorCommandApp);
 
 
         /*TODO HALO: 9. Call apply_operator_command(&OperatorCommand ); to apply the received operator command to the charge controller. 
             Call build_charge_outputs( &SensorFrame, &ChargeCommand, &ChargeStatus );
         */
-        // apply_operator_command(&operator_command );
-        // build_charge_outputs( &sensor_frame, &charge_command, &charge_status );
+        apply_operator_command(&OperatorCommandApp );
+        build_charge_outputs( &SensorFrameApp, &ChargeCommandApp, &ChargeStatusApp );
 
 
         /*TODO HALO: 10. Send the ChargeCommand to the peer using halo_send_ API functions defined in halo_api.h
@@ -343,12 +349,26 @@ static void charge_ctrl_task( void * parameters )
                 uart_log( "[APP2] ChargeCommand send failed\n" );
             -- Full path is in .deps/halo/codegen/riscv64_h2_freertos/include/halo_api.h and deps/halo/codegen/riscv64_h2_freertos/src/halo_channels.c
         */
+        int result = 0;
+        
+        result = halo_send_ChargeCommandIf_ChargeCommandData (&ChargeCommandApp);
+        if (result != 0)
+        {
+          uart_log( "[APP2] ChargeCommand send failed\n" );   
+        }
 
         /*TODO HALO: 11. Send the ChargeStatus to the peer using halo_send_ API functions defined in halo_api.h
             -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
                 uart_log( "[APP2] ChargeStatus send failed\n" );
             -- Full path is in .deps/halo/codegen/riscv64_h2_freertos/include/halo_api.h and deps/halo/codegen/riscv64_h2_freertos/src/halo_channels.c
         */
+        result = 0;
+        result = halo_send_ChargeStatusIf_ChargeStatusData (&ChargeCommandApp);
+        
+        if (result != 0)
+        {
+          uart_log( "[APP2] ChargeStatus send failed\n" );   
+        }
 
         /*TODO HALO: 12. Log the Info to the console using uart_log("[APP2] ") which is behaving similar to printf
             -- [APP2] needs to be included in the log message to differentiate logs from other applications running on different harts
@@ -356,17 +376,15 @@ static void charge_ctrl_task( void * parameters )
             -- For example, only log when data changes, or every N cycles.
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
         */
-        // if( ( heartbeat_counter % 10 ) == 0U){
-        //     uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
-        //         ( uint32_t ) sensor_frame.battery_voltage_mv,
-        //         ( uint32_t ) sensor_frame.charge_current_ma,
-        //         sensor_frame.battery_temp_c,
-        //         ( uint32_t ) sensor_frame.breaker_closed,
-        //         ( uint32_t ) sensor_frame.fault_flags );
-        // }
-
-
-        heartbeat_counter++;
+         if( ( heartbeat_counter % 10 ) == 0U){
+             uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
+                 ( uint32_t ) SensorFrameApp.battery_voltage_mv,
+                 ( uint32_t ) SensorFrameApp.charge_current_ma,
+                 SensorFrameApp.battery_temp_c,
+                 ( uint32_t ) SensorFrameApp.breaker_closed,
+                 ( uint32_t ) SensorFrameApp.fault_flags );
+         }
+                heartbeat_counter++;
         vTaskDelay( pdMS_TO_TICKS( WORKSHOP_CHARGE_PERIOD_MS ) );
     }
 }
