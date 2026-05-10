@@ -108,9 +108,9 @@ void _start_c( void )
 
         /* This is a demo loop to showcase the application running 
         TODO Classical: delete it when writing the actual implementation */
-        if( ( heartbeat_counter % 10U ) == 0U ){
-            uart_log( "[APP3] classical demo loop\n" );
-        }
+        // if( ( heartbeat_counter % 10U ) == 0U ){
+        //     uart_log( "[APP3] classical demo loop\n" );
+        // }
 
         /*TODO Classical: 4. Receive ChargeCommand message from peer using shared memory access (read from defined memory address for ChargeCommand)
             -- It's up to you how you want to implement the shared memory protocol, but you can use pointer dereferencing to read from 
