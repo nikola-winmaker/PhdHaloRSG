@@ -238,47 +238,51 @@ int main( void )
     */
 
 
-    /*TODO HALO: 1. Declare a variable of type OperatorCommand to hold the last received command 
+    /* HALO: 1. Declare a variable of type OperatorCommand to hold the last received command 
         - OperatorCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
+    Operato operator_command;
 
-    /*TODO HALO: 2. Declare a variable of type ChargeStatus to hold the last evaluated state
+    /* HALO: 2. Declare a variable of type ChargeStatus to hold the last evaluated state
         - ChargeStatus struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
+    ChargeStatus charge_status;
 
-    /*TODO HALO: 3. Declare a variable of type SafetyState to hold the last received status
+    /* HALO: 3. Declare a variable of type SafetyState to hold the last received status
         - SafetyState struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
+    SafetyState safety_state;
 
     /*4. Define heartbeat_counter as a uint32_t that increments on each loop iteration.*/
     uint32_t heartbeat_counter = 0U;
 
-    /*TODO HALO: 4. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
+    /* HALO: 4. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h4_linux/src/halo_api.c
     */
+    halo_core4_init_riscv64_h4_linux();
 
     while( keep_running )
     {
 
         /* This is a demo loop to showcase the application running */
-        /*TODO HALO: 5a. Delete the following line once you implement the actual logic */
-        if( ( heartbeat_counter % 10U ) == 0U )
-        {
-            printf( "[APP4] HALO demo loop\n" );
-        }
-
-        //TODO HALO: 5b. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
-        // command_rcv = service_console_input( input_fd, &command );
-        // if( command_rcv < 0 )
+        /* HALO: 5a. Delete the following line once you implement the actual logic */
+        // if( ( heartbeat_counter % 10U ) == 0U )
         // {
-        //     printf( "[APP4] unknown command %s\n", line_buffer );
+        //     printf( "[APP4] HALO demo loop\n" );
         // }
 
-        /*TODO HALO: 6. If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
+        //TODO HALO: 5b. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
+        command_rcv = service_console_input( input_fd, &operator_command );
+        if( command_rcv < 0 )
+        {
+            printf( "[APP4] unknown command %s\n", line_buffer );
+        }
+
+        /* HALO: 6. If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
             -- Use halo_send_ API functions defined in halo_api.h to send the OperatorCommand to the peer
             -- Check the return value of halo_send_ function to ensure the message was sent successfully if not sent log an error message    
                 printf( "[APP4] failed to send %s", line_buffer );
             -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
         */
-
+        int err = halo_send_OperatorControlIf_OperatorControl();
 
         /*TODO HALO: 7. Receive ChargeStatus message from peer using halo_recv_ API functions defined in halo_api.h
             -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
