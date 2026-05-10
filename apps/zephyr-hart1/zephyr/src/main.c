@@ -25,7 +25,10 @@
 
 //TODO Classical: 0. Define SensorFrame structure based on the workshop specification only for the classical implementation!. 
 
-
+void * get_external_buffer( uint32_t offset )
+{
+    //nope
+}
 /************************* FUNCTION SECTION *************************/
 int main( void )
 {
