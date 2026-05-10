@@ -240,12 +240,19 @@ int main( void )
 
     /*TODO HALO: 1. Declare a variable of type OperatorCommand to hold the last received command 
         - OperatorCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
+        OperatorCommandData ocData;
+        
+        
 
     /*TODO HALO: 2. Declare a variable of type ChargeStatus to hold the last evaluated state
         - ChargeStatus struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
 
+        ChargeStatusData csData;
+
     /*TODO HALO: 3. Declare a variable of type SafetyState to hold the last received status
         - SafetyState struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
+
+        SafetyStateData ssData;
 
     /*4. Define heartbeat_counter as a uint32_t that increments on each loop iteration.*/
     uint32_t heartbeat_counter = 0U;
@@ -254,6 +261,10 @@ int main( void )
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h4_linux/src/halo_api.c
     */
+
+    halo_linuxsupervisor_init_riscv64_h4_linux();
+
+
 
     while( keep_running )
     {
@@ -266,11 +277,11 @@ int main( void )
         }
 
         //TODO HALO: 5b. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
-        // command_rcv = service_console_input( input_fd, &command );
-        // if( command_rcv < 0 )
-        // {
-        //     printf( "[APP4] unknown command %s\n", line_buffer );
-        // }
+        command_rcv = service_console_input( input_fd, &ocData );
+        if( command_rcv < 0 )
+        {
+            printf( "[APP4] unknown command %s\n", line_buffer );
+        }
 
         /*TODO HALO: 6. If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
             -- Use halo_send_ API functions defined in halo_api.h to send the OperatorCommand to the peer
@@ -279,17 +290,43 @@ int main( void )
             -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
         */
 
+        if (command_rcv > 0)
+        {
+            auto ret_val = halo_send_OperatorControlIf_OperatorCommandData (&ocData);
+            if (ret_val < 0)
+            {
+                printf( "[APP4] failed to send %s", line_buffer );
+            }
+        }
+
 
         /*TODO HALO: 7. Receive ChargeStatus message from peer using halo_recv_ API functions defined in halo_api.h
             -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
             -- Check the return value of halo_recv_ function to ensure the message was received successfully
         */
 
+        {
+            auto ret_val = halo_recv_ChargingStatusIf_ChargeStatusData(&csData);
+            if (ret_val < 0)
+            {
+                printf( "[APP4] failed to receive ChargeStatus %s", line_buffer );
+            }
+        }
+
 
         /*TODO HALO: 8. Receive SafetyState message from peer using halo_recv_ API functions defined in halo_api.h
             -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
             -- Check the return value of halo_recv_ function to ensure the message was received successfully
         */
+
+        {
+
+            auto ret_val = halo_recv_SafetyReportIf_SafetyStateData(&ssData);
+            if (ret_val < 0)
+            {
+                printf( "[APP4] failed to receive SafetyReport %s", line_buffer );
+            }
+        }
 
 
         /*TODO HALO: 9. Use logging has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
