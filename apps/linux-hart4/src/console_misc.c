@@ -242,9 +242,9 @@ int map_shared_region( void )
 
 void set_memory_regions(void){
     #if defined( USE_HALO ) && ( USE_HALO == 1 )
-        blackboard_ChargingStatus_external_buffer = get_external_buffer(VIRTUAL_CHARGE_STATUS );
-        blackboard_ChargingStatus_external_size = CHARGE_STATUS_SIZE;
-        blackboard_SafetyReport_external_buffer = get_external_buffer(VIRTUAL_SAFETY_STATE );
-        blackboard_SafetyReport_external_size = SAFETY_STATE_SIZE;
+        blackboard_ChargeStatus_external_buffer = get_external_buffer(VIRTUAL_CHARGE_STATUS );
+        blackboard_ChargeStatus_external_size = CHARGE_STATUS_SIZE;
+        blackboard_SafetyState_external_buffer = get_external_buffer(VIRTUAL_SAFETY_STATE );
+        blackboard_SafetyState_external_size = SAFETY_STATE_SIZE;
     #endif
 }
