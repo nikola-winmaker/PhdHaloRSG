@@ -1,11 +1,11 @@
 // Define datastructures per workshop sheet
 dataStructures {
     SensorFrameData {
-           unsigned int battery_voltage_mv = 0;
-            int charge_current_ma = 0;
-            float battery_temp_c = 0.0;
-            bool breaker_closed = false;
-            unsigned int fault_flags = 0;
+           unsigned int battery_voltage_mv = 0
+            int charge_current_ma = 0
+            float battery_temp_c = 0.0
+            bool breaker_closed = false
+            unsigned int fault_flags = 0
     }
     ChargeCommandData {
         bool enable_charging = False

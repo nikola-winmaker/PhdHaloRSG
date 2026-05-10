@@ -1,4 +1,4 @@
-
+include battery_charging_system.iddl
 // Include needed IDDL
 // Define interfaces needed by ADL 
 interface SensorFrameIf {
