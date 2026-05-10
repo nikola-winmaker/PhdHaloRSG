@@ -174,7 +174,7 @@ int main( void )
         */
         if (command_rcv > 0)
         {
-            writeData(channel_OperatorCommand,&operatorCommandData,sizeof(OperatorCommandData));
+            writeDataVirtual(channel_OperatorCommand,&operatorCommandData,sizeof(OperatorCommandData));
         }
 
         /*TODO Classical: 7. Receive ChargeStatus message from peer using shared memory access (read from defined memory address for ChargeStatus)
@@ -182,7 +182,7 @@ int main( void )
             -- It's up to you how you want to implement the shared memory protocol, you can use pointer dereferencing to read from the specific memory address where the ChargeStatus is written by the peer. 
             Synchronization is important here, so make sure to implement a simple protocol to check if new data is available before reading.
         */
-        if (readData(channel_ChargeStatus,&chargeStatusData,sizeof(ChargeStatusData)))
+        if (readDataVirtual(channel_ChargeStatus,&chargeStatusData,sizeof(ChargeStatusData)))
         {
             //new data arrived
             if(chargeStatusData_Last.requested_current_ma != chargeStatusData.requested_current_ma ||
@@ -206,7 +206,7 @@ int main( void )
             get_external_buffer( VIRTUAL_SAFETY_STATE ) is the defined memory address for SafetyState buffer in shared memory
             -- Similar to ChargeStatus, synchronization is important here as well.
         */
-        if (readData(channel_SafetyState,&safetyStateData,sizeof(SafetyStateData)))
+        if (readDataVirtual(channel_SafetyState,&safetyStateData,sizeof(SafetyStateData)))
         {
             if (heartbeat_counter%10 == 0)
             {

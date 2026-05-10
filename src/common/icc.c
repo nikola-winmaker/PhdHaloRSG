@@ -65,10 +65,10 @@ int writeData(t_Channel channel,void* payload,uint32_t size)
     return ret;
 }
 
-int readDataVirtual(t_Channel channel,void* payload,uint32_t size)
+int readData(t_Channel channel,void* payload,uint32_t size)
 {
-        int ret = 0;
-    t_iccInstance* iccInstance = (t_iccInstance*)&virtualMemoryMap[channel].p_dataStart[0];
+    int ret = 0;
+    t_iccInstance* iccInstance = (t_iccInstance*)&memoryMap[channel].p_dataStart[0];
     //is there something to read
     if (iccInstance->readCnt != iccInstance->writeCnt)
     {
@@ -82,15 +82,15 @@ int readDataVirtual(t_Channel channel,void* payload,uint32_t size)
     return ret; 
 }
 
-int readData(t_Channel channel,void* payload,uint32_t size)
+int readDataVirtual(t_Channel channel,void* payload,uint32_t size)
 {
     int ret = 0;
-    t_iccInstance* iccInstance = ((uint64_t*)get_external_buffer(virtualMemoryMap[channel].p_dataStart))[0];
+    t_iccInstance* iccInstance = &(((uint64_t*)get_external_buffer(virtualMemoryMap[channel].p_dataStart))[0]);
     
     //is there something to read
     if (iccInstance->readCnt != iccInstance->writeCnt)
     {
-        uint64_t* src = ((uint64_t*)get_external_buffer(virtualMemoryMap[channel].p_dataStart))[1];
+        uint64_t* src = &((uint64_t*)get_external_buffer(virtualMemoryMap[channel].p_dataStart))[1];
         //new data 
         memcpy_internal(payload,src,size);
         iccInstance->readCnt++;
