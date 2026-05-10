@@ -25,6 +25,8 @@
 #include "workshop_protocol.h"
 #include "bms.h"
 #include "console_misc.h"
+#include "stdbool.h"
+
 #if !defined( USE_HALO ) || ( USE_HALO == 0 )
     #include "classical_api.h"
 #else
@@ -36,8 +38,39 @@
 // Flag to control the main loop execution
 static volatile sig_atomic_t keep_running = 1;
 
-//TODO Classical: 0. Define ChargeStatus, SafetyState, and OperatorCommand structures 
+typedef enum ChargerState {
+    IDLE, 
+    CHARGING,
+    COMPLETE, 
+    FAULT
+} ChargerState;
+
+// Classical: 0. Define ChargeStatus, SafetyState, and OperatorCommand structures 
 // based on the workshop specification only for the classical implementation!.
+typedef struct ChargeStatus {
+    ChargerState charger_state;
+    uint32_t requested_current_ma;
+    uint32_t requested_voltage_mv;
+    uint32_t fault_state;
+    bool read;
+    bool write;
+} ChargeStatus;
+
+typedef struct SafetyState {
+    bool safe_mode;
+    bool breaker_open;
+    bool charging_allowed;
+    uint32_t heartbeat_counter;
+    bool read;
+    bool write;
+} SafetyState;
+
+typedef struct OperatorCommand {
+    uint32_t command_id;
+    int32_t command_param;
+    bool read;
+    bool write;
+} OperatorCommand;
 
 /************************* FUNCTION SECTION *************************/
 static void on_signal( int sig );
@@ -132,11 +165,14 @@ int main( void )
             For example, only log when data changes or every N iterations.
 */
 
-    /*TODO Classical: 1. Declare a variable of type OperatorCommand */
+    /* Classical: 1. Declare a variable of type OperatorCommand */
+    OperatorCommand operator_command = { 0U, 0, false, false };
 
-    /*TODO Classical: 2. Declare a variable of type ChargeStatus to hold the last evaluated state */
+    /* Classical: 2. Declare a variable of type ChargeStatus to hold the last evaluated state */
+    ChargeStatus charge_status = { IDLE, 0U, 0U, 0U, false, false };
 
-    /*TODO Classical: 3. Declare a variable of type SafetyState to hold the last evaluated state */
+    /* Classical: 3. Declare a variable of type SafetyState to hold the last evaluated state */
+    SafetyState safety_state = { false, false, false, 0U, false, false };
 
     /* 4. Define heartbeat_counter as a uint32_t that increments on each loop iteration */
     uint32_t heartbeat_counter = 0U;
@@ -144,50 +180,79 @@ int main( void )
     while( keep_running )
     {
         /* This is a demo loop to showcase the application running */
-        /*TODO Classical: 4. Delete the following line once you implement the actual logic */
-        if( ( heartbeat_counter % 10U ) == 0U )
-        {
-            printf( "[APP4] classical demo loop\n" );
-        }
-
-        //TODO Classical: 5. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
-        // command_rcv = service_console_input( input_fd, &operator_command );
-        // if( command_rcv < 0 )
+        /* Classical: 4. Delete the following line once you implement the actual logic */
+        // if( ( heartbeat_counter % 10U ) == 0U )
         // {
-        //     printf( "[APP4] unknown command %s\n", line_buffer );
+        //     printf( "[APP4] classical demo loop\n" );
         // }
 
-        /*TODO Classical: 6. If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
+        // Classical: 5. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
+        command_rcv = service_console_input( input_fd, &operator_command );
+        if( command_rcv < 0 )
+        {
+            printf( "[APP4] unknown command %s\n", line_buffer );
+        }
+
+        /* Classical: 6. If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
             -- Publish/log/send the OperatorCommand command to the peer using shared memory access (write to defined memory address for OperatorCommand)
             get_external_buffer( VIRTUAL_OPERATOR_COMMAND ) is the defined memory address for OperatorCommand buffer in shared memory
              -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
+        OperatorCommand *received_command = get_external_buffer(VIRTUAL_OPERATOR_COMMAND);
+        while(!(received_command->write)) {
+            received_command = get_external_buffer(VIRTUAL_OPERATOR_COMMAND);
+        }
+        operator_command.command_id = received_command->command_id;
+        operator_command.command_param = received_command->command_param;
+        operator_command.read = true;
+        operator_command.write = false;
+        *received_command = operator_command;
 
-        /*TODO Classical: 7. Receive ChargeStatus message from peer using shared memory access (read from defined memory address for ChargeStatus)
+        /* Classical: 7. Receive ChargeStatus message from peer using shared memory access (read from defined memory address for ChargeStatus)
             get_external_buffer( VIRTUAL_CHARGE_STATUS ) is the defined memory address for ChargeStatus buffer in shared memory
             -- It's up to you how you want to implement the shared memory protocol, you can use pointer dereferencing to read from the specific memory address where the ChargeStatus is written by the peer. 
             Synchronization is important here, so make sure to implement a simple protocol to check if new data is available before reading.
         */
-
-        /*TODO Classical: 8. Receive SafetyState message from peer using shared memory access (read from defined memory address for SafetyState)
+        ChargeStatus *rcv_ch_status = get_external_buffer(VIRTUAL_CHARGE_STATUS);
+        while(!(rcv_ch_status->write)) {
+            rcv_ch_status = get_external_buffer(VIRTUAL_CHARGE_STATUS);
+        }
+        charge_status.charger_state = rcv_ch_status->charger_state;
+        charge_status.requested_current_ma = rcv_ch_status->requested_current_ma;
+        charge_status.requested_voltage_mv = rcv_ch_status->requested_voltage_mv;
+        charge_status.fault_state = rcv_ch_status->fault_state;
+        *rcv_ch_status = charge_status;
+        
+        /* Classical: 8. Receive SafetyState message from peer using shared memory access (read from defined memory address for SafetyState)
             get_external_buffer( VIRTUAL_SAFETY_STATE ) is the defined memory address for SafetyState buffer in shared memory
             -- Similar to ChargeStatus, synchronization is important here as well.
         */
+        SafetyState *received_safe_state = get_external_buffer(VIRTUAL_SAFETY_STATE);
+        while(!(received_safe_state->write)) {
+            received_safe_state = get_external_buffer(VIRTUAL_SAFETY_STATE);
+        }
+        safety_state.safe_mode = received_safe_state->safe_mode;
+        safety_state.breaker_open = received_safe_state->breaker_open;
+        safety_state.charging_allowed = received_safe_state->charging_allowed;
+        safety_state.heartbeat_counter = received_safe_state->heartbeat_counter;
+        safety_state.read = true;
+        safety_state.write = false;
 
-         /*TODO Classical: 9. Use logging, printf has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
+         /* Classical: 9. Use logging, printf has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
             For example, only log when data changes or every N iterations.
             Variables are placeholders for the actual variables you will define based on the workshop specification
         */
-        // if( (heartbeat_counter % 20U) == 0U ) {
-        //     console_lock_acquire();
-        //     printf( "[APP4] CC safe_mode=%u breaker_closed=%u charging_allowed=%u heartbeat=%u\n",
-        //             safety_state.safe_mode,
-        //             safety_state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
-        //             safety_state.charging_allowed,
-        //             safety_state.heartbeat_counter );
-        //     console_lock_release();
-        // }
+        if( (heartbeat_counter % 20U) == 0U ) {
+            console_lock_acquire();
+            printf( "[APP4] CC safe_mode=%u breaker_closed=%u charging_allowed=%u heartbeat=%u\n",
+                    safety_state.safe_mode,
+                    safety_state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                    safety_state.charging_allowed,
+                    safety_state.heartbeat_counter );
+            console_lock_release();
+        }
 
+        *received_safe_state =  safety_state;
         heartbeat_counter++;
         usleep( WORKSHOP_COMMAND_PERIOD_MS * 1000U );
     }
