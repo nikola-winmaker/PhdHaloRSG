@@ -377,6 +377,8 @@ static void charge_ctrl_task( void * parameters )
         apply_operator_command( &operator_command );
         build_charge_outputs( &sensor_frame, &charge_command, &charge_status );
 
+        volatile uint32_t* charge_command_flag =
+            (volatile uint32_t*)CHARGE_COMMAND_BASE;
         volatile ChargeCommand* shared_charge_cmd =
             (volatile ChargeCommand*)(CHARGE_COMMAND_BASE + sizeof(uint32_t));
 
@@ -388,34 +390,24 @@ static void charge_ctrl_task( void * parameters )
         strcpy(charge_command.charging_mode, "FAST");
 
         /* Only write if mailbox is free */
-        if (*charge_status == IPC_IDLE)
+        if (*charge_command_flag == IPC_IDLE)
         {
             /* Claim mailbox for writing */
-            *charge_status = IPC_WRITING;
+            *charge_command_flag = IPC_WRITING;
 
             /* Write payload to shared memory */
             *shared_charge_cmd = charge_command;
 
             /* Release mailbox for peer to read */
-            *charge_status = IPC_IDLE;
+            *charge_command_flag = IPC_IDLE;
         }
         /* Classical: 10. Publish ChargeStatus to peer using shared memory */
-
-                /* Classical: 10. Publish ChargeStatus to peer using shared memory */
 
         volatile uint32_t* charge_status_flag =
             (volatile uint32_t*)CHARGE_STATUS_BASE;
 
         volatile ChargeStatus* shared_status =
             (volatile ChargeStatus*)(CHARGE_STATUS_BASE + sizeof(uint32_t));
-
-        ChargeStatus status;
-
-        /* Fill status */
-        memcpy(status.charger_state, "ON", 3);   /* includes '\0' */
-        status.requested_current_ma = 5000;
-        status.requested_voltage_mv = 42000;
-        status.fault_state = 0;
 
         /* Only write if mailbox is free */
         if (*charge_status_flag == IPC_IDLE)
@@ -424,13 +416,10 @@ static void charge_ctrl_task( void * parameters )
             *charge_status_flag = IPC_WRITING;
 
             /* Write status to shared memory */
-            *shared_status = status;
+            *shared_status = charge_status;
 
             /* Release mailbox (peer can now read) */
             *charge_status_flag = IPC_IDLE;
-        }
-        else
-        {
         }
 
 
