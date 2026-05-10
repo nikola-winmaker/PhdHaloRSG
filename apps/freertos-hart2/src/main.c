@@ -22,7 +22,6 @@
 #else
     #include "halo_api.h"
 #endif
-
 /************************* GLOBAL SECTION *************************/
 
 //TODO Classical: Structure definitions for SensorFrame, ChargeCommand, ChargeStatus, 
@@ -292,8 +291,14 @@ static void charge_ctrl_task( void * parameters )
     {
 
         int recv_rc;
-        while( ( recv_rc = halo_recv_SensorFrameIf_SensorFrame( &sensor_frame ) ) != 0 )
-        while( ( recv_rc = halo_recv_OperatorControlIf_OperatorCommand( &operator_command ) ) != 0 )
+        if( halo_recv_SensorFrameIf_SensorFrame( &sensor_frame ) != 0)
+        {
+            uart_log( "[APP2] Failed to receive SensorFrame\n" );
+        }
+        if( halo_recv_OperatorControlIf_OperatorCommand( &operator_command ) != 0 )
+        {
+            uart_log( "[APP2] Failed to receive OperatorCommand\n" );
+        }
         apply_operator_command(&operator_command );
         build_charge_outputs( &sensor_frame, &charge_command, &charge_status );
         recv_rc = halo_send_ChargeCommandIf_ChargeCommand(&charge_command);
