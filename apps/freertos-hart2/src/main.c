@@ -117,8 +117,6 @@ static void charge_ctrl_task( void * parameters )
 
     // Init the charge controller state
     charge_controller_init();
-    char charger_state_Idle[32] = "Idle";
-
 
     while( 1 )
     {      
@@ -129,7 +127,7 @@ static void charge_ctrl_task( void * parameters )
             s_chargeStatus->status = 1;
             s_chargeStatus->lock = 0;
 
-            if((heartbeat_counter % 20) == 0)
+            if((heartbeat_counter % 100) == 0)
             {    
                 uart_log(
                     "[APP2] [Zephir -> FreeRTOS]\n"
@@ -154,18 +152,8 @@ static void charge_ctrl_task( void * parameters )
 
         if(*ui_cmdLock == 0)
         {
-            if( ( heartbeat_counter % 20U ) == 0U )
-            {
-                uart_log( "[APP2] ui_cmdLock acquired\n");
-            }
-
             if(*ui_cmdAvailable == 1)
             {
-                if( ( heartbeat_counter % 20U ) == 0U )
-                {
-                    uart_log( "[APP2] ui_cmdAvailable available\n");
-                }
-
                 apply_operator_command( &s_Cmd );
 
                 build_charge_outputs( &s_SensorFrame_cmd, &s_ChargCommand_cmd, &s_chargeStatus_cmd );
@@ -186,13 +174,6 @@ static void charge_ctrl_task( void * parameters )
                 s_Cmd->CmdAvailable = 0;
     
             }
-            else
-            {
-                if( ( heartbeat_counter % 20U ) == 0U )
-                {
-                    uart_log( "[APP2] ui_cmdAvailable NOT available\n");
-                }
-            }
         }
         else
         {
@@ -202,7 +183,14 @@ static void charge_ctrl_task( void * parameters )
             }
         }
 
-        if( ( heartbeat_counter % 10 ) == 0U)
+        s_ChargCommand->lock = 1;
+        strcpy(s_ChargCommand->charging_mode,p_ChargCommand_cmd->charging_mode);
+        s_ChargCommand->current_limit_ma += p_ChargCommand_cmd->current_limit_ma;
+        s_ChargCommand->enable_charging = p_ChargCommand_cmd->enable_charging;
+        s_ChargCommand->voltage_limit_mv = p_ChargCommand_cmd->voltage_limit_mv;
+        s_ChargCommand->lock = 0;
+
+        if( ( heartbeat_counter % 20 ) == 0U)
         {
             uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
                 ( uint32_t ) s_SensorFrame->battery_voltage_mv,
