@@ -20,7 +20,7 @@ interface ChargeCommandIf {
 interface ChargingStatusIf {
     access {
         write {
-            ChargingStatus
+            ChargeStatus
         }
     }
 }
