@@ -49,3 +49,6 @@ apps/zephyr-hart1/deps/halo/*
 apps/bare-hart3/deps/halo/*
 apps/freertos-hart2/deps/halo/*
 apps/linux-hart4/deps/halo/*
+
+artifacts/*
+deps/*
