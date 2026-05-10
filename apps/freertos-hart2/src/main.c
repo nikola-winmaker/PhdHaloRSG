@@ -19,6 +19,7 @@
 #include "memory_layout.h"
 #if !defined(USE_HALO) || (USE_HALO == 0)
     #include "classical_api.h"
+    #include "icc.h"
 #else
     #include "halo_api.h"
 #endif
@@ -126,12 +127,16 @@ static void charge_ctrl_task( void * parameters )
 
 
     /*TODO Classical: 1. Declare a variable of type SensorFrame to hold the last received sensor data */
+    SensorFrameData SensFrm;
 
     /*TODO Classical: 2. Declare a variable of type OperatorCommand to hold the last received operator command */
+    OperatorCommandData OpCmd;
 
     /*TODO Classical: 3. Declare a variable of type ChargeCommand to hold the charge command */
+    ChargeCommandData ChgCmd;
 
     /*TODO Classical: 4. Declare a variable of type ChargeStatus to hold the charge status */
+    ChargeStatusData ChgSts;
 
     /* 5. Declare heartbeat_counter as a uint32_t that increments on each loop iteration. */
     uint32_t heartbeat_counter = 0U;
@@ -153,27 +158,51 @@ static void charge_ctrl_task( void * parameters )
             the specific memory address where the SensorFrame is written by the peer. Synchronization is important here, so make sure to implement a simple 
             protocol to check if new data is available before reading.
         */
+        do{
+            int result = readData(channel_sensorFrame, &SensFrm, sizeof(SensFrm));
+
+            uart_log("[APP2] Reading channel_sensorFrame\n");
+        }while(result == 0);
 
         /*TODO Classical: 7. Receive OperatorCommand message from peer using shared memory access (read from defined memory address for OperatorCommand)
             -- Similar to SensorFrame, use pointer dereferencing to read the OperatorCommand from the defined memory address. 
             This is an event channel, so you can implement a simple protocol to check for new events/commands.
         */
 
+        do{
+            int result = readData(channel_OperatorCommand, &OpCmd, sizeof(OpCmd));
+
+            uart_log("[APP2] Reading channel_OperatorCommand\n");
+        }while(result == 0);
+
         /*TODO Classical: 8. Call apply_operator_command(&OperatorCommand ); to apply the received operator command to the charge controller. 
             Call build_charge_outputs( &SensorFrame, &ChargeCommand, &ChargeStatus );
         */
-        // apply_operator_command( &operator_command );
-        // build_charge_outputs( &sensor_frame, &charge_command, &charge_status );
+
+        
+        apply_operator_command( &OpCmd );
+        build_charge_outputs( &SensFrm, &ChgCmd, &ChgSts );
 
 
         /*TODO Classical: 9. Publish/log/send the ChargeCommand command to the peer using shared memory access (write to defined memory address for ChargeCommand)
              -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
+        int result = writeData(channel_chargeCommand, &ChgCmd, sizeof(ChgCmd));
+
+        if (result == 0)
+        {
+            uart_log( "[APP2] WriteData channel_chargeCommand");
+        }
 
         /*TODO Classical: 10. Publish/log/send the ChargeStatus status to the peer using shared memory access (write to defined memory address for ChargeStatus)
              -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
+        result = writeData(channel_ChargeStatus, &ChgSts, sizeof(ChgSts);)
 
+        if (result == 0)
+        {
+            uart_log( "[APP2] WriteData channel_chargeCommand");
+        }
 
         /*TODO Classical: 11. Log the Info to the console using uart_log("[APP2] ") which is behaving similar to printf
             -- [APP2] needs to be included in the log message to differentiate logs from other applications running on different harts
@@ -181,14 +210,14 @@ static void charge_ctrl_task( void * parameters )
             -- For example, only log when data changes, or every N cycles.
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
         */
-        // if( ( heartbeat_counter % 10 ) == 0U){
-        //     uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
-        //         ( uint32_t ) sensor_frame.battery_voltage_mv,
-        //         ( uint32_t ) sensor_frame.charge_current_ma,
-        //         sensor_frame.battery_temp_c,
-        //         ( uint32_t ) sensor_frame.breaker_closed,
-        //         ( uint32_t ) sensor_frame.fault_flags );
-        // }
+        if( ( heartbeat_counter % 10 ) == 0U){
+            uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
+                ( uint32_t ) SensFrm.battery_voltage_mv,
+                ( uint32_t ) SensFrm.charge_current_ma,
+                SensFrm.battery_temp_c,
+                ( uint32_t ) SensFrm.breaker_closed,
+                ( uint32_t ) SensFrm.fault_flags );
+        }
 
         heartbeat_counter++;
         vTaskDelay( pdMS_TO_TICKS( WORKSHOP_CHARGE_PERIOD_MS ) );
