@@ -36,8 +36,31 @@
 // Flag to control the main loop execution
 static volatile sig_atomic_t keep_running = 1;
 
-//TODO Classical: Define ChargeStatus, SafetyState, and OperatorCommand structures 
+//TODO Classical: 0. Define ChargeStatus, SafetyState, and OperatorCommand structures 
 // based on the workshop specification only for the classical implementation!.
+
+typedef struct
+{
+    char charger_state[5];
+    uint32_t requested_current_ma;
+    uint32_t requested_voltage_mv;
+    uint32_t fault_state;
+
+} ChargeStatus;
+
+typedef struct {
+    bool safe_mode = false;            
+    bool breaker_open = false;         
+    bool charging_allowed = false;     
+    unsigned int heartbeat_counter = 0;
+} SafetyState;
+
+typedef struct
+{
+    uint32_t command_id;
+    int32_t command_param;
+
+} OperatorCommand;
 
 /************************* FUNCTION SECTION *************************/
 static void on_signal( int sig );
@@ -133,10 +156,13 @@ int main( void )
 */
 
     /*TODO Classical: 1. Declare a variable of type OperatorCommand */
+    OperatorCommand operator_command;
 
     /*TODO Classical: 2. Declare a variable of type ChargeStatus to hold the last evaluated state */
+    ChargeStatus charge_status;
 
     /*TODO Classical: 3. Declare a variable of type SafetyState to hold the last evaluated state */
+    SafetyState safety_state;
 
     /* 4. Define heartbeat_counter as a uint32_t that increments on each loop iteration */
     uint32_t heartbeat_counter = 0U;
@@ -144,18 +170,18 @@ int main( void )
     while( keep_running )
     {
         /* This is a demo loop to showcase the application running */
-        /*TODO Classical: Delete the following line once you implement the actual logic */
-        if( ( heartbeat_counter % 10U ) == 0U )
+        /*TODO Classical: 4. Delete the following line once you implement the actual logic */
+        /*if( ( heartbeat_counter % 10U ) == 0U )
         {
             printf( "[APP4] classical demo loop\n" );
-        }
+        }*/
 
         //TODO Classical: 5. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
-        // command_rcv = service_console_input( input_fd, &operator_command );
-        // if( command_rcv < 0 )
-        // {
-        //     printf( "[APP4] unknown command %s\n", line_buffer );
-        // }
+        command_rcv = service_console_input( input_fd, &operator_command );
+        if( command_rcv < 0 )
+        {
+            printf( "[APP4] unknown command %s\n", line_buffer );
+        }
 
         /*TODO Classical: 6. If command_rcv > 0, it means a valid command was received, so send the OperatorCommand to the peer
             -- Publish/log/send the OperatorCommand command to the peer using shared memory access (write to defined memory address for OperatorCommand)
@@ -178,15 +204,15 @@ int main( void )
             For example, only log when data changes or every N iterations.
             Variables are placeholders for the actual variables you will define based on the workshop specification
         */
-        // if( (heartbeat_counter % 20U) == 0U ) {
-        //     console_lock_acquire();
-        //     printf( "[APP4] CC safe_mode=%u breaker_closed=%u charging_allowed=%u heartbeat=%u\n",
-        //             safety_state.safe_mode,
-        //             safety_state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
-        //             safety_state.charging_allowed,
-        //             safety_state.heartbeat_counter );
-        //     console_lock_release();
-        // }
+        if( (heartbeat_counter % 20U) == 0U ) {
+            console_lock_acquire();
+            printf( "[APP4] CC safe_mode=%u breaker_closed=%u charging_allowed=%u heartbeat=%u\n",
+                    safety_state.safe_mode,
+                    safety_state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                    safety_state.charging_allowed,
+                    safety_state.heartbeat_counter );
+            console_lock_release();
+        }
 
         heartbeat_counter++;
         usleep( WORKSHOP_COMMAND_PERIOD_MS * 1000U );
@@ -250,7 +276,7 @@ int main( void )
     /*4. Define heartbeat_counter as a uint32_t that increments on each loop iteration.*/
     uint32_t heartbeat_counter = 0U;
 
-    /*TODO HALO: 5. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
+    /*TODO HALO: 4. Initialize the HALO channels for communication with the peer using init function defined in halo_api.c
          - This will set up the necessary channels for sending and receiving messages with the peer
             -- Full path to init function is in .deps/halo/codegen/riscv64_h4_linux/src/halo_api.c
     */
@@ -259,13 +285,13 @@ int main( void )
     {
 
         /* This is a demo loop to showcase the application running */
-        /*TODO HALO: Delete the following line once you implement the actual logic */
+        /*TODO HALO: 5a. Delete the following line once you implement the actual logic */
         if( ( heartbeat_counter % 10U ) == 0U )
         {
             printf( "[APP4] HALO demo loop\n" );
         }
 
-        //TODO HALO: 5. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
+        //TODO HALO: 5b. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
         // command_rcv = service_console_input( input_fd, &command );
         // if( command_rcv < 0 )
         // {
