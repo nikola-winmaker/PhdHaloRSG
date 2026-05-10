@@ -131,7 +131,7 @@ int main( void )
         sensor_frame.battery_temp_c = bms_get_temperature();
         sensor_frame.breaker_closed = bms_get_breaker_closed();
         sensor_frame.fault_flags = bms_get_fault_flags();
-        sensor_frame.status_bit = *(bool*)(SENSOR_FRAME_BASE + sizeof(sensor_frame) - sizeof(bool)); // if true, zephyr will write struct to memory
+        sensor_frame.status_bit = true; // if true, zephyr will write struct to memory
 
 
         /*TODO Classical: 4. Publish/log/send the SensorFrame to the peer using shared memory access (write to defined memory address for SensorFrame)
