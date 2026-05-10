@@ -1,5 +1,54 @@
 
 // Include needed IDDL
 // Define interfaces needed by ADL 
+interface SensorFrameIf {
+    access {
+        read {
+            
+        }
+        write {
+            SensorFrameData
+        }
+    }
 
+    
+}
+interface ChargeCommandIf {
+    access {
+        read {
+            
+        }
+        write {
+            ChargeCommandData
+        }
+    }
+}
+interface ChargeStatusIf {
+    access {
+        read {
+            
+        }
+        write {
+            ChargeStatusData
+        }
+    }        
+}
+interface SafetyStateIf {
+    access {
+        read {
+            
+        }
+        write {
+            SafetyStateData
+        }
+    }        
+}
+
+interface OperatorCommandIf {
+    access {
+        write {
+            OperatorCommandData
+        }
+    }        
+}
 // USE code snippets by typing IDL
