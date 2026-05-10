@@ -15,3 +15,39 @@
 
 
 // USE code snippets by typing ADL
+SystemName {
+    components {
+        SensorFusion_Zephyr : Component { Type: Application, Platform: riscv64_h1_zephyr, Function: RealTimeProcessing }
+        ChargeController_FreeRTOS : Component { Type: Application, Platform: riscv64_h2_freertos, Function: RealTimeProcessing }
+        SafetyMonitor_BareMetal : Component { Type: Application, Platform: riscv64_h3_baremetal, Function: RealTimeProcessing }
+        Supervisor_Linux : Component { Type: Application, Platform: riscv64_h4_linux, Function: GeneralProcessing }
+    }
+
+    connections {
+        connection SensorTelemetry {
+            from SensorFusion_Zephyr to ChargeController_FreeRTOS
+            interface: SensorFrameIf
+            profile: SensorSharedMemory
+        }
+        connection ChargingCommand {
+            from ChargeController_FreeRTOS to SafetyMonitor_BareMetal
+            interface: ChargeCommandIf
+            profile: ChargingSharedMemory
+        }
+        connection ChargingStatus {
+            from ChargeController_FreeRTOS to Supervisor_Linux
+            interface: ChargingStatusIf
+            profile: ChargingBlackBoard
+        }
+        connection SafetyReport {
+            from SafetyMonitor_BareMetal to Supervisor_Linux
+            interface: SafetyStateIf
+            profile: SafetyBlackBoard
+        }
+        connection OperatorControl {
+            from Supervisor_Linux to ChargeController_FreeRTOS
+            interface: OperatorControlIf
+            profile: OperatorEventChannel
+        }
+    }
+}

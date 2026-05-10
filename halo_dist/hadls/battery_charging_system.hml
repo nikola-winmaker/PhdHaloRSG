@@ -8,3 +8,52 @@
 
 
 // USE code snippets by typing HML
+// Insert built-in profiles for common communication patterns.
+// if you don't need to override the default values, you can just reference these profiles without attributes EventChannel eventChannelProfile { }
+// If you are referencing built-in profiles don't forgert to use --include-stdlib-profiles when composing your system.
+Profiles {
+    // OperatorControlIf
+    EventChannel OperatorEventChannel {
+        eventQueueSize: 16
+        maxChannels: 1
+        // eventType: "signal"
+        // timeout: 5000
+        // blocking: True
+    }
+    
+    // SafetyStateIf
+    BlackBoard SafetyBlackBoard {
+        maxPayload: 64
+        bufferSize: 64
+    }
+
+
+    // override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles
+    // ChargingStatusIf
+    BlackBoard ChargingBlackBoard {
+        maxPayload: 64
+        bufferSize: 64
+    }
+
+    // ChargeCommandIf
+    SharedMemory ChargingSharedMemory {
+        memSize: 512
+        baseAddress: 0x80341000
+        // cacheable: True
+        // policy: WriteBack
+        // cacheLine: 64B
+        // coherence: Software
+        // syncType: AcquireRelease
+        // permissions: RW
+        // priority: Critical
+        // syncBlocking: True
+        // syncPrimitive: mutex
+    }
+
+    // override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles
+    // SensorFrameIf
+    SharedMemory SensorSharedMemory {
+        memSize: 512
+        baseAddress: 0x80340000
+    }
+}
