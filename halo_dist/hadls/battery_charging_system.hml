@@ -6,23 +6,33 @@
 //| BlackBoard    | maxPayload, bufferSize, baseAddress        | Set values per task sheet. |
 //| EventChannel  | eventQueueSize, maxChannels, baseAddress   | Set values per task sheet. |
 // override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles
-SharedMemory sharedMemoryProfile1 {
-    memSize: 512B
+SharedMemory SensorMemoryProfile1 {
+    memSize: 512
     syncBlocking: True
-    baseAddress: 0x80000000
+    baseAddress: 0x80340000 
+}
+SharedMemory ChargingMemoryProfile1 {
+    memSize: 512
+    syncBlocking: True
+    baseAddress: 0x80341000  
 }
 // override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles
-BlackBoard blackBoardProfile {
-    maxPayload: 64B
-    bufferSize: 64B
-    baseAddress: 0x80000000
+BlackBoard ChargingBoardProfile {
+    maxPayload: 64
+    bufferSize: 64
+    baseAddress: 0x80342000 
+}
+BlackBoard SafetyBoardProfile {
+    maxPayload: 64
+    bufferSize: 64
+    baseAddress: 0x80343000 
 }
 
 // override profile attributes if needed or delete not overriden attributes as they are in built-in HMML file --include-stdlib-profiles
-EventChannel eventChannelProfile {
-    eventQueueSize: 16B
+EventChannel OperatorChannelProfile {
+    eventQueueSize: 16
     maxChannels: 1
-    baseAddress: 0x80000000
+    baseAddress: 0x80344000 
 }
 
 

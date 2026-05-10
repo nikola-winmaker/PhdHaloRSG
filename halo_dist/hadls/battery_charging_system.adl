@@ -21,28 +21,28 @@ SystemName {
         connection SensorTelemetry {
             from SensorFusion to ChargeController
             interface: SensorFrameIf
-            profile: sharedMemoryProfile1
+            profile: SensorMemoryProfile1
         }
     
         connection ChargeCommand {
             from ChargeController to SafetyMonitor
             interface: ChargeCommandIf
-            profile: sharedMemoryProfile1
+            profile: ChargingMemoryProfile1
         }
         connection ChargeStatus {
             from ChargeController to Supervisor
             interface: ChargeStatusIf
-            profile: blackBoardProfile
+            profile: ChargingBoardProfile
         }
         connection SafetyState {
             from SafetyMonitor to Supervisor
             interface: SafetyStateIf
-            profile: blackBoardProfile
+            profile: SafetyBoardProfile
         }
         connection OperatorCommand {
             from Supervisor to ChargeController
             interface: OperatorCommandIf
-            profile: eventChannelProfile
+            profile: OperatorChannelProfile
         }
 
 
