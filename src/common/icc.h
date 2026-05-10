@@ -36,7 +36,7 @@ typedef struct SensorFrameData {
 
 typedef struct OperatorCommandData {
     uint32_t command_id;
-    uint32_t command_param;
+    int32_t command_param;
 } OperatorCommandData;
 
 typedef struct SafetyStateData {
@@ -60,8 +60,10 @@ typedef struct ChargeCommandData {
     char charging_mode[7];
 } ChargeCommandData;
 
+int writeDataVirtual(t_Channel channel,void* payload,uint32_t size);
 int writeData(t_Channel channel,void* payload,uint32_t size);
 
 int readData(t_Channel channel,void* payload,uint32_t size);
+int readDataVirtual(t_Channel channel,void* payload,uint32_t size);
 
 #endif
