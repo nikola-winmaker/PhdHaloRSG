@@ -240,15 +240,15 @@ int main( void )
 
     /* HALO: 1. Declare a variable of type OperatorCommand to hold the last received command 
         - OperatorCommand struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
-    Operato operator_command;
+    OperatorCommand operator_command;
 
     /* HALO: 2. Declare a variable of type ChargeStatus to hold the last evaluated state
         - ChargeStatus struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
-    ChargeStatus charge_status;
+    ChargeStatus status;
 
     /* HALO: 3. Declare a variable of type SafetyState to hold the last received status
         - SafetyState struct is available from HALO generated code from deps/halo/codegen/riscv64_h4_linux/include/halo_structs.h */
-    SafetyState safety_state;
+    SafetyState safety;
 
     /*4. Define heartbeat_counter as a uint32_t that increments on each loop iteration.*/
     uint32_t heartbeat_counter = 0U;
@@ -269,7 +269,7 @@ int main( void )
         //     printf( "[APP4] HALO demo loop\n" );
         // }
 
-        //TODO HALO: 5b. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
+        // HALO: 5b. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
         command_rcv = service_console_input( input_fd, &operator_command );
         if( command_rcv < 0 )
         {
@@ -282,46 +282,55 @@ int main( void )
                 printf( "[APP4] failed to send %s", line_buffer );
             -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
         */
-        int err = halo_send_OperatorCommandIf_OperatorCommand();
-
-        /*TODO HALO: 7. Receive ChargeStatus message from peer using halo_recv_ API functions defined in halo_api.h
+        int err = halo_send_OperatorCommandIf_OperatorCommand(&operator_command);
+        if(err < 0) {
+            printf( "[APP4] failed to send %s", line_buffer );
+        }
+        /* HALO: 7. Receive ChargeStatus message from peer using halo_recv_ API functions defined in halo_api.h
             -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
             -- Check the return value of halo_recv_ function to ensure the message was received successfully
         */
+        ChargeStatus last_status = status;
+        err = halo_recv_ChargingStatusIf_ChargeStatus(&status);
+        if(err < 0) {
+            printf( "[APP4] failed to receive %s", line_buffer );
+        }
 
-
-        /*TODO HALO: 8. Receive SafetyState message from peer using halo_recv_ API functions defined in halo_api.h
+        /* HALO: 8. Receive SafetyState message from peer using halo_recv_ API functions defined in halo_api.h
             -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
             -- Check the return value of halo_recv_ function to ensure the message was received successfully
         */
+        err = halo_recv_SafetyStateIf_SafetyState(&safety);
+        if(err < 0) {
+            printf( "[APP4] failed to receive %s", line_buffer );
+        }
 
-
-        /*TODO HALO: 9. Use logging has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
+        /* HALO: 9. Use logging has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
             For example, only log when data changes or every N iterations.
             Variables are placeholders for the actual variables you will define based on the workshop specification
         */
-        // if(status.requested_current_ma != last_status.requested_current_ma ||
-        //     status.requested_voltage_mv != last_status.requested_voltage_mv ||
-        //     status.fault_state != last_status.fault_state )
-        // {
-        //     console_lock_acquire();
-        //     printf( "[APP4] status state=%s current=%u voltage=%u faults=0x%x\n",
-        //             bms_charge_state( &status ),
-        //             status.requested_current_ma,
-        //             status.requested_voltage_mv,
-        //             status.fault_state );
-        //     console_lock_release();
-        //     last_status = status;
-        // }
-        // if( (heartbeat_counter % 10U) == 0U ) {
-        //     console_lock_acquire();
-        //     printf( "[APP4] safe_mode=%u breaker_closed=%u charging_allowed=%u heartbeat=%u\n",
-        //             safety.safe_mode,
-        //             safety.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
-        //             safety.charging_allowed,
-        //             safety.heartbeat_counter );
-        //     console_lock_release();
-        // }
+        if(status.requested_current_ma != last_status.requested_current_ma ||
+            status.requested_voltage_mv != last_status.requested_voltage_mv ||
+            status.fault_state != last_status.fault_state )
+        {
+            console_lock_acquire();
+            printf( "[APP4] status state=%s current=%u voltage=%u faults=0x%x\n",
+                    bms_charge_state( &status ),
+                    status.requested_current_ma,
+                    status.requested_voltage_mv,
+                    status.fault_state );
+            console_lock_release();
+            last_status = status;
+        }
+        if( (heartbeat_counter % 10U) == 0U ) {
+            console_lock_acquire();
+            printf( "[APP4] safe_mode=%u breaker_closed=%u charging_allowed=%u heartbeat=%u\n",
+                    safety.safe_mode,
+                    safety.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                    safety.charger_allowed,
+                    safety.heartbeat_counter );
+            console_lock_release();
+        }
 
 
         heartbeat_counter++;
