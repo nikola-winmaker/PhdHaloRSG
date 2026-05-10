@@ -107,7 +107,7 @@ int main(void)
     sensor_frame.battery_temp_c = 0.0;
     sensor_frame.breaker_closed = false;
     sensor_frame.fault_flags = 0;
-    // Initially the reader has read
+    // Initially the reader has read and the writer has not read
     sensor_frame.read = 1;
     sensor_frame.write = 0;
     /*2. Declare a variable of type SensorFrame to hold the last sent sensor data for logging on change */
@@ -115,6 +115,10 @@ int main(void)
 
     // Init BMS controller
     bms_init();
+
+    struct SensorFrame *psf = (struct SensorFrame *)SENSOR_FRAME_BASE;
+    psf->read = 1;
+    psf->write = 0;
 
     while (1)
     {
@@ -145,7 +149,7 @@ int main(void)
         */
         struct SensorFrame *psf = (struct SensorFrame *)SENSOR_FRAME_BASE;
         // Wait for the reciever to recieve the message before
-        while (!psf->read)
+        while (!psf->read && psf->write)
             ;
         sensor_frame.read = 0;
         sensor_frame.write = 1;
