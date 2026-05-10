@@ -168,7 +168,7 @@ static void charge_ctrl_task( void * parameters )
         do{
             result = readData(channel_sensorFrame, &SensFrm, sizeof(SensFrm));
 
-            uart_log("[APP2] Reading channel_sensorFrame\n");
+            // uart_log("[APP2] Reading channel_sensorFrame\n");
         }while(result == 0);
 
         /*TODO Classical: 7. Receive OperatorCommand message from peer using shared memory access (read from defined memory address for OperatorCommand)
@@ -179,7 +179,7 @@ static void charge_ctrl_task( void * parameters )
         do{
             result = readData(channel_OperatorCommand, &OpCmd, sizeof(OpCmd));
 
-            uart_log("[APP2] Reading channel_OperatorCommand\n");
+            // uart_log("[APP2] Reading channel_OperatorCommand\n");
         }while(result == 0);
 
         /*TODO Classical: 8. Call apply_operator_command(&OperatorCommand ); to apply the received operator command to the charge controller. 

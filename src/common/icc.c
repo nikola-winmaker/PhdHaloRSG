@@ -30,16 +30,20 @@ t_memoryMap memoryMap[5] =
 int writeDataVirtual( t_Channel channel,void* payload,uint32_t size)
 {
     int ret = 0;
-    t_iccInstance* iccInstance = (t_iccInstance*)&virtualMemoryMap[channel].p_dataStart[0];
+
+    if ( size > virtualMemoryMap[channel].dataSize)
+    {
+        return ret;
+    }
+
+    uint64_t* base = (uint64_t*)get_external_buffer((uint32_t)(uintptr_t)virtualMemoryMap[channel].p_dataStart);
+    volatile t_iccInstance* iccInstance = (volatile t_iccInstance*)&base[0];
     if (iccInstance->readCnt == iccInstance->writeCnt)
     {
-        //first uint64 reserved for pointers
-        uint64_t* dest = &virtualMemoryMap[channel].p_dataStart[1];
-        //only in this case we can prepare palyoad
+        uint64_t* dest = &base[1];
         memcpy_internal(dest,payload,size);
-
+        __asm__ volatile ("fence" ::: "memory");
         iccInstance->writeCnt++;
-
         ret = 1;
     }
 
@@ -49,16 +53,17 @@ int writeDataVirtual( t_Channel channel,void* payload,uint32_t size)
 int writeData(t_Channel channel,void* payload,uint32_t size)
 {
     int ret = 0;
-    t_iccInstance* iccInstance = (t_iccInstance*)&memoryMap[channel].p_dataStart[0];
+    if ( size > memoryMap[channel].dataSize)
+    {
+        return ret;
+    }
+    volatile t_iccInstance* iccInstance = (volatile t_iccInstance*)&memoryMap[channel].p_dataStart[0];
     if (iccInstance->readCnt == iccInstance->writeCnt)
     {
-        //first uint64 reserved for pointers
         uint64_t* dest = &memoryMap[channel].p_dataStart[1];
-        //only in this case we can prepare palyoad
         memcpy_internal(dest,payload,size);
-
+        __asm__ volatile ("fence" ::: "memory");
         iccInstance->writeCnt++;
-
         ret = 1;
     }
 
@@ -68,34 +73,40 @@ int writeData(t_Channel channel,void* payload,uint32_t size)
 int readData(t_Channel channel,void* payload,uint32_t size)
 {
     int ret = 0;
-    t_iccInstance* iccInstance = (t_iccInstance*)&memoryMap[channel].p_dataStart[0];
-    //is there something to read
+    if ( size > memoryMap[channel].dataSize)
+    {
+        return ret;
+    }
+    volatile t_iccInstance* iccInstance = (volatile t_iccInstance*)&memoryMap[channel].p_dataStart[0];
     if (iccInstance->readCnt != iccInstance->writeCnt)
     {
         uint64_t* src = &memoryMap[channel].p_dataStart[1];
-        //new data 
+        __asm__ volatile ("fence" ::: "memory");
         memcpy_internal(payload,src,size);
         iccInstance->readCnt++;
         ret = 1;
     }
 
-    return ret; 
+    return ret;
 }
 
 int readDataVirtual(t_Channel channel,void* payload,uint32_t size)
 {
     int ret = 0;
-    t_iccInstance* iccInstance = &(((uint64_t*)get_external_buffer(virtualMemoryMap[channel].p_dataStart))[0]);
-    
-    //is there something to read
+    if ( size > virtualMemoryMap[channel].dataSize)
+    {
+        return ret;
+    }
+    uint64_t* base = (uint64_t*)get_external_buffer((uint32_t)(uintptr_t)virtualMemoryMap[channel].p_dataStart);
+    volatile t_iccInstance* iccInstance = (volatile t_iccInstance*)&base[0];
     if (iccInstance->readCnt != iccInstance->writeCnt)
     {
-        uint64_t* src = &((uint64_t*)get_external_buffer(virtualMemoryMap[channel].p_dataStart))[1];
-        //new data 
+        uint64_t* src = &base[1];
+        __asm__ volatile ("fence" ::: "memory");
         memcpy_internal(payload,src,size);
         iccInstance->readCnt++;
         ret = 1;
     }
 
-    return ret; 
+    return ret;
 }
