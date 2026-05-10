@@ -22,9 +22,7 @@
 #else
     #include "halo_api.h"
 #endif
-int writeDataVirtual(t_Channel channel,void* payload,uint32_t size){}
-int readDataVirtual(t_Channel channel,void* payload,uint32_t size){}
-
+void * get_external_buffer( uint32_t offset ){}
 /************************* GLOBAL SECTION *************************/
 //TODO Classical: 0. Structure definitions for ChargeCommand and SafetyState 
 // based on the workshop specification only for the classical implementation!.
