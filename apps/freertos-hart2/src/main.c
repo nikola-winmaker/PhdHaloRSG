@@ -169,7 +169,6 @@ static void charge_ctrl_task( void * parameters )
 
     while( 1 )
     {      
-        uart_log( "[APP2] ui_frameLock acquired\n");
 
         if(ui_frameLock == FALSE)
         {
@@ -184,7 +183,10 @@ static void charge_ctrl_task( void * parameters )
         }
         else
         {
-            uart_log( "[APP2] ui_frameLock NOT acquired\n");
+            if( ( heartbeat_counter % 20U ) == 0U )
+            {
+                uart_log( "[APP2] ui_frameLock NOT acquired\n");
+            }
         }
         
 
@@ -237,15 +239,6 @@ static void charge_ctrl_task( void * parameters )
                 uart_log( "[APP2] ui_cmdLock not acquired\n");
             }
         }
-
-
-        s_ChargCommand->lock = 1;
-        s_ChargCommand_cmd->lock = 0;
-        s_ChargCommand = s_ChargCommand_cmd;
-        if( ( heartbeat_counter % 20U ) == 0U ){
-            uart_log( "[APP2] Sending to SafetyMonitor\n");
-        }
-
 
         if( ( heartbeat_counter % 10 ) == 0U)
         {
