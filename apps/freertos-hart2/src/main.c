@@ -421,14 +421,6 @@ static void charge_ctrl_task( void * parameters )
             /* Release mailbox (peer can now read) */
             *charge_status_flag = IPC_IDLE;
         }
-
-
-        /*TODO Classical: 11. Log the Info to the console using uart_log("[APP2] ") which is behaving similar to printf
-            -- [APP2] needs to be included in the log message to differentiate logs from other applications running on different harts
-            -- Use logging on change to avoid flooding the console with repeated messages. 
-            -- For example, only log when data changes, or every N cycles.
-            -- Variables are placeholders for the actual variables you will define based on the workshop specification
-        */
          if( ( heartbeat_counter % 10 ) == 0U){
              uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
                  ( uint32_t ) sensor_frame.battery_voltage_mv,
