@@ -26,7 +26,7 @@ HaloFramework {
         }
         connection Core4ToCore2 {
             from Core4 to Core2
-            interface: OperatorControlIf
+            interface: OperatorCommandIf
             profile: OperatorEventChannel
         }
         connection Core3ToCore4 {

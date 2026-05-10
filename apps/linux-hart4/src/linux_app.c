@@ -282,7 +282,7 @@ int main( void )
                 printf( "[APP4] failed to send %s", line_buffer );
             -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
         */
-        int err = halo_send_OperatorControlIf_OperatorControl();
+        int err = halo_send_OperatorCommandIf_OperatorCommand();
 
         /*TODO HALO: 7. Receive ChargeStatus message from peer using halo_recv_ API functions defined in halo_api.h
             -- Full path is in .deps/halo/codegen/riscv64_h4_linux/include/halo_api.h and deps/halo/codegen/riscv64_h4_linux/src/halo_channels.c
