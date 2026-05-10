@@ -1,5 +1,12 @@
 #include "icc.h"
-#include "string.h"
+
+static void memcpy_internal(void* payload,void* src,int size)
+{
+    for (uint32_t cnt = 0; cnt<size;cnt++)
+    {
+        ((uint8_t*)payload)[cnt] = ((uint8_t*)src)[cnt];
+    }
+}
 
 t_memoryMap memoryMap[5] =
 {
@@ -19,7 +26,7 @@ int writeData(t_Channel channel,void* payload,uint32_t size)
         //first uint64 reserved for pointers
         uint64_t* dest = &memoryMap[channel].p_dataStart[1];
         //only in this case we can prepare palyoad
-        memcpy(dest,payload,size);
+        memcpy_internal(dest,payload,size);
 
         iccInstance->writeCnt++;
 
@@ -38,7 +45,7 @@ int readData(t_Channel channel,void* payload,uint32_t size)
     {
         uint64_t* src = &memoryMap[channel].p_dataStart[1];
         //new data 
-        memcpy(payload,src,size);
+        memcpy_internal(payload,src,size);
 
         ret = 1;
     }
