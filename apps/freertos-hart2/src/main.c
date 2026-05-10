@@ -25,8 +25,48 @@
 
 /************************* GLOBAL SECTION *************************/
 
-//TODO Classical: 0. Structure definitions for SensorFrame, ChargeCommand, ChargeStatus, 
+// TODO Classical: 0. Structure definitions for SensorFrame, ChargeCommand, ChargeStatus, 
 // and OperatorCommand based on the workshop specification only for the classical implementation!.
+
+typedef struct sensorFrame {
+    unsigned int battery_voltage_mv;
+    int charge_current_ma;
+    float battery_temp_c;
+    bool breaker_closed;
+    unsigned int fault_flags;
+    bool read;
+    bool write;
+} SensorFrame;
+
+enum CHARGING_MODE {NORMAL, FAST};
+
+typedef struct chargeCommand {
+    bool enable_charging;
+    unsigned int current_limit_ma;
+    unsigned int voltage_limit_mv;
+    enum CHARGING_MODE charging_mode;
+    bool read;
+    bool write;
+} ChargeCommand;
+
+enum CHARGER_STATE {IDLE, CHARGING, COMPLETE, FAULT};
+
+
+typedef struct chargeStatus {
+    enum CHARGER_STATE charger_state;
+    unsigned int requested_current_ma;
+    unsigned int requested_voltage_mv;
+    unsigned int fault_state;
+    bool read;
+    bool write;
+} ChargeStatus;
+
+typedef struct operatorCommand {
+    unsigned int command_id;
+    int command_param;  
+    bool read;
+    bool write;
+} OperatorCommand;
 
 /************************* FUNCTION SECTION *************************/
 #if !defined(USE_HALO) || (USE_HALO == 0)
@@ -126,12 +166,40 @@ static void charge_ctrl_task( void * parameters )
 
 
     /*TODO Classical: 1. Declare a variable of type SensorFrame to hold the last received sensor data */
-
+    SensorFrame sf;
+    sf.battery_voltage_mv = 0; 
+    sf.charge_current_ma = 0;
+    sf.battery_temp_c = 0.0;
+    sf.breaker_closed = false;
+    sf.fault_flags = 0;
+    sf.read = 0;
+    sf.write = 0;
+    
     /*TODO Classical: 2. Declare a variable of type OperatorCommand to hold the last received operator command */
+    OperatorCommand oc;
+    oc.command_id = 0;
+    oc.command_param = 0;
+    oc.read = 0;
+    oc.write = 0;
 
     /*TODO Classical: 3. Declare a variable of type ChargeCommand to hold the charge command */
+    ChargeCommand cc;
+    cc.enable_charging = false;
+    cc.current_limit_ma = 0;
+    cc.voltage_limit_mv = 0;
+    cc.charging_mode = NORMAL;
+    cc.read = 1;
+    cc.write = 0;
+
 
     /*TODO Classical: 4. Declare a variable of type ChargeStatus to hold the charge status */
+    ChargeStatus cs;
+    cs.charger_state = IDLE;
+    cs.requested_current_ma = 0;
+    cs.requested_voltage_mv = 0;
+    cs.fault_state = 0;
+    cs.read = 1;
+    cs.write = 0;
 
     /* 5. Declare heartbeat_counter as a uint32_t that increments on each loop iteration. */
     uint32_t heartbeat_counter = 0U;
@@ -144,35 +212,69 @@ static void charge_ctrl_task( void * parameters )
         
         /* This is a demo loop to showcase the application running */
         // TODO Classical: 5. Delete the demo loop when writing the actual implementation
-        if( ( heartbeat_counter % 20U ) == 0U ){
-            uart_log( "[APP2] classical demo loop\n" );
-        }
+        // if( ( heartbeat_counter % 20U ) == 0U ){
+        //     uart_log( "[APP2] classical demo loop\n" );
+        // }
 
         /*TODO Classical: 6. Receive SensorFrame message from peer using shared memory access (read from defined memory address for SensorFrame)
             -- It's up to you how you want to implement the shared memory protocol, you can use pointer dereferencing to read from 
             the specific memory address where the SensorFrame is written by the peer. Synchronization is important here, so make sure to implement a simple 
             protocol to check if new data is available before reading.
-        */
+        */  
+
+        SensorFrame* sfp = SENSOR_FRAME_BASE;
+        while(!sf.write){
+            sf = *sfp;
+        }
+
+        sf.read = 1;
+        sf.write = 0;
+        *sfp = sf;
+
+
 
         /*TODO Classical: 7. Receive OperatorCommand message from peer using shared memory access (read from defined memory address for OperatorCommand)
             -- Similar to SensorFrame, use pointer dereferencing to read the OperatorCommand from the defined memory address. 
             This is an event channel, so you can implement a simple protocol to check for new events/commands.
         */
 
+        OperatorCommand* ocp = OPERATOR_COMMAND_BASE;
+        while(!oc.write){
+            oc = *ocp;
+        }
+
+        oc.read = 1;
+        oc.write = 0;
+        *ocp = oc;
+
         /*TODO Classical: 8. Call apply_operator_command(&OperatorCommand ); to apply the received operator command to the charge controller. 
             Call build_charge_outputs( &SensorFrame, &ChargeCommand, &ChargeStatus );
         */
-        // apply_operator_command( &operator_command );
-        // build_charge_outputs( &sensor_frame, &charge_command, &charge_status );
-
-
+        apply_operator_command( &oc );
+        build_charge_outputs( &sf, &cc, &cs );
+        
         /*TODO Classical: 9. Publish/log/send the ChargeCommand command to the peer using shared memory access (write to defined memory address for ChargeCommand)
-             -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
+        -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
-
+        ChargeCommand* ccp = CHARGE_COMMAND_BASE;
+        while(!cc.read){
+            cc = *ccp;
+        };
+        cc.write = 1;
+        cc.read = 0;
+        *ccp = cc;
+        
         /*TODO Classical: 10. Publish/log/send the ChargeStatus status to the peer using shared memory access (write to defined memory address for ChargeStatus)
              -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
+
+        ChargeStatus* csp = CHARGE_STATUS_BASE;
+        while(!cs.read){
+            cs = *csp;
+        }
+        cs.write = 1;
+        cs.read = 0;
+        *csp = cs;
 
 
         /*TODO Classical: 11. Log the Info to the console using uart_log("[APP2] ") which is behaving similar to printf
@@ -181,14 +283,14 @@ static void charge_ctrl_task( void * parameters )
             -- For example, only log when data changes, or every N cycles.
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
         */
-        // if( ( heartbeat_counter % 10 ) == 0U){
-        //     uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
-        //         ( uint32_t ) sensor_frame.battery_voltage_mv,
-        //         ( uint32_t ) sensor_frame.charge_current_ma,
-        //         sensor_frame.battery_temp_c,
-        //         ( uint32_t ) sensor_frame.breaker_closed,
-        //         ( uint32_t ) sensor_frame.fault_flags );
-        // }
+        if( ( heartbeat_counter % 10 ) == 0U){
+            uart_log( "[APP2] received mV=%d mA=%d temp=%f breaker_closed=%d faults=%d\n",
+                ( uint32_t ) sf.battery_voltage_mv,
+                ( uint32_t ) sf.charge_current_ma,
+                sf.battery_temp_c,
+                ( uint32_t ) sf.breaker_closed,
+                ( uint32_t ) sf.fault_flags );
+        }
 
         heartbeat_counter++;
         vTaskDelay( pdMS_TO_TICKS( WORKSHOP_CHARGE_PERIOD_MS ) );
