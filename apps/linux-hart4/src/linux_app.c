@@ -200,14 +200,14 @@ int main( void )
             Synchronization is important here, so make sure to implement a simple protocol to check if new data is available before reading.
         */
         ChargeStatusData* pChargeStatus = get_external_buffer( VIRTUAL_CHARGE_STATUS );
-        //memcpy(pChargeStatus, &lastChargeStatus, sizeof(ChargeStatusData));
+        memcpy(pChargeStatus, &lastChargeStatus, sizeof(ChargeStatusData));
 
         /*TODO Classical: 8. Receive SafetyState message from peer using shared memory access (read from defined memory address for SafetyState)
             get_external_buffer( VIRTUAL_SAFETY_STATE ) is the defined memory address for SafetyState buffer in shared memory
             -- Similar to ChargeStatus, synchronization is important here as well.
         */
         SafetyStateData* pSafetyState = get_external_buffer( VIRTUAL_SAFETY_STATE );
-        //memcpy(pSafetyState, &lastSafetyState, sizeof(SafetyStateData));
+        memcpy(pSafetyState, &lastSafetyState, sizeof(SafetyStateData));
 
          /*TODO Classical: 9. Use logging, printf has to have [APP4] in every message and perform logging on change to avoid flooding the console with repeated messages. 
             For example, only log when data changes or every N iterations.
