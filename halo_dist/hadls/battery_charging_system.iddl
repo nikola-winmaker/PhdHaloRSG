@@ -1,3 +1,51 @@
-// Define datastructures per workshop sheet
+    // Define datastructures per workshop sheet
 
 // USE code snippets by typing IDDL
+
+dataStructures {
+    SensorFrame {
+       // IDDL primitive types: bool, byte, int, float, double, unsigned int, "string"
+       // array types are formed by adding an array suffix to the field name (e.g., fieldName[128])
+       // Optional initializer: = value
+       // Examples:
+       // integer counter
+       // byte dataPayload[1024] = 0
+       // string description = "Example description"
+       // bool isValid = True
+       // float temperature = 25.0
+       // double pressure = 1.0
+       
+
+       unsigned int battery_voltage_mv
+       int charge_current_ma
+       float battery_temp_c
+       bool breaker_closed
+       unsigned int fault_flags
+    }
+
+    ChargeCommand {
+        bool enable_charging
+        unsigned int current_limit_ma
+        unsigned int voltage_limit_mv
+        string charging_mode = "normal"
+    }
+
+    ChargeStatus {
+        string charger_state = "idle"        
+        unsigned int requested_current_ma = 0
+        unsigned int requested_voltage_mv = 0
+        unsigned int fault_state = 0  
+    }
+
+    SafetyState {
+        bool safe_mode = False            
+        bool breaker_open = False         
+        bool charging_allowed = False     
+        unsigned int heartbeat_counter = 0
+    }
+
+    OperatorCommand {
+        unsigned int command_id = 0
+        int command_param = 0  
+    }
+}

@@ -8,3 +8,32 @@
 
 
 // USE code snippets by typing HML
+
+// Insert built-in profiles for common communication patterns.
+// if you don't need to override the default values, you can just reference these profiles without attributes EventChannel eventChannelProfile { }
+// If you are referencing built-in profiles don't forgert to use --include-stdlib-profiles when composing your system.
+Profiles {
+    EventChannel OperatorEventChannel {
+        eventQueueSize: 16
+        maxChannels: 1
+    }
+
+    BlackBoard ChargingBlackBoard {
+        maxPayload: 32
+        bufferSize: 64
+    }
+    BlackBoard SafetyBlackBoard {
+        maxPayload: 16
+        bufferSize: 64
+    }
+
+    SharedMemory ChargingSharedMemory {
+        memSize: 512
+        baseAddress: 0x80341000 
+    }
+    
+    SharedMemory SensorSharedMemory {
+        memSize: 512
+        baseAddress: 0x80340000
+    }
+}
