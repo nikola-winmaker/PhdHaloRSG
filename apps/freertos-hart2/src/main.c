@@ -138,7 +138,7 @@ static void charge_ctrl_task( void * parameters )
     */
 
     /* 5. Declare heartbeat_counter as a uint32_t that increments on each loop iteration. */
-    uint32_t heartbeat_counter = 0U;
+    int heartbeat_counter = 0U;
 
     SensorFrameIf *s_SensorFrame = NULL;
     OperatorCommandIf *s_Cmd = NULL;
@@ -167,13 +167,10 @@ static void charge_ctrl_task( void * parameters )
     // Init the charge controller state
     charge_controller_init();
 
-
-        if( ( heartbeat_counter % 20U ) == 0U ){
-            uart_log( "[APP2] classical demo loop\n" );
-        }
-
     while( 1 )
     {      
+        uart_log( "[APP2] ui_frameLock acquired\n");
+
         if(ui_frameLock == FALSE)
         {
             s_chargeStatus->lock = 1;
@@ -182,12 +179,12 @@ static void charge_ctrl_task( void * parameters )
             s_chargeStatus->lock = 0;
             if( ( heartbeat_counter % 20U ) == 0U )
             {
-                uart_log( "[APP2] ui_frameLock acquired");
+                uart_log( "[APP2] ui_frameLock acquired\n");
             }
         }
         else
         {
-            uart_log( "[APP2] ui_frameLock NOT acquired");
+            uart_log( "[APP2] ui_frameLock NOT acquired\n");
         }
         
 
@@ -195,14 +192,14 @@ static void charge_ctrl_task( void * parameters )
         {
             if( ( heartbeat_counter % 20U ) == 0U )
             {
-                uart_log( "[APP2] ui_cmdLock acquired");
+                uart_log( "[APP2] ui_cmdLock acquired\n");
             }
 
             if(ui_cmdAvailable == TRUE)
             {
                 if( ( heartbeat_counter % 20U ) == 0U )
                 {
-                    uart_log( "[APP2] ui_cmdAvailable available");
+                    uart_log( "[APP2] ui_cmdAvailable available\n");
                 }
 
                 apply_operator_command( &s_Cmd );
@@ -229,7 +226,7 @@ static void charge_ctrl_task( void * parameters )
             {
                 if( ( heartbeat_counter % 20U ) == 0U )
                 {
-                    uart_log( "[APP2] ui_cmdAvailable not available");
+                    uart_log( "[APP2] ui_cmdAvailable NOT available\n");
                 }
             }
         }
@@ -237,7 +234,7 @@ static void charge_ctrl_task( void * parameters )
         {
             if( ( heartbeat_counter % 20U ) == 0U )
             {
-                uart_log( "[APP2] ui_cmdLock not acquired");
+                uart_log( "[APP2] ui_cmdLock not acquired\n");
             }
         }
 
@@ -246,7 +243,7 @@ static void charge_ctrl_task( void * parameters )
         s_ChargCommand_cmd->lock = 0;
         s_ChargCommand = s_ChargCommand_cmd;
         if( ( heartbeat_counter % 20U ) == 0U ){
-            uart_log( "[APP2] Sending to SafetyMonitor");
+            uart_log( "[APP2] Sending to SafetyMonitor\n");
         }
 
 
