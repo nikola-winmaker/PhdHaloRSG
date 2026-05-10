@@ -271,10 +271,10 @@ int main( void )
 
         /* This is a demo loop to showcase the application running */
         /*TODO HALO: 5a. Delete the following line once you implement the actual logic */
-        if( ( heartbeat_counter % 10U ) == 0U )
-        {
-            printf( "[APP4] HALO demo loop\n" );
-        }
+        // if( ( heartbeat_counter % 10U ) == 0U )
+        // {
+        //     printf( "[APP4] HALO demo loop\n" );
+        // }
 
         //TODO HALO: 5b. Call User input handling, operator_command is a placeholder variable for the actual variable you will define based on the workshop specification
         command_rcv = service_console_input( input_fd, &ocData );
