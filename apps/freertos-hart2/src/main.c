@@ -32,6 +32,12 @@
 /************************* FUNCTION SECTION *************************/
 #if !defined(USE_HALO) || (USE_HALO == 0)
 
+void * get_external_buffer( uint32_t offset )
+{
+    // Stub definition
+}
+
+
 static void charge_ctrl_task( void * parameters )
 {
     ( void ) parameters;
@@ -158,8 +164,9 @@ static void charge_ctrl_task( void * parameters )
             the specific memory address where the SensorFrame is written by the peer. Synchronization is important here, so make sure to implement a simple 
             protocol to check if new data is available before reading.
         */
+        int result;
         do{
-            int result = readData(channel_sensorFrame, &SensFrm, sizeof(SensFrm));
+            result = readData(channel_sensorFrame, &SensFrm, sizeof(SensFrm));
 
             uart_log("[APP2] Reading channel_sensorFrame\n");
         }while(result == 0);
@@ -170,7 +177,7 @@ static void charge_ctrl_task( void * parameters )
         */
 
         do{
-            int result = readData(channel_OperatorCommand, &OpCmd, sizeof(OpCmd));
+            result = readData(channel_OperatorCommand, &OpCmd, sizeof(OpCmd));
 
             uart_log("[APP2] Reading channel_OperatorCommand\n");
         }while(result == 0);
@@ -187,7 +194,7 @@ static void charge_ctrl_task( void * parameters )
         /*TODO Classical: 9. Publish/log/send the ChargeCommand command to the peer using shared memory access (write to defined memory address for ChargeCommand)
              -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
-        int result = writeData(channel_chargeCommand, &ChgCmd, sizeof(ChgCmd));
+        result = writeData(channel_chargeCommand, &ChgCmd, sizeof(ChgCmd));
 
         if (result == 0)
         {
@@ -197,7 +204,7 @@ static void charge_ctrl_task( void * parameters )
         /*TODO Classical: 10. Publish/log/send the ChargeStatus status to the peer using shared memory access (write to defined memory address for ChargeStatus)
              -- Synchronization is important, so make sure to implement a simple protocol to signal when new data is available for the peer to read.
         */
-        result = writeData(channel_ChargeStatus, &ChgSts, sizeof(ChgSts);)
+        result = writeData(channel_ChargeStatus, &ChgSts, sizeof(ChgSts));
 
         if (result == 0)
         {
