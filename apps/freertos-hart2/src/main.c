@@ -24,9 +24,41 @@
 #endif
 
 /************************* GLOBAL SECTION *************************/
+typedef struct
+{
+    unsigned int battery_voltage_mv;
+    int charge_current_ma;
+    float battery_temp_c;
+    bool breaker_closed;
+    unsigned int fault_flags;
+    unsigned int lock;
+} SensorFrameIf;
+     
+typedef struct
+{
+    bool enable_charging;
+    unsigned int current_limit_ma;
+    unsigned int voltage_limit_mv;
+    char charging_mode[7];
+    unsigned int lock;
+} ChargeCommandIf;
 
-//TODO Classical: 0. Structure definitions for SensorFrame, ChargeCommand, ChargeStatus, 
-// and OperatorCommand based on the workshop specification only for the classical implementation!.
+typedef struct 
+{
+    char charger_state[32];
+    unsigned int requested_current_ma;
+    unsigned int requested_voltage_mv;
+    unsigned int fault_state;
+    unsigned int lock;
+} ChargeStatusIf;
+
+typedef struct 
+{
+    unsigned int command_id;
+    int command_param;
+    unsigned int lock;
+} OperatorCommandIf;
+
 
 /************************* FUNCTION SECTION *************************/
 #if !defined(USE_HALO) || (USE_HALO == 0)
@@ -59,29 +91,6 @@ static void charge_ctrl_task( void * parameters )
         Address: OPERATOR_COMMAND_BASE - event like protocol
         Size: OPERATOR_COMMAND_SIZE (16 bytes)
     ______________________________________________________________________________________________________________________________
-
-    * 1. Define SensorFrame struct from Workshop specification -> SensorFrameIf and declare a variable of this type
-        battery voltage (uint32_t battery_voltage_mv = 0)
-        charge current (int32_t charge_current_ma = 0)
-        battery temperature (float battery_temp_c = 0.0)
-        breaker state (uint8_t breaker_closed = 0)
-        fault/status flags (uint32_t fault_flags = 0)
-
-    * 2. Define a OperatorCommand struct from Workshop specification -> OperatorCommandIf and declare a variable of this type
-        command id (uint32_t command_id = 0)
-        parameter (int32_t command_param = 0)
-
-    * 3. Define ChargeCommand struct from Workshop specification -> ChargeCommandIf and declare a variable of this type
-        enable charging (uint8_t enable_charging = 0)
-        current limit (uint32_t current_limit_ma = 0)
-        voltage limit (uint32_t voltage_limit_mv = 0)
-        charging mode (char charging_mode[7] = "normal")
-
-    * 4. Define ChargeStatus struct from Workshop specification -> ChargeStatusIf and declare a variable of this type
-        charger state (string charger_state = "idle" / char charger_state[5] = "idle")
-        requested current (uint32_t requested_current_ma = 0)
-        requested voltage (uint32_t requested_voltage_mv = 0)
-        fault state (uint32_t fault_state = 0)
 
     * 5. Define heartbeat_counter as a uint32_t that increments on each loop iteration.
 
@@ -123,18 +132,15 @@ static void charge_ctrl_task( void * parameters )
         - Use vTaskDelay( pdMS_TO_TICKS( WORKSHOP_CHARGE_PERIOD_MS ) ); to create a delay in the loop.
     */
 
-
-
-    /*TODO Classical: 1. Declare a variable of type SensorFrame to hold the last received sensor data */
-
-    /*TODO Classical: 2. Declare a variable of type OperatorCommand to hold the last received operator command */
-
-    /*TODO Classical: 3. Declare a variable of type ChargeCommand to hold the charge command */
-
-    /*TODO Classical: 4. Declare a variable of type ChargeStatus to hold the charge status */
-
     /* 5. Declare heartbeat_counter as a uint32_t that increments on each loop iteration. */
     uint32_t heartbeat_counter = 0U;
+
+    SensorFrameIf s_SensorFrame = {0};
+    ChargeCommandIf s_Cmd = {0};
+    ChargeStatusIf s_ChargCommand = {0};
+    OperatorCommandIf s_chargeStatus = {0};
+    int lock = 0;
+
 
     // Init the charge controller state
     charge_controller_init();
@@ -144,8 +150,8 @@ static void charge_ctrl_task( void * parameters )
         
         /* This is a demo loop to showcase the application running */
         // TODO Classical: 5. Delete the demo loop when writing the actual implementation
-        if( ( heartbeat_counter % 20U ) == 0U ){
-            uart_log( "[APP2] classical demo loop\n" );
+        if( ( heartbeat_counter % 50U ) == 0U ){
+            uart_log( "ChargeController\n");
         }
 
         /*TODO Classical: 6. Receive SensorFrame message from peer using shared memory access (read from defined memory address for SensorFrame)
@@ -153,6 +159,12 @@ static void charge_ctrl_task( void * parameters )
             the specific memory address where the SensorFrame is written by the peer. Synchronization is important here, so make sure to implement a simple 
             protocol to check if new data is available before reading.
         */
+        
+        Loc
+
+        s_SensorFrame = (SensorFrameIf)(SENSOR_FRAME_BASE);
+
+
 
         /*TODO Classical: 7. Receive OperatorCommand message from peer using shared memory access (read from defined memory address for OperatorCommand)
             -- Similar to SensorFrame, use pointer dereferencing to read the OperatorCommand from the defined memory address. 
