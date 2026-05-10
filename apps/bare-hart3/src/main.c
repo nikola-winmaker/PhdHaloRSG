@@ -208,6 +208,7 @@ void _start_c( void )
     /*TODO HALO: 2. Declare a variable of type SafetyState to hold the last evaluated state
       - SafetyState struct is available from HALO generated code from deps/halo/codegen/riscv64_h3_baremetal/include/halo_structs.h */
     SafetyStateData LastState; 
+    SafetyStateData PreviousState; 
 
     /* 3. Define heartbeat_counter as a uint32_t that increments on each loop iteration.*/
     uint32_t heartbeat_counter = 0U;
@@ -251,6 +252,11 @@ void _start_c( void )
         }
         /*TODO HALO: 6. Call evaluate_safety( &ChargeCommand, &SafetyState, heartbeat_counter ) */
         // evaluate_safety( &last_command, &state, heartbeat_counter );
+           PreviousState.safe_mode = LastState.safe_mode;
+           PreviousState.breaker_open = LastState.breaker_open;
+           PreviousState.charging_allowed = LastState.charging_allowed;
+           PreviousState.heartbeat_counter = LastState.heartbeat_counter;
+
            evaluate_safety(&LastCommand, &LastState, heartbeat_counter);
 
         /*TODO HALO: 7. Send the SafetyState state to the peer every using halo_send_ API functions defined in halo_api.h
@@ -271,9 +277,9 @@ void _start_c( void )
             -- For example, only log when safe_mode, breaker_open, or charging_allowed changes, or every N cycles.
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
          */
-        if( LastState.safe_mode != LastState.safe_mode ||
-            LastState.breaker_open != LastState.breaker_open ||
-            LastState.charging_allowed != LastState.charging_allowed 
+        if( PreviousState.safe_mode != LastState.safe_mode ||
+            PreviousState.breaker_open != LastState.breaker_open ||
+            PreviousState.charging_allowed != LastState.charging_allowed 
              || ( LastState.heartbeat_counter % 20U ) == 0U 
         )
         {
