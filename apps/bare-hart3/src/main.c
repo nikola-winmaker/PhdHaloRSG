@@ -10,7 +10,6 @@
  */
 
 /************************* INCLUDE SECTION *************************/
-#define USE_HALO
 #include "uart.h"
 #include "safety_eval.h"
 #include "workshop_protocol.h"
@@ -240,7 +239,10 @@ void _start_c( void )
                 uart_log( "[APP3] SafetyState send failed\n" );
             -- Full path is in .deps/halo/codegen/riscv64_h3_baremetal/include/halo_api.h and deps/halo/codegen/riscv64_h3_baremetal/src/halo_channels.c
             */
-
+        if( halo_send_SafetyReportIf_SafetyState(&safState) != 0)
+        {
+            uart_log( "[APP3] SafetyState send failed\n" );
+        }
 
         /*TODO HALO: 8. Log the Info to the console using uart_log("[APP3] ") which is behaving similar to printf
             -- [APP3] needs to be included in the log message to differentiate logs from other applications running on different harts
@@ -248,18 +250,18 @@ void _start_c( void )
             -- For example, only log when safe_mode, breaker_open, or charging_allowed changes, or every N cycles.
             -- Variables are placeholders for the actual variables you will define based on the workshop specification
          */
-        // if( state.safe_mode != last_state.safe_mode ||
-        //     state.breaker_open != last_state.breaker_open ||
-        //     state.charging_allowed != last_state.charging_allowed 
-        //      || ( state.heartbeat_counter % 20U ) == 0U 
-        // )
-        // {
-        //     uart_log( "[APP3] safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
-        //         ( uint32_t ) state.safe_mode,
-        //         ( uint32_t ) state.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
-        //         ( uint32_t ) state.charging_allowed,
-        //         ( uint32_t ) state.heartbeat_counter );
-        // }
+        if( safState.safe_mode != oldStatus.safe_mode ||
+            safState.breaker_open != oldStatus.breaker_open ||
+            safState.charging_allowed != oldStatus.charging_allowed 
+             || ( safState.heartbeat_counter % 20U ) == 0U 
+        )
+        {
+            uart_log( "[APP3] safe_mode=%d breaker_closed=%d charging_allowed=%d heartbeat=%d\n",
+                ( uint32_t ) safState.safe_mode,
+                ( uint32_t ) safState.breaker_open ? 0 : 1, // Convert breaker_open to breaker_closed for logging
+                ( uint32_t ) safState.charging_allowed,
+                ( uint32_t ) safState.heartbeat_counter );
+        }
 
         heartbeat_counter++;
         bm_delay_loop( WORKSHOP_SAFETY_PERIOD_MS );

@@ -10,7 +10,6 @@
  */
 
  /************************* INCLUDE SECTION *************************/
- #define USE_HALO
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -262,18 +261,18 @@ int main( void )
 
         halo_recv_SafetyReportIf_SafetyState(&safState);
 
-        if(safState.requested_current_ma != oldStatus.requested_current_ma ||
-            safState.requested_voltage_mv != oldStatus.requested_voltage_mv ||
-            safState.fault_state != oldStatus.fault_state )
+        if(chStatus.requested_current_ma != oldStatus.requested_current_ma ||
+            chStatus.requested_voltage_mv != oldStatus.requested_voltage_mv ||
+            chStatus.fault_state != oldStatus.fault_state )
         {
             console_lock_acquire();
             printf( "[APP4] status state=%s current=%u voltage=%u faults=0x%x\n",
-                    bms_charge_state( &safState ),
-                    safState.requested_current_ma,
-                    safState.requested_voltage_mv,
-                    safState.fault_state );
+                    bms_charge_state( &chStatus ),
+                    chStatus.requested_current_ma,
+                    chStatus.requested_voltage_mv,
+                    chStatus.fault_state );
             console_lock_release();
-            oldStatus = safState;
+            oldStatus = chStatus;
         }
         if( (heartbeat_counter % 10U) == 0U ) {
             console_lock_acquire();
