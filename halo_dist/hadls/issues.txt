@@ -1,0 +1,29 @@
+https://www.nikolastojkov.net/system_specification.html
+
+G1 - HALO description Issues:
+- ChargeCommand -> charging_mode: left undefined, should be "normal"
+- ChargeStatus -> charger_state: left undefined, should be "idle" 
+
+G2 - HALO Issues: 
+    HML EventChannel: 
+        - Missing baseAddress
+    HML BlackBoard:
+        - Missing baseAddress
+
+
+G3 - HALO Issues:
+- Missing APP3
+- APP2 - SensorFrameData receive should be read in blocking manner to wait for data, hence charge_outputs were wrongly created
+check https://nikola-winmaker.github.io/PhdHaloRSG/Integration/
+
+G4 - HALO Issues:
+- APP3: Return value of halo_send_xxx for BlackBoard is OK is 0 of greater than 0, participants have <= 0 in if statement  (if( send_rc <= 0 ))
+check https://nikola-winmaker.github.io/PhdHaloRSG/Integration/
+
+G5 -  HALO Issues:
+- EventChannel, BlackBoard: Missing baseAddress
+
+FTN - HALO Issues:
+- APP4: OperatorCommand(&operator_command) was not enclosed with if statement to actually check if command is received -> if( command_rcv > 0 ) then perform 
+halo_send. Otherwise  operator_command will be 0 which is NOOP for charging controller.
+
