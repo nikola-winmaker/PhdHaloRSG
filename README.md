@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project scaffolds a heterogeneous multi-hart firmware stack for the **SiFive HiFive Unmatched** development board, featuring:
+This project scaffolds a heterogeneous multi-hart firmware stack featuring:
 
 - **Hart 0 (S7)**: Bare-metal boot coordinator and direct M-mode QEMU entry point
 - **Hart 1 (U74)**: Zephyr RTOS
@@ -46,7 +46,7 @@ PhdHaloRSG/
 
 ## Memory Layout (from src/memory_layout.h)
 
-HiFive Unmatched provides 2GB of RAM (0x80000000–0xFFFFFFFF). This project uses a compact multi-hart layout:
+This project uses a compact multi-hart layout:
 
 | Hart | Core | Start Address | Size    | Purpose           |
 |------|------|---------------|---------|-------------------|
@@ -65,51 +65,6 @@ HiFive Unmatched provides 2GB of RAM (0x80000000–0xFFFFFFFF). This project use
 **IPC subregions and protocol buffers** are defined for inter-hart communication (see src/memory_layout.h for details).
 
 ---
-
-## VS Code Tasks & CLI Equivalents
-
-The project provides VS Code tasks (see .vscode/tasks.json) for all major build and utility flows:
-
-| Task Label              | Command (CLI Equivalent) |
-|-------------------------|--------------------------|
-| Setup environment       | sudo bash tools/scripts/bootstrap_env.sh |
-| Clean build all & Run   | make qemu-hart0-mmode    |
-| Hart1 Zephyr build      | make zephyr-hart1-fast   |
-| Hart2 FreeRTOS build    | make -C apps/freertos-hart2 app2 FREERTOS_KERNEL_DIR=... |
-| Hart3 BM build          | make -C apps/bare-hart3 app3 |
-| Hart4 Linux build       | make buildroot-linux-fast|
-| OpenSBI Build           | make qemu-hart0-mmode    |
-| QEMU Sys Run            | make qemu-hart0-mmode-run|
-| Halo: Compose           | halo compose ...          |
-| Halo: Generate          | sudo bash tools/scripts/halo_generate_all.sh |
-
-Inputs for build mode (HALO/Classical) and output selection are supported in the VS Code UI.
-
----
-
-## Tools & Scripts
-
-- **tools/scripts/bootstrap_env.sh**: Main environment bootstrapper. Installs host packages, initializes dependencies (Zephyr, FreeRTOS, Buildroot, OpenSBI), verifies toolchain, and can run smoke builds. Supports options to skip steps (see --help).
-- **tools/scripts/halo_generate_all.sh**: Runs `halo generate` for all platforms, populating each app's deps/halo directory.
-- **tools/scripts/build.sh**: Checks prerequisites, configures CMake, builds targets (hart0, hart3, hart4), and provides a flash helper (manual OpenOCD usage).
-
-Other scripts are available for building individual harts, setting up dependencies, and running QEMU (see tools/scripts/ for details).
-
----
-
-### Dockerized Dev Environment
-
-Docker workflow:
-
-```bash
-docker compose build dev
-```
-
-Inside the Docker container shell run:
-
-```bash
-make bootstrap-env
-```
 
 ### Windows + WSL Ubuntu For QEMU
 
@@ -170,17 +125,37 @@ make verify-toolchain-full
 make docker-verify
 ```
 
-## Architecture Highlights
 
-- **Hart 0 (S7)**: Runs in Machine Mode (M-mode), orchestrates hart wake-up via CLINT, and drives the QEMU direct M-mode flow
-- **Hart 1-3 (U74)**: Run heterogeneous Zephyr, FreeRTOS, and bare-metal workloads
-- **Linux AMP side**: Buildroot artifacts and OpenSBI support are used by the QEMU/Linux hand-off flow documented in the task runner
-- **Inter-hart Communication**: CLINT (timer interrupts), PLIC (external interrupts), shared memory
-- **Memory Isolation**: Each hart has private 256KB region; shared peripherals at fixed addresses
+## Setup and Run Steps
+
+1. Install Docker Desktop.
+2. Run Docker Desktop.
+   - Select **Personal use**, or skip the initial setup if needed.
+3. Install Visual Studio Code.
+4. In VS Code, install these extensions:
+   - Docker
+   - Dev Containers
+   - Todo Tree
+5. Clone the PhD Research Study repository from GitHub.
+6. Open the repository in VS Code, then open a terminal in the repository root.
+7. Build the development container image:
+
+```bash
+docker compose build dev
+```
+
+8. In VS Code, press `Ctrl+Shift+P` or, on macOS, `Cmd+Shift+P`; search for **Reopen in Container**, and run that command.
+9. Inside the container, install these VS Code extensions:
+   - Tasks
+   - Todo Tree
+10. Click **Setup environment** in the VS Code bottom bar.
+11. Wait until all submodules and tools are fully installed.
+12. From the bottom bar, click **Clean build all & Run**.
+13. In the pop-up prompt at the top, select the console option, then select **Classical**.
+14. You should see Linux boot in the console, followed by messages in the form `[APPx]`, where `x` is `1`, `2`, `3`, and `4`.
 
 ## References
 
-- [SiFive HiFive Unmatched Documentation](https://sifive.cdn.prismic.io/sifive/1a82e1f0-2b36-4403-9e88-a4f5fbb8e79f_hifive-unmatched-getting-started-guide.pdf)
 - [Zephyr RISC-V Support](https://docs.zephyrproject.org/latest/boards/riscv/index.html)
 - [FreeRTOS RISC-V Port](https://www.freertos.org/RTOS-RISC-V.html)
 - [RISC-V ISA Manual](https://riscv.org/specifications/)
